@@ -137,6 +137,7 @@ function render(){
  stat();
  var counts={};platforms.forEach(function(p){counts[p]=0});
  seed.forEach(function(o){counts[platform(o)]=(counts[platform(o)]||0)+1});
+ counts["全部"]=seed.length;
  q("#platformTabs").innerHTML=platforms.map(function(p){return '<button type="button" class="platform'+(p===activePlatform?' active':'')+'" data-platform="'+esc(p)+'">'+esc(p)+' · '+counts[p]+'</button>'}).join("");
  var shops=Array.from(new Set(seed.filter(function(o){return activePlatform==="全部"||platform(o)===activePlatform}).map(shop))).sort(function(a,b){return a.localeCompare(b,"zh-CN")});
  if(shopFilter&&shops.indexOf(shopFilter)===-1)shopFilter="";
