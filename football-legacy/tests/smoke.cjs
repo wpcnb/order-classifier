@@ -15,8 +15,8 @@ function game(custom=null,prior=null){
  return {click(action,extras={}){const cb=handlers["app:click"];assert(cb);cb({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},submit(){handlers["app:submit"]({target:{id:"customForm"},preventDefault(){}})},page(p){handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{page:p}})}})},get state(){return JSON.parse(stored)},get save(){return stored},get html(){return node("app").innerHTML},selfTest:window.__footballDynastySelfTest}
 }
 function message(m){console.log("✓ "+m)}
-assert(html.includes('src="./uefa2026.js" defer')&&html.includes('src="./game.js" defer'));
-assert(html.indexOf('src="./uefa2026.js"')<html.indexOf('src="./game.js"'));
+assert(/src="\.\/uefa2026\.js(?:\?[^\"]+)?" defer/.test(html)&&/src="\.\/game\.js(?:\?[^\"]+)?" defer/.test(html));
+assert(html.indexOf('src="./uefa2026.js')<html.indexOf('src="./game.js'));
 assert(html.includes("./assets/stadium.svg"));assert(fs.existsSync(path.join(root,"assets","stadium.svg")));
 message("HTML resources and self-hosted stadium art");
 const x=game(),built=x.selfTest();assert(built.every(([name,v])=>v),JSON.stringify(built));
