@@ -20,6 +20,10 @@ const years=[];
 for(let i=0;i<12;i++){
  t.act("auto-season");const d=t.data;
  ok("Season 100 votes / 6700 points",d.ballots.at(-1).allVotes.length===100&&d.ballots.at(-1).totalPoints===6700);
+ ok("Exactly 30 nominees with maximum 1,500 per person",d.ballots.at(-1).results.length===30&&d.ballots.at(-1).results.every(x=>x.points<=1500));
+ ok("No fictitious name in award candidates except user",d.ballots.at(-1).results.every(x=>x.id==="YOU"||x.realPerson));
+ ok("Winner is a named individual and is retained on record",!!d.ballots.at(-1).winner?.name);
+
  ok("EPL matches complete",Object.values(d.leagueTable).every(x=>x.pl===38));
  years.push({apps:d.seasonTotals.apps,goals:d.seasonTotals.goals});
  if(i<11)t.act("next-season");
@@ -28,6 +32,9 @@ const s=t.data,ratio=s.totals.goals/s.totals.apps;
 ok("Long-run goals less than one per appearance",ratio>.05&&ratio<.88);
 ok("No 75-goal normal season",years.every(y=>y.goals<75));
 t.tab("career");ok("Career has numeric medals and goals trend",t.html.includes("累计获奖次数")&&t.html.includes("历年进球和助攻折线图"));
+t.tab("overview");ok("No forbidden wording appears in current game UI",!t.html.includes("\u6a21\u62df"));
+t.tab("career");ok("Official 2026 winner is listed separately",t.html.includes("凯恩1055分"));
+
 const clubs=Object.values(s.leagueTable),teamGoals=clubs.reduce((a,b)=>a+b.gf,0)/clubs.reduce((a,b)=>a+b.pl,0);
 ok("League team score model calibrated",teamGoals>.3&&teamGoals<3);
 const h=boot().data;
