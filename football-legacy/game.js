@@ -39,13 +39,36 @@ function power(team){
 
 function overall(p){const a=Object.values(p.stats),w=WEIGHTS[p.position]||WEIGHTS.CM;return Math.round(a.reduce((s,v,i)=>s+v*w[i],0))}
 function mkTalent(){let s={};Object.keys(STATS).forEach(k=>s[k]=R(42,67));let specialty=P(Object.keys(STATS));s[specialty]=C(s[specialty]+R(9,16),1,99);return {stats:s,potential:R(80,98),specialty}}
+function realAwardRoster(){
+ const data=window.FOOTBALL_AWARD_REAL_PEOPLE;
+ return Array.isArray(data?.roster)&&data.roster.length>=30?data.roster:[];
+}
+function realNPC(person,i){
+ const [name,club,pos,ov,age]=person;
+ return {id:"real-"+i,name,club,pos,ov,age,potential:C(ov+R(0,3),ov,99),
+  apps:0,goals:0,assists:0,europeGoals:0,europeAssists:0,rating:6.5,form:60,realPerson:true}
+}
+function ensureRealAwardPlayers(){
+ if(!g||!Array.isArray(g.npcs))return;
+ const real=realAwardRoster(),present=new Set(g.npcs.filter(n=>n.realPerson).map(n=>n.name));
+ for(let i=0;i<real.length;i++)if(!present.has(real[i][0])){
+  const existing=g.npcs.find(n=>n.name===real[i][0]);
+  if(existing){existing.realPerson=true;present.add(existing.name);continue}
+  g.npcs.push(realNPC(real[i],i));present.add(real[i][0])
+ }
+}
+
 function initNPC(){
- const stars=STAR_SEEDS.map(([name,club,pos,ov],i)=>({id:"star"+i,name,club,pos,ov,age:R(21,31),potential:Math.min(99,ov+R(0,3)),apps:0,goals:0,assists:0,ratings:0,rating:7,form:60}));
+ const roster=realAwardRoster().map(realNPC);
  const positions=["ST","LW","RW","CAM","CM","CDM","CB","CB","GK"];
  Object.values(DB).forEach(l=>l.teams.forEach((t,i)=>{
-  for(let j=0;j<positions.length;j++){stars.push({id:l.id+i+"_"+j,name:P(NAMES1)+"·"+P(NAMES2),club:t.name,pos:positions[j],ov:C(t.power+R(-15,5)-(j===8?0:2),42,94),age:R(18,33),potential:R(75,97),apps:0,goals:0,assists:0,ratings:0,rating:6.5,form:50})}
+  for(let j=0;j<positions.length;j++)roster.push({
+   id:l.id+i+"_"+j,name:P(NAMES1)+"·"+P(NAMES2),club:t.name,pos:positions[j],
+   ov:C(t.power+R(-15,5)-(j===8?0:2),42,94),
+   age:R(18,33),potential:R(75,97),apps:0,goals:0,assists:0,ratings:0,rating:6.5,form:50,realPerson:false
+  })
  }));
- return stars
+ return roster
 }
 
 function log(msg){g.logs.unshift({year:g.year,week:g.season.completed,description:msg});g.logs=g.logs.slice(0,160)}
@@ -220,7 +243,7 @@ function simulateNPCOffseason(){
  const allTeams=Object.entries(DB).flatMap(([id,league])=>league.teams.map(t=>({id,name:t.name,strength:power(t.name)})));
  for(const n of g.npcs){
   n.age=(n.age||24)+1;n.potential=n.potential||90;
-  if(n.age>=39){n.name=P(NAMES1)+"·"+P(NAMES2);n.age=R(17,21);n.ov=R(49,73);n.potential=R(78,96);n.id="new_"+g.year+"_"+n.id;n.form=45}
+  if(n.age>=39){n.realPerson=false;n.name=P(NAMES1)+"·"+P(NAMES2);n.age=R(17,21);n.ov=R(49,73);n.potential=R(78,96);n.id="new_"+g.year+"_"+n.id;n.form=45}
   else n.ov=C(n.ov+(n.age<25&&n.ov<n.potential?R(0,2):n.age>33?-R(0,2):R(-1,1)),40,99);
   if(n.age>=19&&n.age<=34&&n.ov>=64&&Math.random()<.022){
    const eligible=allTeams.filter(t=>t.name!==n.club&&Math.abs(t.strength-n.ov)<17);
@@ -645,6 +668,6 @@ $("app").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b
 $("app").addEventListener("submit",ev=>{if(ev.target.id!=="customForm")return;ev.preventDefault();const f=new FormData(ev.target);draft={name:String(f.get("name")||"陆白").trim().slice(0,22),country:f.get("country"),leagueId:f.get("leagueId"),club:f.get("club"),position:f.get("position"),talent:draft.talent};buildGame(true)});
 $("app").addEventListener("change",ev=>{if(ev.target.id==="leagueChoice"){const id=ev.target.value,c=$("clubChoice");c.innerHTML=DB[id].teams.map(t=>'<option value="'+E(t.name+"青训")+'">'+E(t.name+"青训")+'</option>').join("")}if(ev.target.id==="autoPoints"&&g){g.player.autoPoints=ev.target.checked;save()}if(ev.target.id==="autoTraining"&&g){g.player.autoTraining=ev.target.checked;save()}if(ev.target.id==="coachFormation"&&g?.coach){g.coach.formation=ev.target.value;log("采用"+ev.target.value+"阵型");save()}if(ev.target.id==="coachAutoPoints"&&g?.coach){g.coach.autoPoints=ev.target.checked;save()}if(ev.target.id==="formationChoice"&&g?.player.parentCoach){g.player.parentCoach.formation=ev.target.value;log("主教练采用 "+ev.target.value+" 阵型");save()}});
 $("importFile").addEventListener("change",e=>{importFile(e.target.files[0]);e.target.value=""});
-try{const v=JSON.parse(localStorage.getItem(STORE));if(v&&v.version===4&&v.player&&v.season&&v.season.events){g=v;g.mode=g.mode||"player";if(!g.season.world)createWorld(g.season);if(g.player.trainingUsed===undefined)g.player.trainingUsed=false}}catch(e){g=null}render();
+try{const v=JSON.parse(localStorage.getItem(STORE));if(v&&v.version===4&&v.player&&v.season&&v.season.events){g=v;g.mode=g.mode||"player";if(!g.season.world)createWorld(g.season);ensureRealAwardPlayers();if(g.player.trainingUsed===undefined)g.player.trainingUsed=false}}catch(e){g=null}render();
 window.__footballDynastySelfTest=()=>{const tests=[];let rr=makeRR(DB.ENG.teams.map(x=>x.name));tests.push(["英超38轮",rr.length===38]);tests.push(["每轮10场",rr.every(x=>x.length===10)]);let key={};for(const round of rr)for(const f of round){key[f.home+"|"+f.away]=(key[f.home+"|"+f.away]||0)+1}tests.push(["每对主客仅交手一次",Object.values(key).every(n=>n===1)&&Object.keys(key).length===380]);tests.push(["曼联真实赛程38场",MANU_26.length===38]);tests.push(["曼联欧冠前三场历史锁定",MANU_CL.slice(0,3).every(x=>x.length===5)]);tests.push(["七项能力",Object.keys(STATS).length===7]);return tests};
 })();
