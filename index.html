@@ -200,7 +200,7 @@ function reincarnateRealPlayers(state){
   const record={id,name:origin+'·转世第'+generation+'代',originalName:origin,
     englishName:ancestor.englishName||'',club:ancestor.club,league:ancestor.league,pos:ancestor.pos,
     baseOverall:initial,overall:initial,potential,age,rebirth:true,
-    rebirthYear:year,birthYear:year-age,bornOn:null,retired:false,
+    rebirthYear:year,rebirthStartAge:age,birthYear:year-age,bornOn:null,retired:false,
     realPerson:true,authentic:false,isYouth:false,lineageKey:lineage,lineageGeneration:generation,
     apps:0,goals:0,assists:0,form:56};
   state.npcs.push(record);
@@ -221,7 +221,7 @@ function syncRealPlayerAges(state){
   if(!n.realPerson||n.retired)continue;
   const wasRetired=!!n.retired;
   if(n.rebirth){
-    n.age=16+year-(n.rebirthYear||year);
+    n.age=(n.rebirthStartAge||16)+year-(n.rebirthYear||year);
     if(n.age>=retirementAge(n)){n.retired=true;n.retiredAt=year}
     else if(n.age>30){
       const cap=clamp(Math.round(n.potential-Math.pow(n.age-30,1.3)*1.8),38,99);
@@ -469,7 +469,7 @@ function ballonVote(){
  if(pool.length!==30){
     s.ballots.push({year:s.year+1,seasonYear:s.year,model:6,suspended:true,candidates:pool.length,
       playerNominated:false,playerRank:null,playerPoints:0,
-      reason:'现役真实球员不足30人，年度评选暂停；不会让退役球员参选'});
+      reason:'现役球员及转世新秀不足30人，年度评选暂停；不会让退役球员参选'});
     addLog(s,'金球奖'+(s.year+1)+'：现役真实球员不足30人，本届暂不进行评选。');
     return
  }
@@ -517,11 +517,11 @@ function awardsPanel(){
  const actual='<details class="award-history" style="margin-top:12px"><summary>2026年真实历史金球奖 · 凯恩1055分</summary>'+
   '<p class="muted small">以下为《法国足球》2026年公布的真实评选前10名，与游戏世界2026/27赛季的奖项分开记录。</p>'+
   '<div class="europe-list">'+official.map((row,i)=>'<div class="europe-fixture"><b>'+(i+1)+'. '+esc(row[0])+'</b><strong>'+row[1]+'分</strong></div>').join('')+'</div></details>';
- const card=b?.suspended?'<div class="list-item"><b>本届金球奖未举行</b><p class="muted">'+esc(b.reason)+'</p><p class="muted small">候选球员须真实存在且未退役；现役名单不够30人时，不能凭空添加人选。</p></div>':latest?'<div class="metrics">'+metric('获奖人物',esc(b.winner.name))+
+ const card=b?.suspended?'<div class="list-item"><b>本届金球奖未举行</b><p class="muted">'+esc(b.reason)+'</p><p class="muted small">候选人须为在役的现实球员或正式转世新秀；人数不足30时不会让已退役人物参选。</p></div>':latest?'<div class="metrics">'+metric('获奖人物',esc(b.winner.name))+
    metric('获奖票分',b.winner.points+' / 1500')+
    metric('你的名次',b.playerNominated?'第'+b.playerRank+'名':'未入围30人')+
    metric('你的得分',b.playerNominated?b.playerPoints+' / 1500':'—')+'</div>'+
-   '<p class="muted small">30位候选人物均取自真实足球运动员名单。赛季表现及记者投票由游戏赛季进程产生。</p>'+
+   '<p class="muted small">候选人来自现实球星、真实青训新星和明确标注世代的转世新人；转世人物属于游戏设定。当季表现及记者投票取决于游戏赛季进程。</p>'+
    '<div class="europe-list">'+b.results.map((x,i)=>'<div class="europe-fixture"><b>'+(i+1)+'. '+esc(x.name)+(x.id==='YOU'?'（你）':'')+'</b><span class="muted">'+esc(x.club)+' · '+x.goals+'球 '+x.assists+'助</span><strong>'+x.points+' / 1500分</strong></div>').join('')+'</div>':
    b?'<div class="list-item"><b>旧赛季奖项记录已保留</b><p class="muted small">此届使用旧版候选数据，不能把未经核对的姓名当作真实球员。新赛季起将展示30位真实球员及获奖人物。</p>'+
    '<p>你的旧届排名：'+(b.playerRank>0?'第'+b.playerRank+'名':'未入围')+'</p></div>':
@@ -580,7 +580,7 @@ function createPlayer(form){
  player.leagueTable=buildLeague(player);player.europe=buildEurope(player);refreshSponsorOffers(player);rolledTalent=null;return player;
 }
 function defCheck(p){return p&&p.version===2&&typeof p.name==='string'&&typeof p.age==='number'&&p.stats&&p.seasonTotals&&p.totals&&Array.isArray(p.log)&&Array.isArray(p.awards)}
-function shellHTML(){return '<section class="card banner"><div><div class="eyebrow">'+esc(s.year)+' / 第 '+esc(s.season)+' 赛季 · '+esc(leagueName(s))+'</div><h2>'+esc(s.name)+' <span class="muted" style="font-size:15px">'+s.age+'岁 · '+esc(POSITIONS[s.pos])+'</span></h2><div class="muted">'+esc(s.club)+' · '+esc(s.country)+' · '+(s.number?'#'+s.number+' · ':'')+'周薪 '+money(s.salary)+'</div></div><div class="avatar">'+over(s)+'</div></section><div class="metrics">'+metric('综合能力',over(s), 'success')+metric('当前身价', '¥'+(value(s)/10000).toFixed(1)+'万')+metric('职业生涯进球',s.totals.goals)+metric('代言收入',money(s.sponsorIncomeTotal||0))+metric('金球奖最佳排名',careerBestRank('ballon'))+metric('生涯冠军',s.awards.filter(x=>x.type==='title').length)+'</div><nav class="nav" aria-label="游戏导航">'+[['overview','概览'],['match','比赛'],['training','训练'],['market','转会'],['sponsor','代言'],['europe','欧冠/欧联'],['career','生涯'],['save','存档']].map(([k,v])=>'<button type="button" data-tab="'+k+'" class="'+(tab===k?'active':'')+'">'+v+'</button>').join('')+'</nav>'}
+function shellHTML(){return '<section class="card banner"><div><div class="eyebrow">'+esc(s.year)+' / 第 '+esc(s.season)+' 赛季 · '+esc(leagueName(s))+'</div><h2>'+esc(s.name)+' <span class="muted" style="font-size:15px">'+s.age+'岁 · '+esc(POSITIONS[s.pos])+'</span></h2><div class="muted">'+esc(s.club)+' · '+esc(s.country)+' · '+(s.number?'#'+s.number+' · ':'')+'周薪 '+money(s.salary)+'</div></div><div class="avatar">'+over(s)+'</div></section><div class="metrics">'+metric('综合能力',over(s), 'success')+metric('当前身价', '¥'+(value(s)/10000).toFixed(1)+'万')+metric('职业生涯进球',s.totals.goals)+metric('代言收入',money(s.sponsorIncomeTotal||0))+metric('金球奖最佳排名',careerBestRank('ballon'))+metric('生涯冠军',s.awards.filter(x=>x.type==='title').length)+'</div><nav class="nav" aria-label="游戏导航">'+[['overview','概览'],['match','比赛'],['training','训练'],['market','转会'],['sponsor','代言'],['talent','青训/转世'],['europe','欧冠/欧联'],['career','生涯'],['save','存档']].map(([k,v])=>'<button type="button" data-tab="'+k+'" class="'+(tab===k?'active':'')+'">'+v+'</button>').join('')+'</nav>'}
 function metric(title,num,cls=''){return '<div class="metric"><small>'+title+'</small><strong class="'+cls+'">'+num+'</strong></div>'}
 function stateHeader(){return '<div class="row"><div><div class="mini-label">体能 '+ratio(s.stamina)+'</div>'+BAR(s.stamina)+'</div><div><div class="mini-label">士气 '+ratio(s.morale)+'</div>'+BAR(s.morale)+'</div><div><div class="mini-label">教练信任 '+ratio(s.manager)+'</div>'+BAR(s.manager)+'</div></div>'}
 function summaryPanel(){let t=s.seasonTotals;return '<div class="card"><h2>本赛季数据</h2><div class="grid three">'+metric('出场',t.apps)+metric('进球',t.goals)+metric('助攻',t.assists)+metric('零封',t.clean)+metric('联赛积分',t.points)+metric('场均评分',t.ratings.length?(t.ratings.reduce((a,b)=>a+b,0)/t.ratings.length).toFixed(2):'—')+'</div><div class="divider"></div><div class="row"><span>赛季完成度</span><b>'+Math.min(s.week-1,s.fixtures)+' / '+s.fixtures+' 轮</b></div><div class="progress-ring"><span style="width:'+clamp((s.week-1)/s.fixtures*100,0,100)+'%"></span></div></div>'}
@@ -714,6 +714,33 @@ function careerStandingSummary(){
   (last?'<p class="muted small">'+last.year+'赛季：金球奖'+(last.ballonRank?'第'+last.ballonRank+'名':'未入围')+
     ' · 联赛金靴'+(last.goldenBootRank?'第'+last.goldenBootRank+'名':'暂无')+'</p>':'<p class="muted">赛季结束后记录。</p>')+'</section>'
 }
+
+function talentsPage(){
+ const real=(s.npcs||[]).filter(x=>x.isYouth&&!x.rebirth);
+ const active=real.filter(x=>!x.retired).sort((a,b)=>b.potential-a.potential||a.age-b.age);
+ const reborn=(s.npcs||[]).filter(x=>x.rebirth&&!x.retired).sort((a,b)=>a.age-b.age);
+ const total=(s.worldRebirths||[]).length;
+ const badgeYouth=n=>'<div class="list-item"><div class="row"><b>'+esc(n.name)+'</b><span class="tag">'+n.age+'岁 · '+esc(POSITIONS[n.pos]||'球员')+'</span></div>'+
+   '<div class="muted">'+esc(n.club)+(n.englishName?' · '+esc(n.englishName):'')+'</div>'+
+   '<div class="metrics">'+metric('当前能力',n.overall)+metric('成长潜力',n.potential)+metric('赛季出场',n.apps)+'</div>'+
+   '<p class="muted small">出生日期 '+(n.bornOn||'—')+' · 成长潜力属于游戏设定，不是现实球探评分。</p></div>';
+ const badgeRebirth=n=>'<div class="list-item"><div class="row"><b>'+esc(n.name)+'</b><span class="pill">第'+n.lineageGeneration+'代 · '+n.age+'岁</span></div>'+
+   '<p class="muted small">原球星：'+esc(n.originalName)+' · 现效力 '+esc(n.club)+' · '+esc(POSITIONS[n.pos]||'球员')+'</p>'+
+   '<div class="metrics">'+metric('初始能力',n.baseOverall)+metric('当前能力',n.overall)+metric('最高潜力',n.potential)+'</div>'+
+   '<p class="muted small">独立新人，职业成绩、进球及奖项从零开始，不继承原球星历史数据。</p></div>';
+ return '<section class="card"><div class="row"><h2>青训球探 · 世界新星</h2><span class="pill">2026真实青训资料库</span></div>'+
+ '<p class="muted small">首批收录37名2008—2010年出生的真实球员，年龄随赛季增长；数据潜力和未来发展仅属于游戏世界。出处：2026年新星专题及俱乐部官方青训资料。</p>'+
+ '<div class="metrics">'+metric('真实青训球员',real.length)+metric('青训仍在役',active.length)+metric('在役转世新秀',reborn.length)+metric('历史转世总数',total)+'</div>'+
+ '<details class="award-history" open style="margin-top:12px"><summary>真实青训球员 · '+active.length+'名在役</summary>'+
+ '<div class="grid" style="margin-top:12px">'+active.slice(0,50).map(badgeYouth).join('')+'</div></details>'+
+ '<details class="award-history" open style="margin-top:12px"><summary>转世新秀 · '+reborn.length+'名在役</summary>'+
+ '<p class="muted small">转世是游戏的虚构世代机制，不代表同名现实球员重新出生。原球星的退役记录和历史奖项永久保留。</p>'+
+ '<div class="grid" style="margin-top:12px">'+(reborn.length?reborn.slice(-50).map(badgeRebirth).join(''):'<p class="muted">等第一批球星退役后，转世新人会从16～17岁加入赛场。</p>')+'</div></details>'+
+ '<details class="award-history" style="margin-top:12px"><summary>历届转世事件 · '+total+'条</summary>'+
+ '<div class="list">'+(s.worldRebirths||[]).slice(-60).reverse().map(e=>'<div class="list-item"><b>'+e.year+'年 · '+esc(e.name)+'</b>'+
+ '<div class="muted small">前代 '+esc(e.from)+' → 新秀'+e.age+'岁 · '+esc(e.club)+'</div></div>').join('')+'</div></details></section>'
+}
+
 function footballRetirementHall(){
  const all=s.footballRetirements||[];
  if(!all.length)return '';
@@ -853,7 +880,7 @@ function autoSeason(){
 function exportSave(){if(!s)return;let blob=new Blob([JSON.stringify({game:'绿茵传奇',version:2,save:s},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='绿茵传奇_'+s.name+'_'+s.year+'.json';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);notice('已导出存档文件');}
 async function importSave(file){if(!file||file.size>1024*1024){notice('存档文件过大或无效');return;}try{const txt=await file.text();let data=JSON.parse(txt),candidate=data.save||data;if(!defCheck(candidate))throw Error('存档结构不匹配');if(!confirm('导入存档将替换当前进度，确定继续吗？'))return;s=candidate;tab='overview';commit();notice('存档导入成功');}catch(e){notice('导入失败：不是兼容的 v2 存档');}}
 function commit(){if(!batching){save();render();}}
-function render(){const app=$('app');if(!s){app.innerHTML=welcome();return;}if(s.phase==='moment'&&!s.match){s.phase='prep';}if(!['overview','match','training','market','sponsor','career','save','europe'].includes(tab))tab='overview';let body={overview,match:matchPanel,training:trainingPanel,market:marketPanel,sponsor:sponsorshipPage,career:careerPanel,save:savePanel,europe:europePanel}[tab]();app.innerHTML=shellHTML()+'<div style="margin-top:12px">'+body+'</div>'+(s.phase==='season_end'&&tab==='overview'?'<section class="card" style="margin-top:12px;border-color:#947c4b"><div class="eyebrow">Season Review</div><h2>赛季结算 · '+s.year+'</h2><p>'+s.lastSummary.points+' 分 · '+s.lastSummary.goals+' 球 · '+s.lastSummary.assists+' 助攻 · 场均 '+s.lastSummary.average+'</p><p class="warning">'+(s.lastSummary.won?'🏆 联赛夺冠 · ':'')+(s.lastSummary.cup?'🏆 杯赛冠军 · ':'')+(s.lastSummary.scoring?'🏅 赛季金靴':'')+'</p>'+mainButtons()+'</section>':'');}
+function render(){const app=$('app');if(!s){app.innerHTML=welcome();return;}if(s.phase==='moment'&&!s.match){s.phase='prep';}if(!['overview','match','training','market','sponsor','talent','career','save','europe'].includes(tab))tab='overview';let body={overview,match:matchPanel,training:trainingPanel,market:marketPanel,sponsor:sponsorshipPage,talent:talentsPage,career:careerPanel,save:savePanel,europe:europePanel}[tab]();app.innerHTML=shellHTML()+'<div style="margin-top:12px">'+body+'</div>'+(s.phase==='season_end'&&tab==='overview'?'<section class="card" style="margin-top:12px;border-color:#947c4b"><div class="eyebrow">Season Review</div><h2>赛季结算 · '+s.year+'</h2><p>'+s.lastSummary.points+' 分 · '+s.lastSummary.goals+' 球 · '+s.lastSummary.assists+' 助攻 · 场均 '+s.lastSummary.average+'</p><p class="warning">'+(s.lastSummary.won?'🏆 联赛夺冠 · ':'')+(s.lastSummary.cup?'🏆 杯赛冠军 · ':'')+(s.lastSummary.scoring?'🏅 赛季金靴':'')+'</p>'+mainButtons()+'</section>':'');}
 $('app').addEventListener('submit',e=>{if(e.target.id!=='startForm')return;e.preventDefault();s=createPlayer(new FormData(e.target));addLog(s,'16岁从 '+s.club+' 青训队开启职业生涯。');tab='overview';commit();});
 $('app').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;let newTab=b.dataset.tab;if(newTab){tab=newTab;render();return;}let action=b.dataset.action,i=Number(b.dataset.index||0);if(!action)return;switch(action){case 'start-match':startMatch();break;case 'resolve':if(s.phase==='moment')completeMatch(i);break;case 'train':doTrain(b.dataset.value);break;case 'story':resolveStory(i);break;case 'auto-week':fastThree();break;case 'auto-season':autoSeason();break;case 'roll-talent':rolledTalent=freshTalent();render();break;case 'europe-next':simulateEuropeRound();commit();break;case 'europe-all':simulateEuropeAll();break;case 'next-season':nextSeason();break;case 'sign':doSign(i);break;case 'renew':doRenew();break;case 'sign-sponsor':signSponsor(i);break;case 'recalibrate-history':recalibrateHistory();break;case 'restore-history':restoreHistoryStats();break;case 'export':exportSave();break;case 'import':$('fileUpload').click();break;case 'restart':if(confirm('确定清除当前生涯并重新开始？建议先导出存档。')){localStorage.removeItem(KEY);s=null;tab='overview';render();}break;}});
 $('app').addEventListener('change',e=>{if(e.target.id==='leagueSelect'&&!s){const node=$('academySelect');if(node){node.innerHTML=youthClubs(e.target.value).map(c=>'<option>'+esc(c.name)+'</option>').join('');}}});
