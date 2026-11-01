@@ -36,9 +36,17 @@ assert.equal(s.season.leaguePlayed,38);assert(Object.values(s.season.leagueTable
 assert(Object.values(s.season.uefa.table).every(t=>t.p===8));
 assert(Object.values(s.season.world).every(l=>l.played===l.total&&Object.values(l.table).every(t=>t.p===l.total)));
 assert.equal(s.ballonHistory.length,1);assert.equal(s.ballonHistory[0].ballots.length,100);assert.equal(s.ballonHistory[0].totalPoints,6700);
+assert.equal(s.ballonHistory[0].rankings.length,30);
+assert(s.ballonHistory[0].rankings.every(n=>n.id==="USER"||n.realPerson));
+assert(s.ballonHistory[0].rankings.every(n=>n.points<=1500));
+assert(s.ballonHistory[0].winner?.name);
+x.page("awards");assert(!x.html.includes("\u6a21\u62df"));
+assert(x.html.includes("凯恩1055分"));
+message("France Football format: real-person 30, 100 ballots, 1500 cap, honest nomination and 2026 factual history");
+
 assert.equal(s.worldHistory.length,1);assert(s.npcs.length>1000);
 message("Whole-season simulation, nine league worlds, complete UEFA, 100 ballots and 6,700 points");
-let count=0;for(let i=0;i<11;i++){x.click("nextSeason");x.click("simSeason");s=x.state;assert.equal(s.season.stage,"review");count++}
+let count=0;for(let i=0;i<11;i++){x.click("nextSeason");x.click("simSeason");s=x.state;assert.equal(s.season.stage,"review");assert.equal(s.ballonHistory.at(-1).rankings.length,30);assert(s.ballonHistory.at(-1).rankings.every(n=>n.id==="USER"||n.realPerson));count++}
 assert(s.player.age>=32);assert.equal(s.history.length,12);
 message("Twelve sequential career seasons and save stability");
 x.click("startCoach");s=x.state;assert.equal(s.mode,"coach");assert(s.coach);
