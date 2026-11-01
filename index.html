@@ -55,7 +55,7 @@ function ensureLegacy(p){
  p.leagueId=p.leagueId||leagueForClub(p.club.replace(/青训$/,''));
  p.generation=p.generation||1;p.family=p.family||[];
  p.talent=p.talent||freshTalent();p.trainingProgress=p.trainingProgress||{};p.sponsorships=p.sponsorships||[];p.sponsorLedger=p.sponsorLedger||[];p.sponsorIncomeTotal=p.sponsorIncomeTotal||0;p.continentResults=p.continentResults||[];p.ballots=p.ballots||[];
- p.npcs=p.npcs||makeNPC();ensureRealAwardRoster(p);syncRealPlayerAges(p);p.coachName=p.coachName||'';p.coachCareer=!!p.coachCareer;
+ p.npcs=p.npcs||makeNPC();ensureRealAwardRoster(p);syncRealPlayerAges(p);reincarnateRealPlayers(p);p.coachName=p.coachName||'';p.coachCareer=!!p.coachCareer;
  p.tournaments=p.tournaments||null;
  if(!p.leagueRounds||!p.leagueRounds.length||!p.schedule||p.schedule.length!==p.leagueRounds.length){
   const oldProgress=p.week>1&&p.phase!=='season_end'&&p.phase!=='retired';
@@ -110,30 +110,34 @@ function makeVerifiedYouth(row,i){
 
 function verifiedBirthYear(name,rosterAge){return name==='姆巴佩'?1998:name==='梅西'?1987:name==='C罗'?1985:2026-rosterAge}
 function retirementAge(n){
- const i=Number(String(n.id||'').replace('real-',''))||0;
- return n.pos==='GK'?41+(i%3):36+(i%5)
+ const key=String(n.lineageKey||n.id||'player');
+ const h=[...key].reduce((a,x)=>(a*33+x.charCodeAt(0))%9973,17);
+ return (n.pos==='GK'?38:35)+h%(n.pos==='GK'?5:5);
 }
+
 function reconcileRealPlayer(n,person,i,year){
- n.realPerson=true;n.birthYear=verifiedBirthYear(person[0],person[4]);
- n.baseOverall=person[3];n.age=Math.max(16,year-n.birthYear-(n.name==='姆巴佩'?1:0));
- if(n.retired||n.age>=retirementAge(n)){n.retired=true;n.retiredAt=n.retiredAt||year;return}
- const decline=Math.max(0,n.age-30),youngBonus=n.age<27?Math.min(3,27-n.age)*.45:0;
- const ageCap=clamp(Math.round(n.baseOverall+youngBonus-Math.pow(decline,1.38)*1.7),35,99);
- n.overall=clamp(Math.min(n.overall||ageCap,ageCap),35,99);
- // Retirement probabilities apply on a season boundary, never on page refresh.
+ n.realPerson=true;n.lineageKey=n.lineageKey||'real-'+i;n.lineageGeneration=1;
+ n.baseOverall=person[3];n.potential=n.potential||Math.max(82,person[3]);
+ n.birthYear=verifiedBirthYear(person[0],person[4]);n.originalName=person[0];
+ if(n.retired)return;
+ n.age=Math.max(16,(n.startAge||person[4])+(year-(n.debutYear||2026)));
+ if(n.age>=retirementAge(n)){n.retired=true;n.retiredAt=n.retiredAt||year;return}
+ const late=Math.max(0,n.age-30);
+ const cap=clamp(Math.round(n.baseOverall+Math.max(0,26-n.age)*.12-Math.pow(late,1.34)*1.65),36,99);
+ n.overall=clamp(Math.min(n.overall||cap,cap),35,99)
 }
+
 function retireRealPlayersForNewSeason(state){
  const year=state.year;
- state.npcs.filter(n=>n.realPerson&&!n.retired).forEach(n=>{
-  const currentAge=year-(n.birthYear||2026-(n.age||27))-(n.name==='姆巴佩'?1:0);
-  if(currentAge>=retirementAge(n)||currentAge>=34&&rnd()<clamp((currentAge-33)*.06,0,.43)){
-   n.retired=true;n.retiredAt=year;n.age=currentAge;
-   state.footballRetirements=state.footballRetirements||[];
-   state.footballRetirements.push({name:n.name,age:currentAge,year,club:n.club});
+ for(const n of (state.npcs||[])){
+  if(!n.realPerson||n.retired)continue;
+  const age=n.age||20;
+  if(age>=retirementAge(n)||age>=34&&rnd()<clamp((age-33)*.055,0,.37)){
+   n.retired=true;n.retiredAt=year;recordFootballRetirement(state,n)
   }
- });
- state.footballRetirements=(state.footballRetirements||[]).slice(-200)
+ }
 }
+
 function npcSeasonTransition(n,year){
  if(n.realPerson)return;
  n.age=Math.max(16,Math.min(43,(n.age||randint(19,29))+1));
@@ -146,24 +150,109 @@ function npcSeasonTransition(n,year){
  else if(n.age>31){n.overall=clamp(n.overall-randint(0,2),40,92)}
  else n.overall=clamp(n.overall+randint(-1,1),42,95);
 }
+
+function recordFootballRetirement(state,n){
+ state.footballRetirements=state.footballRetirements||[];
+ if(state.footballRetirements.some(x=>x.id===n.id||x.name===n.name&&x.year===n.retiredAt))return;
+ state.footballRetirements.push({id:n.id,name:n.name,age:n.age,year:n.retiredAt||state.year,club:n.club,
+   generation:n.lineageGeneration||1,originalName:n.originalName||n.name});
+ state.footballRetirements=state.footballRetirements.slice(-350)
+}
+function seasonImproveAcademyPlayers(state){
+ for(const n of (state.npcs||[])){
+  if(!n.realPerson||n.retired)continue;
+  if(n.isYouth||n.rebirth){
+    const cap=n.potential||90,age=n.age||20;
+    const step=age<=19?randint(1,4):age<=23?randint(1,3):age<=27?randint(0,2):0;
+    const breakthrough=age<=22&&n.overall<cap-10&&rnd()<.10?2:0;
+    n.overall=clamp(n.overall+step+breakthrough,35,cap);
+    n.lastDevelopedYear=state.year
+  }else if(n.age<25&&rnd()<.40){
+    n.overall=Math.min((n.potential||n.baseOverall||90)+1,n.overall+1)
+  }
+ }
+}
+/* Distinct second/third generations are fictional footballers that inherit an
+   original real athlete's name, playing position and potential range, but NEVER
+   career statistics or award history. Source real athlete stays permanently retired. */
+function reincarnateRealPlayers(state){
+ if(!state?.npcs)return [];
+ const year=Number(state.year)||2026;
+ const byLineage=new Map();
+ for(const n of state.npcs){
+  if(!n.realPerson)continue;
+  n.lineageKey=n.lineageKey||n.id;
+  const k=n.lineageKey,old=byLineage.get(k);
+  if(!old||(n.lineageGeneration||1)>(old.lineageGeneration||1))byLineage.set(k,n)
+ }
+ const born=[];
+ for(const [lineage,ancestor] of byLineage){
+  if(!ancestor.retired||(ancestor.retiredAt||year)>=year)continue;
+  const generation=(ancestor.lineageGeneration||1)+1;
+  const id='rebirth-'+lineage+'-g'+generation;
+  if(state.npcs.some(x=>x.id===id))continue;
+  const hash=[...id].reduce((h,ch)=>(h*31+ch.charCodeAt(0))%1000003,97);
+  const age=16+hash%2;
+  const origin=ancestor.originalName||ancestor.name.split('·转世')[0];
+  const initial=clamp(56+hash%14,52,73);
+  const parentTalent=ancestor.potential||ancestor.baseOverall||88;
+  const potential=clamp(Math.round(parentTalent*.92+((Math.floor(hash/13)%9)-3)),81,98);
+  const record={id,name:origin+'·转世第'+generation+'代',originalName:origin,
+    englishName:ancestor.englishName||'',club:ancestor.club,league:ancestor.league,pos:ancestor.pos,
+    baseOverall:initial,overall:initial,potential,age,rebirth:true,
+    rebirthYear:year,birthYear:year-age,bornOn:null,retired:false,
+    realPerson:true,authentic:false,isYouth:false,lineageKey:lineage,lineageGeneration:generation,
+    apps:0,goals:0,assists:0,form:56};
+  state.npcs.push(record);
+  const logRecord={year,name:record.name,from:ancestor.name,club:record.club,age,generation,potential,originalName:origin};
+  (state.worldRebirths||(state.worldRebirths=[])).push(logRecord);
+  born.push(logRecord)
+ }
+ state.worldRebirths=(state.worldRebirths||[]).slice(-400);
+ return born
+}
+
 function syncRealPlayerAges(state){
  if(!state||!Array.isArray(state.npcs))return;
  const year=Number(state.year)||2026;
- const people=REAL_AWARD_DATA.roster;
- const known=new Map(people.map((row,i)=>[row[0],[row,i]]));
- state.npcs.forEach(n=>{
-   if(!n.realPerson)return;
-   const match=known.get(n.name),wasRetired=!!n.retired;
-   if(match)reconcileRealPlayer(n,match[0],match[1],year);
-   if(!wasRetired&&n.retired){
-     state.footballRetirements=state.footballRetirements||[];
-     if(!state.footballRetirements.some(x=>x.name===n.name)){
-       state.footballRetirements.push({name:n.name,age:n.age,year:n.retiredAt||year,club:n.club})
-     }
-   }
-   else if(n.birthYear){n.age=year-n.birthYear;n.retired=n.retired||n.age>=39}
-   else {n.retired=true;n.retiredAt=year}
- })
+ const originals=REAL_AWARD_DATA.roster;
+ const youthById=new Map(VERIFIED_YOUTH_2026.map((row,i)=>['youth-'+i,row]));
+ for(const n of state.npcs){
+  if(!n.realPerson||n.retired)continue;
+  const wasRetired=!!n.retired;
+  if(n.rebirth){
+    n.age=16+year-(n.rebirthYear||year);
+    if(n.age>=retirementAge(n)){n.retired=true;n.retiredAt=year}
+    else if(n.age>30){
+      const cap=clamp(Math.round(n.potential-Math.pow(n.age-30,1.3)*1.8),38,99);
+      n.overall=Math.min(n.overall,cap)
+    }
+  }else if(n.isYouth||String(n.id).startsWith('youth-')){
+    const row=youthById.get(n.id);
+    if(row){
+      n.isYouth=true;n.authentic=true;n.bornOn=row[3];n.birthYear=Number(row[3].slice(0,4));
+      n.potential=n.potential||row[5];n.baseOverall=n.baseOverall||row[4];
+      n.lineageKey=n.lineageKey||n.id;n.lineageGeneration=1;n.originalName=n.originalName||row[0];
+    }
+    n.age=currentFootballAge(n.bornOn,year)??Math.max(16,year-(n.birthYear||2009));
+    // When a long-running save imports newly added real teenagers,
+    // retroactively provide age-appropriate development without rewriting old results.
+    if(n.lastDevelopedYear===undefined&&year>2026){
+      n.overall=clamp(Math.max(n.overall,n.baseOverall+Math.min(30,Math.max(0,year-2026)*2)),35,n.potential||91);
+      n.lastDevelopedYear=year
+    }
+    if(n.age>=retirementAge(n)){n.retired=true;n.retiredAt=year}
+  }else{
+    const match=String(n.id).match(/^real-(\d+)$/);
+    if(match&&originals[Number(match[1])])reconcileRealPlayer(n,originals[Number(match[1])],Number(match[1]),year);
+    else {
+      const idx=originals.findIndex(p=>p[0]===n.name);
+      if(idx>=0)reconcileRealPlayer(n,originals[idx],idx,year);
+      else {n.retired=true;n.retiredAt=year}
+    }
+  }
+  if(!wasRetired&&n.retired)recordFootballRetirement(state,n)
+ }
 }
 
 function realPlayerNPC(person,i){
@@ -350,7 +439,8 @@ function simulateNPCWeek(){
    const quality=clamp((n.overall-60)/100,0,.40);
    const role={ST:.32,LW:.23,CM:.095,CB:.022,GK:.001}[n.pos]||.12;
    const assist={ST:.13,LW:.22,CM:.27,CB:.06,GK:.004}[n.pos]||.14;
-   if(rnd()<.89){n.apps++;
+   const appearanceChance=n.age<18?.35:n.age<20?.67:n.age<23?.84:.89;
+   if(rnd()<appearanceChance){n.apps++;
     const goals=randomPoisson(clamp((role+quality*.36)*(n.pos==='GK'?.05:1),.001,.95));
     n.goals+=Math.min(goals,3);
     n.assists+=Math.min(randomPoisson(assist+quality*.11),2);
@@ -688,7 +778,7 @@ function nextSeason(){if(!s||s.phase!=='season_end'||s.retired)return;if(s.tier=
  n.apps=0;n.goals=0;n.assists=0;n.form=0;
  if(n.realPerson)return;
  npcSeasonTransition(n,s.year)
-});syncRealPlayerAges(s);retireRealPlayersForNewSeason(s);refreshSponsorOffers(s);if(s.contract===0){s.contract=2;s.salary=Math.floor(s.salary*1.09/100)*100;addLog(s,'合约自动延长两年，周薪调整为 '+money(s.salary)+'。');}if(s.age>=39){retire();}else addLog(s,'新的赛季开始。俱乐部期待你的表现。');commit();}
+});syncRealPlayerAges(s);seasonImproveAcademyPlayers(s);retireRealPlayersForNewSeason(s);reincarnateRealPlayers(s);refreshSponsorOffers(s);if(s.contract===0){s.contract=2;s.salary=Math.floor(s.salary*1.09/100)*100;addLog(s,'合约自动延长两年，周薪调整为 '+money(s.salary)+'。');}if(s.age>=39){retire();}else addLog(s,'新的赛季开始。俱乐部期待你的表现。');commit();}
 function retire(){s.retired=true;s.phase='retired';s.offers=[];s.story=null;addLog(s,'宣布退役：结束 '+(s.age-16)+' 年职业生涯。');}
 function doTrain(id){
  if(s.trainingUsed||s.phase!=='prep'||s.story)return;
