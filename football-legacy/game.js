@@ -93,12 +93,13 @@ function createUefa(club,id,year,rank){
  clubs=[club,...new Set(clubs.filter(x=>x!==club))].slice(0,36);
  if(clubs.length!==36)throw Error("欧战参赛队不是36支");
  const preset=isManu?MANU_CL.map(f=>({opponent:f[1],home:f[2]==="H"})):[];
- const drawRounds=makeUefaDraw(clubs,preset);
+ const imported=isManu&&window.FOOTBALL_OFFICIAL_UCL_2026?.fixtures?.length===8?window.FOOTBALL_OFFICIAL_UCL_2026.fixtures:null;
+ const drawRounds=imported?imported.map(round=>round.map(x=>({...x,real:Number.isInteger(x.hs)&&Number.isInteger(x.as)}))):makeUefaDraw(clubs,preset);
  const days=["09-10","10-13","10-21","11-03","11-25","12-08","01-20","01-27"];
- const matches=drawRounds.map((round,i)=>{const f=round.find(x=>x.home===club||x.away===club),official=isManu?MANU_CL[i]:null;
-  return {id:"u"+i,kind:"europe",date:(i>=6?year+1:year)+"-"+days[i],competition:type,home:f.home,away:f.away,stage:"联赛阶段 · 第"+(i+1)+"轮",verified:official&&i<3?{gf:official[3],ga:official[4]}:null}
+ const matches=drawRounds.map((round,i)=>{const fixture=round.find(x=>x.home===club||x.away===club),official=isManu?MANU_CL[i]:null,real=fixture.real;
+  return {id:"u"+i,kind:"europe",date:fixture.date||((i>=6?year+1:year)+"-"+days[i]),competition:type,home:fixture.home,away:fixture.away,stage:"联赛阶段 · 第"+(i+1)+"轮",verified:real?{gf:fixture.home===club?fixture.hs:fixture.as,ga:fixture.home===club?fixture.as:fixture.hs}:official&&i<3?{gf:official[3],ga:official[4]}:null}
  });
- return {type,drawRounds,table:Object.fromEntries(clubs.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),played:0,stage:"league",completed:false,knockoutIndex:0,knockoutResults:[],matches}
+ return {type,drawRounds,verifiedHistory:!!imported,source:imported?"UEFA官方（截至2026-11-01）":"游戏模拟",table:Object.fromEntries(clubs.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),played:0,stage:"league",completed:false,knockoutIndex:0,knockoutResults:[],matches}
 }
 
 function createCups(id,year){let name=id==="ENG"?"足总杯":id==="ESP"?"国王杯":id==="GER"?"德国杯":id==="ITA"?"意大利杯":id==="FRA"?"法国杯":id==="CHN"?"足协杯":id==="BRA"?"巴西杯":id==="NED"?"荷兰杯":"葡萄牙杯";return {name,active:true,stage:0,stages:["第三轮","第四轮","第五轮","八强","半决赛","决赛"],results:[]}}
@@ -144,7 +145,7 @@ function simulateUefaOthers(uefa,ev){
  const rounds=uefa.drawRounds?.[roundIdx];
  if(rounds){
   for(const m of rounds){if(m.home===g.player.club||m.away===g.player.club)continue;
-   const [hs,as]=simulateScore(m.home,m.away);updateTable(uefa.table,m.home,m.away,hs,as)
+   const [hs,as]=m.real?[m.hs,m.as]:simulateScore(m.home,m.away);updateTable(uefa.table,m.home,m.away,hs,as)
   }
  }else{
   // Previous v4 save compatibility; newly created seasons use the complete drawn schedule above.
