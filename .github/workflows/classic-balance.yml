@@ -6,12 +6,16 @@ on:
       - "index.html"
       - "tests/classic-balance.cjs"
       - "tests/classic-world.cjs"
+      - "tests/classic-generations.cjs"
+      - "data/verified-youth-2026.json"
       - ".github/workflows/classic-balance.yml"
   pull_request:
     paths:
       - "index.html"
       - "tests/classic-balance.cjs"
       - "tests/classic-world.cjs"
+      - "tests/classic-generations.cjs"
+      - "data/verified-youth-2026.json"
       - ".github/workflows/classic-balance.yml"
   workflow_dispatch:
 permissions:
@@ -31,3 +35,5 @@ jobs:
         run: node tests/classic-balance.cjs
       - name: Test realistic aging, sponsorships and career rankings
         run: node tests/classic-world.cjs
+      - name: Test verified academy prospects and 68-season rebirth dynasty
+        run: node tests/classic-generations.cjs
