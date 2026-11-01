@@ -178,6 +178,7 @@ function seasonImproveAcademyPlayers(state){
 function reincarnateRealPlayers(state){
  if(!state?.npcs)return [];
  const year=Number(state.year)||2026;
+ state.worldRebirthCount=Math.max(state.worldRebirthCount||0,(state.worldRebirths||[]).length);
  const byLineage=new Map();
  for(const n of state.npcs){
   if(!n.realPerson)continue;
@@ -208,7 +209,6 @@ function reincarnateRealPlayers(state){
   (state.worldRebirths||(state.worldRebirths=[])).push(logRecord);
   born.push(logRecord)
  }
- state.worldRebirthCount=Math.max(state.worldRebirthCount||0,(state.worldRebirths||[]).length);
  state.worldRebirths=(state.worldRebirths||[]).slice(-400);
  state.worldRebirthCount+=born.length;
  return born
