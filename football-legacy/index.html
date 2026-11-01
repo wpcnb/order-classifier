@@ -40,5 +40,11 @@ html{scrollbar-color:#3a6581 #101e2d}body{background-attachment:fixed}
 details.item{cursor:pointer}details.item>summary{padding:3px 0;list-style-position:inside}details.item[open]{background:#1a3951;border-color:#589c94}
 details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
 .save-indicator{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#aaf0c8;background:#133f35;padding:6px 10px;border-radius:40px;border:1px solid #31856b}
+
+/* Procedural non-trademark club shields, consistent for every team */
+.club-match{display:flex;justify-content:center;align-items:center;gap:13px;max-width:850px;margin:auto;flex-wrap:wrap}
+.clubcrest{--club-hue:180;display:inline-grid;place-items:center;width:60px;height:69px;flex:0 0 60px;font-size:15px;font-weight:950;letter-spacing:-1px;color:white;text-shadow:0 1px 3px #0008;background:linear-gradient(145deg,hsl(var(--club-hue),68%,64%),hsl(var(--club-hue),65%,25%));border:3px solid #daecf5;box-shadow:0 3px 1px #0004,inset 0 0 0 3px #ffffff4d;clip-path:polygon(12% 0,88% 0,100% 13%,91% 78%,50% 100%,9% 78%,0 13%)}
+.clubcrest::first-letter{font-size:18px}.match-club-name{font-size:20px;font-weight:850;max-width:200px}.match-vs{font-size:29px;font-weight:950}
+@media(max-width:730px){.club-match{gap:7px}.clubcrest{width:43px;height:51px;flex-basis:43px;font-size:12px}.match-club-name{font-size:15px;max-width:125px}.match-vs{font-size:20px}}
 </style></head>
 <body><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">全新独立版 v4.5</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" aria-live="off"></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机模拟作品，部分真实赛事比分注明来源，其余均为游戏模拟。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。球场插画为原创本地 SVG，不依赖外部图片网络。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./uefa2026.js" defer></script><script src="./game.js" defer></script></body></html>
