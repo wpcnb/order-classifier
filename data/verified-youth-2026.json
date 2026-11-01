@@ -1,0 +1,385 @@
+{
+  "edition": "2026-11-01",
+  "description": "Verified 2008–2010 youth footballers. Scores/potential are game-only estimates.",
+  "youth": [
+    [
+      "马克斯·道曼",
+      "阿森纳",
+      "LW",
+      "2009-12-31",
+      68,
+      97,
+      "Max Dowman",
+      "guardian-epl"
+    ],
+    [
+      "奥斯卡·约翰逊",
+      "阿斯顿维拉",
+      "LW",
+      "2009-06-09",
+      61,
+      88,
+      "Oscar Johnson",
+      "guardian-epl"
+    ],
+    [
+      "扎克·克里斯蒂",
+      "伯恩茅斯",
+      "CM",
+      "2010-01-18",
+      60,
+      89,
+      "Zac Christie",
+      "guardian-epl"
+    ],
+    [
+      "贾伊·恩沃苏",
+      "布伦特福德",
+      "ST",
+      "2010-03-03",
+      58,
+      88,
+      "Jai Nwosu",
+      "guardian-epl"
+    ],
+    [
+      "马赫迪·尼科尔-贾祖利",
+      "切尔西",
+      "CM",
+      "2010-01-06",
+      61,
+      92,
+      "Mahdi Nicoll-Jazuli",
+      "guardian-epl"
+    ],
+    [
+      "德文·韦斯特",
+      "考文垂",
+      "CB",
+      "2009-10-15",
+      58,
+      86,
+      "Devon West",
+      "guardian-epl"
+    ],
+    [
+      "卢卡·贝内通",
+      "水晶宫",
+      "GK",
+      "2010-08-08",
+      60,
+      91,
+      "Lucca Benetton",
+      "guardian-epl"
+    ],
+    [
+      "乔纳森·恩桑古",
+      "埃弗顿",
+      "ST",
+      "2010-01-16",
+      60,
+      91,
+      "Jonathan Nsangou",
+      "guardian-epl"
+    ],
+    [
+      "库珀·卡温顿",
+      "富勒姆",
+      "GK",
+      "2010-04-16",
+      57,
+      87,
+      "Cooper Covington",
+      "guardian-epl"
+    ],
+    [
+      "裘德·克劳福德",
+      "赫尔城",
+      "CB",
+      "2010-06-08",
+      57,
+      87,
+      "Jude Crawford",
+      "guardian-epl"
+    ],
+    [
+      "卡勒姆·斯图尔特",
+      "伊普斯维奇",
+      "CM",
+      "2010-01-26",
+      58,
+      87,
+      "Callum Stewart",
+      "guardian-epl"
+    ],
+    [
+      "凯·莫拉尔",
+      "利兹联",
+      "LW",
+      "2010-02-05",
+      60,
+      88,
+      "Kai Morrall",
+      "guardian-epl"
+    ],
+    [
+      "乔什·阿贝",
+      "利物浦",
+      "LW",
+      "2010-07-17",
+      63,
+      94,
+      "Josh Abe",
+      "guardian-epl"
+    ],
+    [
+      "哈维尔·帕克",
+      "曼城",
+      "CM",
+      "2010-05-09",
+      63,
+      92,
+      "Xavier Parker",
+      "guardian-epl"
+    ],
+    [
+      "豪梅·卡马乔",
+      "曼联",
+      "CB",
+      "2009-10-05",
+      63,
+      91,
+      "Jaume Camacho",
+      "guardian-epl"
+    ],
+    [
+      "凯兰·汤普森",
+      "纽卡斯尔联",
+      "LW",
+      "2009-09-06",
+      61,
+      89,
+      "Kyran Thompson",
+      "guardian-epl"
+    ],
+    [
+      "桑尼·诺兰",
+      "诺丁汉森林",
+      "CM",
+      "2010-01-13",
+      58,
+      88,
+      "Sonny Nolan",
+      "guardian-epl"
+    ],
+    [
+      "阿尔菲·波洛克",
+      "桑德兰",
+      "CB",
+      "2010-03-31",
+      58,
+      87,
+      "Alfie Pollock",
+      "guardian-epl"
+    ],
+    [
+      "奥斯卡·桑迪福德",
+      "热刺",
+      "CB",
+      "2009-11-02",
+      59,
+      89,
+      "Oscar Sandiford",
+      "guardian-epl"
+    ],
+    [
+      "乔瓦尼·巴罗尼",
+      "塔列雷斯",
+      "CM",
+      "2009-01-21",
+      63,
+      89,
+      "Giovanni Baroni",
+      "guardian-world"
+    ],
+    [
+      "赵松源",
+      "清华附中",
+      "ST",
+      "2009-04-07",
+      62,
+      90,
+      "Zhao Songyuan",
+      "guardian-world"
+    ],
+    [
+      "米克尔·布罗·汉森",
+      "埃因霍温",
+      "ST",
+      "2009-01-25",
+      66,
+      91,
+      "Mikkel Bro Hansen",
+      "guardian-world"
+    ],
+    [
+      "安东尼奥·阿雷纳",
+      "罗马",
+      "ST",
+      "2009-02-10",
+      65,
+      92,
+      "Antonio Arena",
+      "guardian-world"
+    ],
+    [
+      "埃利亚斯·迪亚斯",
+      "自由队",
+      "CB",
+      "2009-01-20",
+      61,
+      88,
+      "Elías Díaz",
+      "guardian-world"
+    ],
+    [
+      "蒂亚戈·罗德里格斯",
+      "本菲卡",
+      "LW",
+      "2009-01-25",
+      60,
+      88,
+      "Tiago Rodrigues",
+      "guardian-world"
+    ],
+    [
+      "卡莱布·西蒙斯",
+      "纽约红牛",
+      "CM",
+      "2009-05-08",
+      59,
+      86,
+      "Caleb Simmons",
+      "guardian-world"
+    ],
+    [
+      "杰西·比西武",
+      "巴塞罗那",
+      "LW",
+      "2008-01-22",
+      70,
+      93,
+      "Jesse Bisiwu",
+      "barcelona-official"
+    ],
+    [
+      "梅森·迈利",
+      "纽卡斯尔联",
+      "CM",
+      "2008-09-29",
+      64,
+      89,
+      "Mason Miley",
+      "newcastle-official"
+    ],
+    [
+      "雷根·赫斯基",
+      "科隆",
+      "ST",
+      "2008-01-18",
+      65,
+      89,
+      "Reigan Heskey",
+      "koln-official"
+    ],
+    [
+      "福琼·埃加雷夫巴",
+      "维罗纳",
+      "ST",
+      "2010-02-22",
+      63,
+      90,
+      "Fortune Egharevba",
+      "verona-official"
+    ],
+    [
+      "桥本陆",
+      "FC东京",
+      "CB",
+      "2009-12-14",
+      58,
+      86,
+      "Riku Hashimoto",
+      "fctokyo-official"
+    ],
+    [
+      "中野弘希",
+      "FC东京",
+      "CM",
+      "2009-02-04",
+      61,
+      88,
+      "Hiroki Nakano",
+      "fctokyo-official"
+    ],
+    [
+      "梶山莲斗",
+      "FC东京",
+      "CM",
+      "2010-02-03",
+      60,
+      89,
+      "Rento Kajiyama",
+      "fctokyo-official"
+    ],
+    [
+      "樋口圭",
+      "FC东京",
+      "ST",
+      "2009-05-25",
+      59,
+      88,
+      "Kei Higuchi",
+      "fctokyo-official"
+    ],
+    [
+      "赤松犹大",
+      "FC东京",
+      "ST",
+      "2008-04-23",
+      60,
+      87,
+      "Judah Akamatsu",
+      "fctokyo-official"
+    ],
+    [
+      "城秀斗",
+      "FC东京",
+      "ST",
+      "2010-03-18",
+      58,
+      87,
+      "Shuto Jo",
+      "fctokyo-official"
+    ],
+    [
+      "井部唯斗",
+      "FC东京",
+      "ST",
+      "2008-10-17",
+      60,
+      86,
+      "Yuito Ibe",
+      "fctokyo-official"
+    ]
+  ],
+  "sources": {
+    "guardian-epl": "https://www.theguardian.com/football/ng-interactive/2026/oct/05/next-generation-2026-20-of-the-best-talents-at-premier-league-clubs",
+    "guardian-world": "https://www.theguardian.com/football/ng-interactive/2026/oct/06/next-generation-2026-60-of-the-best-young-talents-in-world-football",
+    "barcelona-official": "https://www.fcbarcelona.com/en/football/first-team/squad/136745/-------------------jesse---------------bisiwu",
+    "newcastle-official": "https://www.newcastleunited.com/en/teams/U18/mason-miley-profile",
+    "koln-official": "https://fc.de/en/news/all-news/reigan-heskey-joins-fc",
+    "verona-official": "https://hellasverona.it/en/news/fortune-egharevba-signs-his-first-professional-contract",
+    "fctokyo-official": "https://www.fctokyo.co.jp/en/academy/u18/players/"
+  }
+}
