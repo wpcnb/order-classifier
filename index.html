@@ -208,7 +208,9 @@ function reincarnateRealPlayers(state){
   (state.worldRebirths||(state.worldRebirths=[])).push(logRecord);
   born.push(logRecord)
  }
+ state.worldRebirthCount=Math.max(state.worldRebirthCount||0,(state.worldRebirths||[]).length);
  state.worldRebirths=(state.worldRebirths||[]).slice(-400);
+ state.worldRebirthCount+=born.length;
  return born
 }
 
@@ -719,7 +721,7 @@ function talentsPage(){
  const real=(s.npcs||[]).filter(x=>x.isYouth&&!x.rebirth);
  const active=real.filter(x=>!x.retired).sort((a,b)=>b.potential-a.potential||a.age-b.age);
  const reborn=(s.npcs||[]).filter(x=>x.rebirth&&!x.retired).sort((a,b)=>a.age-b.age);
- const total=(s.worldRebirths||[]).length;
+ const total=s.worldRebirthCount||(s.worldRebirths||[]).length;
  const badgeYouth=n=>'<div class="list-item"><div class="row"><b>'+esc(n.name)+'</b><span class="tag">'+n.age+'岁 · '+esc(POSITIONS[n.pos]||'球员')+'</span></div>'+
    '<div class="muted">'+esc(n.club)+(n.englishName?' · '+esc(n.englishName):'')+'</div>'+
    '<div class="metrics">'+metric('当前能力',n.overall)+metric('成长潜力',n.potential)+metric('赛季出场',n.apps)+'</div>'+
@@ -736,7 +738,7 @@ function talentsPage(){
  '<details class="award-history" open style="margin-top:12px"><summary>转世新秀 · '+reborn.length+'名在役</summary>'+
  '<p class="muted small">转世是游戏的虚构世代机制，不代表同名现实球员重新出生。原球星的退役记录和历史奖项永久保留。</p>'+
  '<div class="grid" style="margin-top:12px">'+(reborn.length?reborn.slice(-50).map(badgeRebirth).join(''):'<p class="muted">等第一批球星退役后，转世新人会从16～17岁加入赛场。</p>')+'</div></details>'+
- '<details class="award-history" style="margin-top:12px"><summary>历届转世事件 · '+total+'条</summary>'+
+ '<details class="award-history" style="margin-top:12px"><summary>历届转世事件 · 累计'+total+'条（最近400条留存）</summary>'+
  '<div class="list">'+(s.worldRebirths||[]).slice(-60).reverse().map(e=>'<div class="list-item"><b>'+e.year+'年 · '+esc(e.name)+'</b>'+
  '<div class="muted small">前代 '+esc(e.from)+' → 新秀'+e.age+'岁 · '+esc(e.club)+'</div></div>').join('')+'</div></details></section>'
 }
@@ -853,7 +855,7 @@ function nextSeason(){if(!s||s.phase!=='season_end'||s.retired)return;if(s.tier=
  n.apps=0;n.goals=0;n.assists=0;n.form=0;
  if(n.realPerson)return;
  npcSeasonTransition(n,s.year)
-});syncRealPlayerAges(s);seasonImproveAcademyPlayers(s);retireRealPlayersForNewSeason(s);reincarnateRealPlayers(s);refreshSponsorOffers(s);if(s.contract===0){s.contract=2;s.salary=Math.floor(s.salary*1.09/100)*100;addLog(s,'合约自动延长两年，周薪调整为 '+money(s.salary)+'。');}if(s.age>=39){retire();}else addLog(s,'新的赛季开始。俱乐部期待你的表现。');commit();}
+});syncRealPlayerAges(s);seasonImproveAcademyPlayers(s);retireRealPlayersForNewSeason(s);reincarnateRealPlayers(s);refreshSponsorOffers(s);if(s.contract===0){s.contract=2;s.salary=Math.floor(s.salary*1.09/100)*100;addLog(s,'合约自动延长两年，周薪调整为 '+money(s.salary)+'。');}if(s.age>=40){retire();}else addLog(s,'新的赛季开始。俱乐部期待你的表现。');commit();}
 function retire(){s.retired=true;s.phase='retired';s.offers=[];s.story=null;addLog(s,'宣布退役：结束 '+(s.age-16)+' 年职业生涯。');}
 function doTrain(id){
  if(s.trainingUsed||s.phase!=='prep'||s.story)return;
