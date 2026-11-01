@@ -134,8 +134,14 @@ function syncRealPlayerAges(state){
  const known=new Map(people.map((row,i)=>[row[0],[row,i]]));
  state.npcs.forEach(n=>{
    if(!n.realPerson)return;
-   const match=known.get(n.name);
+   const match=known.get(n.name),wasRetired=!!n.retired;
    if(match)reconcileRealPlayer(n,match[0],match[1],year);
+   if(!wasRetired&&n.retired){
+     state.footballRetirements=state.footballRetirements||[];
+     if(!state.footballRetirements.some(x=>x.name===n.name)){
+       state.footballRetirements.push({name:n.name,age:n.age,year:n.retiredAt||year,club:n.club})
+     }
+   }
    else if(n.birthYear){n.age=year-n.birthYear;n.retired=n.retired||n.age>=39}
    else {n.retired=true;n.retiredAt=year}
  })
