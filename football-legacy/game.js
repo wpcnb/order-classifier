@@ -30,7 +30,13 @@ const NAMES1=["亚历克斯","卢卡","伊万","阿尔瓦罗","安德烈","维�
 const UCL_PTS=[15,12,10,8,7,5,4,3,2,1];
 let g=null,page="dashboard",draft=null,awardViewed=false,toastTimeout=0;
 function toDate(d){return d==="—"?"":d}
-function power(team){if(team.endsWith("青训"))return Math.max(42,power(team.slice(0,-2))-30);for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power;}return 80}
+function power(team){
+ if(team.endsWith("青训"))return Math.max(42,power(team.slice(0,-2))-30);
+ if(g?.clubRatings&&Number.isFinite(g.clubRatings[team]))return g.clubRatings[team];
+ for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power}
+ return 80
+}
+
 function overall(p){const a=Object.values(p.stats),w=WEIGHTS[p.position]||WEIGHTS.CM;return Math.round(a.reduce((s,v,i)=>s+v*w[i],0))}
 function mkTalent(){let s={};Object.keys(STATS).forEach(k=>s[k]=R(42,67));let specialty=P(Object.keys(STATS));s[specialty]=C(s[specialty]+R(9,16),1,99);return {stats:s,potential:R(80,98),specialty}}
 function initNPC(){
@@ -189,15 +195,40 @@ function advanceWorld(final=false){
   }
  }
 }
+function offseasonClubUpdate(){
+ if(!g?.season)return;
+ g.clubRatings=g.clubRatings||{};
+ for(const [id,db]of Object.entries(DB)){
+  const table=id===g.player.leagueId?g.season.leagueTable:g.season.world?.[id]?.table;
+  if(!table)continue;
+  const sorted=sortedTable(table),total=sorted.length;
+  sorted.forEach((t,idx)=>{const baseline=db.teams.find(x=>x.name===t.name.replace(/青训$/,""))?.power;
+   if(baseline===undefined)return;
+   const old=g.clubRatings[t.name.replace(/青训$/,"")]||baseline;
+   const adjustment=idx<3?R(0,2):idx>=total-3?-R(0,2):R(-1,1);
+   const next=C(old+adjustment,baseline-13,baseline+13);
+   g.clubRatings[t.name.replace(/青训$/,"")]=C(next,40,99)
+  })
+ }
+}
+
 function simulateNPCOffseason(){
  if(!Array.isArray(g.npcs))return;
  const notable=g.npcs.filter(n=>n.apps>=12).sort((a,b)=>b.goals-a.goals).slice(0,10);
- g.npcHistory=g.npcHistory||[];g.npcHistory.push({year:g.year,top:notable.map(n=>({name:n.name,club:n.club,goals:n.goals,assists:n.assists}))});
- g.npcHistory=g.npcHistory.slice(-40);
- for(const n of g.npcs){n.age=(n.age||24)+1;n.potential=n.potential||90;
-  n.ov=C(n.ov+(n.age<25&&n.ov<n.potential?R(0,2):n.age>33?-R(0,2):R(-1,1)),40,99);
+ g.npcHistory=g.npcHistory||[];g.npcHistory.push({year:g.year,top:notable.map(n=>({name:n.name,club:n.club,goals:n.goals,assists:n.assists}))});g.npcHistory=g.npcHistory.slice(-50);
+ g.worldTransfers=g.worldTransfers||[];
+ const allTeams=Object.entries(DB).flatMap(([id,league])=>league.teams.map(t=>({id,name:t.name,strength:power(t.name)})));
+ for(const n of g.npcs){
+  n.age=(n.age||24)+1;n.potential=n.potential||90;
+  if(n.age>=39){n.name=P(NAMES1)+"·"+P(NAMES2);n.age=R(17,21);n.ov=R(49,73);n.potential=R(78,96);n.id="new_"+g.year+"_"+n.id;n.form=45}
+  else n.ov=C(n.ov+(n.age<25&&n.ov<n.potential?R(0,2):n.age>33?-R(0,2):R(-1,1)),40,99);
+  if(n.age>=19&&n.age<=34&&n.ov>=64&&Math.random()<.022){
+   const eligible=allTeams.filter(t=>t.name!==n.club&&Math.abs(t.strength-n.ov)<17);
+   if(eligible.length){const dest=P(eligible),old=n.club;n.club=dest.name;g.worldTransfers.unshift({year:g.year,name:n.name,from:old,to:dest.name});}
+  }
   n.apps=0;n.goals=0;n.assists=0;n.clean=0;n.europeApps=0;n.europeGoals=0;n.europeAssists=0;n.europeClean=0;n.rating=6.5;n.form=50;
  }
+ g.worldTransfers=g.worldTransfers.slice(0,110)
 }
 
 function currentEvent(){return g.season.events[g.season.index]||null}
@@ -340,7 +371,7 @@ function endSeason(){
 }
 
 function transfer(i){const o=g.offers[i];if(!o||!g||g.season.stage!=="review")return;const p=g.player;if(p.youth&&!o.promotion){notify("青训尚未升上一线队");return}if(!p.youth&&o.club.endsWith("青训")){notify("一线队球员不会转回青训");return}const old=p.club;p.club=o.club;p.leagueId=o.id;p.youth=false;if(p.parentCoach)p.parentCoach.club=o.club;p.wage=o.wage;p.contract=o.years;p.morale=85;p.coachTrust=65;g.offers=[];log((o.promotion?"升入一线队":"正式转会")+": "+old+" → "+p.club);save();render()}
-function nextSeason(){if(!g||g.season.stage!=="review")return;if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}if(p.youth){p.club=p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);log("青训毕业，自动晋升 "+p.club+" 一线队。")}g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=0;p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=33){for(const k of ["pace","physical","dribble"])p.stats[k]=Math.max(30,p.stats[k]-R(0,2))}else if(p.age<25){p.points+=R(2,5)}if(p.parentCoach)p.parentCoach.points+=3;g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
+function nextSeason(){if(!g||g.season.stage!=="review")return;if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}if(p.youth){p.club=p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);log("青训毕业，自动晋升 "+p.club+" 一线队。")}g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=0;p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=33){for(const k of ["pace","physical","dribble"])p.stats[k]=Math.max(30,p.stats[k]-R(0,2))}else if(p.age<25){p.points+=R(2,5)}if(p.parentCoach)p.parentCoach.points+=3;offseasonClubUpdate();g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
 function retire(withCoach){const p=g.player;if(p.age<32){notify("球员至少32岁才能主动退役并开启下一代");return}const archive={generation:g.generation,name:p.name,country:p.country,club:p.club,position:p.position,age:p.age,career:{...p.career},honors:g.honors.filter(h=>h.generation===g.generation),headCoach:!!withCoach,year:g.year};g.ancestors.push(archive);const lastClub=p.club.replace(/青训$/,"");let t=mkTalent(),name=p.name.replace(/[0-9]+$/,"")+"·"+(g.generation+1)+"世";const child={...initialPlayer(false),name,country:p.country,age:16,position:P(["LW","RW","ST","CAM","CM","CB"]),club:lastClub+"青训",leagueId:p.leagueId,youth:true,number:R(11,40),stats:t.stats,potential:t.potential,trait:t.specialty,cash:12000,wage:1600,contract:2,fame:5,career:{apps:0,goals:0,assists:0,national:0},parentCoach:withCoach?{name:p.name,club:lastClub,points:5,skills:{tactics:20,training:25,motivation:20,scouting:20}}:null};g.generation++;g.player=child;g.year++;g.offers=[];g.live=null;g.season=makeSchedule(child,g.year,10);simulateNPCOffseason();createWorld(g.season);log("家族第"+g.generation+"代正式开启："+child.name+"，父亲"+(withCoach?"担任 "+lastClub+" 主教练":"选择退役生活")+"。");page="family";save();render()}
 function createCoachSchedule(){
  const p={...g.player,club:g.coach.club,leagueId:g.coach.leagueId,age:g.coach.age,youth:false};
@@ -417,7 +448,7 @@ function nextCoachSeason(){
  const c=g.coach;g.year++;c.age++;c.contract=Math.max(0,c.contract-1);if(c.contract===0)c.contract=3;
  c.points+=3;c.scoutUsed=false;c.prospects=[];
  g.player.club=c.club;g.player.leagueId=c.leagueId;g.player.age=c.age;
- g.season=createCoachSchedule();g.lastMatch=null;simulateNPCOffseason();createWorld(g.season);g.offers=[];g.live=null;
+ offseasonClubUpdate();g.season=createCoachSchedule();g.lastMatch=null;simulateNPCOffseason();createWorld(g.season);g.offers=[];g.live=null;
  page="coach";log(c.name+"教练开启 "+g.year+"/"+(g.year+1)+" 赛季。");save();render()
 }
 function scoutForCoach(){
