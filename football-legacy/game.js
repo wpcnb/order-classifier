@@ -130,7 +130,7 @@ function makeSchedule(player,year,prevRank=10){
  national={name:tournament,knockout,active:true,groupPoints:0,groupPlayed:0,results:[],stage:"group"};
  }
  events.sort((a,b)=>a.date.localeCompare(b.date)||({europe:0,national:1,cup:2,league:3}[a.kind]-({europe:0,national:1,cup:2,league:3}[b.kind])));
- return {events,leagueRounds:league,leagueTable:Object.fromEntries(DB[player.leagueId].teams.map(x=>{const name=x.name+(player.youth?"青训":"");return [name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]})),uefa,cup,national,index:0,completed:0,leaguePlayed:0,results:[],ratings:[],goals:0,assists:0,apps:0,clean:0,leagueGoals:0,leagueAssists:0,leagueApps:0,leagueRatings:[],leagueClean:0,points:0,nationalApps:0,stage:"playing"};
+ return {events,leagueRounds:league,leagueTable:Object.fromEntries(DB[player.leagueId].teams.map(x=>{const name=x.name+(player.youth?"青训":"");return [name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]})),uefa,cup,national,index:0,completed:0,leaguePlayed:0,europeApps:0,europeGoals:0,europeAssists:0,results:[],ratings:[],goals:0,assists:0,apps:0,clean:0,leagueGoals:0,leagueAssists:0,leagueApps:0,leagueRatings:[],leagueClean:0,points:0,nationalApps:0,stage:"playing"};
 }
 function initialPlayer(custom=false){const talent=custom?draft.talent:mkTalent();const id=custom?draft.leagueId:"ENG",team=custom?draft.club:"曼联",age=custom?16:22,position=custom?draft.position:"LW";const stats={...talent.stats};if(!custom){Object.assign(stats,{pace:81,shoot:74,pass:72,dribble:80,defense:43,physical:72,mental:74})}
  return {name:custom?draft.name:"陆白",country:custom?draft.country:"中国",age,position,club:team,leagueId:id,youth:custom,number:custom?R(14,39):9,stats,potential:talent.potential,trait:talent.specialty,stamina:95,morale:82,form:69,coachTrust:66,points:0,autoPoints:true,autoTraining:true,injuryMatches:0,suspension:0,yellowCards:0,redCards:0,trainingUsed:false,trainingProgress:{},wage:custom?1200:68000,cash:custom?3000:350000,contract:custom?2:4,fame:custom?5:33,career:{apps:0,goals:0,assists:0,national:0},parentCoach:null};}
@@ -139,41 +139,36 @@ function updateTable(table,home,away,hs,as){const a=table[home],b=table[away];if
 function simulateScore(a,b,boost=0){let powerdiff=power(a)-power(b)+boost;const h=C(Math.floor(1.2+powerdiff/33+Math.random()*2.8),0,6),v=C(Math.floor(1.0-powerdiff/35+Math.random()*2.7),0,6);return [h,v]}
 function otherLeagueGames(round,except){if(!round)return;for(const f of round.fixtures){if(f.home===except.home&&f.away===except.away)continue;const [hs,as]=simulateScore(f.home,f.away);updateTable(g.season.leagueTable,f.home,f.away,hs,as);simulateNPCGame(f.home,f.away,hs,as)}}
 function finishHistoricalLeague(ev){const f=g.season.leagueRounds.find(x=>x.round===ev.round);let hs=ev.home==="曼联"?ev.verified.gf:ev.verified.ga,as=ev.away==="曼联"?ev.verified.gf:ev.verified.ga;updateTable(g.season.leagueTable,ev.home,ev.away,hs,as);otherLeagueGames(f,ev);simulateNPCGame(ev.home,ev.away,hs,as);g.season.leaguePlayed++;g.season.results.push({...ev,hs,as,real:true})}
-function finishHistoricalEurope(ev){const e=g.season.uefa;if(!e)return;const hs=ev.home==="曼联"?ev.verified.gf:ev.verified.ga,as=ev.away==="曼联"?ev.verified.gf:ev.verified.ga;updateTable(e.table,ev.home,ev.away,hs,as);e.played++;g.season.results.push({...ev,hs,as,real:true});simulateUefaOthers(e,ev)}
+function finishHistoricalEurope(ev){const e=g.season.uefa;if(!e)return;const hs=ev.home==="曼联"?ev.verified.gf:ev.verified.ga,as=ev.away==="曼联"?ev.verified.gf:ev.verified.ga;updateTable(e.table,ev.home,ev.away,hs,as);simulateNPCGame(ev.home,ev.away,hs,as,0,0,"europe");e.played++;g.season.results.push({...ev,hs,as,real:true});simulateUefaOthers(e,ev)}
 function simulateUefaOthers(uefa,ev){
  const roundIdx=Number(ev.id?.slice(1));
  const rounds=uefa.drawRounds?.[roundIdx];
  if(rounds){
   for(const m of rounds){if(m.home===g.player.club||m.away===g.player.club)continue;
-   const [hs,as]=m.real?[m.hs,m.as]:simulateScore(m.home,m.away);updateTable(uefa.table,m.home,m.away,hs,as)
+   const [hs,as]=m.real?[m.hs,m.as]:simulateScore(m.home,m.away);updateTable(uefa.table,m.home,m.away,hs,as);simulateNPCGame(m.home,m.away,hs,as,0,0,"europe")
   }
  }else{
   // Previous v4 save compatibility; newly created seasons use the complete drawn schedule above.
   const names=Object.keys(uefa.table).filter(n=>n!==ev.home&&n!==ev.away);names.sort(()=>Math.random()-.5);
-  for(let j=0;j+1<names.length;j+=2){const [hs,as]=simulateScore(names[j],names[j+1]);updateTable(uefa.table,names[j],names[j+1],hs,as)}
+  for(let j=0;j+1<names.length;j+=2){const [hs,as]=simulateScore(names[j],names[j+1]);updateTable(uefa.table,names[j],names[j+1],hs,as);simulateNPCGame(names[j],names[j+1],hs,as,0,0,"europe")}
  }
 }
 
-function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0){
+function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0,mode="league"){
  if(!g||!g.npcs)return;
+ const euro=mode==="europe",appKey=euro?"europeApps":"apps",goalKey=euro?"europeGoals":"goals",assistKey=euro?"europeAssists":"assists",cleanKey=euro?"europeClean":"clean";
  for(const [club,goals,excluded] of [[home,hs,excludeHome],[away,as,excludeAway]]){
-  const roster=g.npcs.filter(n=>n.club===club);
-  if(!roster.length)continue;
-  const active=roster.filter(n=>Math.random()<.86);
-  if(!active.length)active.push(P(roster));
-  active.forEach(n=>{n.apps++;if(n.pos==="GK"&&(club===home?as:hs)===0)n.clean=(n.clean||0)+1;const next=6.1+(Math.random()-.5)*1.3+(goals>0?.25:0);
-   n.rating=Number(((n.rating*(n.apps-1)+C(next,5,9.5))/n.apps).toFixed(2));n.form=C(n.form+R(-3,4),0,100)
-  });
-  const scorers=active.filter(n=>n.pos!=="GK");
-  const pool=scorers.length?scorers:active;
-  let assigned=C(goals-excluded,0,goals);
-  while(assigned-->0){const weights=pool.map(n=>n.pos==="ST"?6:["LW","RW","CAM"].includes(n.pos)?4:n.pos==="CM"?2:1);
-   let sum=weights.reduce((a,b)=>a+b,0),r=Math.random()*sum,chosen=pool[0];
-   for(let j=0;j<pool.length;j++){r-=weights[j];if(r<=0){chosen=pool[j];break}}chosen.goals++;
-  }
-  for(let a=0;a<goals;a++){if(Math.random()<.71){const candidates=active.filter(n=>n.pos!=="GK");if(candidates.length){const passer=P(candidates.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)).length?candidates.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)):candidates);passer.assists++}}}
+  const roster=g.npcs.filter(n=>n.club===club);if(!roster.length)continue;
+  const active=roster.filter(n=>Math.random()<.86);if(!active.length)active.push(P(roster));
+  active.forEach(n=>{n[appKey]=(n[appKey]||0)+1;if(n.pos==="GK"&&(club===home?as:hs)===0)n[cleanKey]=(n[cleanKey]||0)+1;if(!euro){const next=6.1+(Math.random()-.5)*1.3+(goals>0?.25:0);n.rating=Number(((n.rating*(n.apps-1)+C(next,5,9.5))/n.apps).toFixed(2))}n.form=C(n.form+R(-3,4),0,100)});
+  const pool=active.filter(n=>n.pos!=="GK");if(!pool.length)pool.push(...active);
+  let left=C(goals-excluded,0,goals);
+  while(left-->0){const weights=pool.map(n=>n.pos==="ST"?6:["LW","RW","CAM"].includes(n.pos)?4:n.pos==="CM"?2:1);
+   let v=Math.random()*weights.reduce((x,y)=>x+y,0),scorer=pool[0];for(let j=0;j<pool.length;j++){v-=weights[j];if(v<=0){scorer=pool[j];break}}scorer[goalKey]=(scorer[goalKey]||0)+1}
+  for(let i=0;i<goals;i++)if(Math.random()<.68){const creators=pool.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)),passer=P(creators.length?creators:pool);passer[assistKey]=(passer[assistKey]||0)+1}
  }
 }
+
 function createWorld(season){
  const leagues={};for(const [id,db]of Object.entries(DB)){
   if(id===g.player.leagueId)continue;
@@ -201,7 +196,7 @@ function simulateNPCOffseason(){
  g.npcHistory=g.npcHistory.slice(-40);
  for(const n of g.npcs){n.age=(n.age||24)+1;n.potential=n.potential||90;
   n.ov=C(n.ov+(n.age<25&&n.ov<n.potential?R(0,2):n.age>33?-R(0,2):R(-1,1)),40,99);
-  n.apps=0;n.goals=0;n.assists=0;n.clean=0;n.rating=6.5;n.form=50;
+  n.apps=0;n.goals=0;n.assists=0;n.clean=0;n.europeApps=0;n.europeGoals=0;n.europeAssists=0;n.europeClean=0;n.rating=6.5;n.form=50;
  }
 }
 
@@ -253,7 +248,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  let goals=0,assists=0,played=appears;if(played){let goalChance=chance*(["ST","LW","RW"].includes(p.position)?1.1:p.position==="CAM"?.6:.17);if(Math.random()<goalChance&&our>0)goals++;if(our>goals+1&&Math.random()<goalChance*.3)goals++;if(our-goals>0&&Math.random()<chance*(["CM","CAM","LW","RW"].includes(p.position)?1:.43))assists++}
  const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their):0;
  if(ev.kind==="league"){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals);s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
- if(ev.kind==="europe"){const e=s.uefa;updateTable(e.table,home,away,hs,as);simulateUefaOthers(e,ev);e.played++;
+ if(ev.kind==="europe"){const e=s.uefa;updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev);e.played++;
  if(e.played>=8){const rank=sortedTable(e.table).findIndex(t=>t.name===p.club)+1;e.rank=rank;if(rank>24){e.completed=true;e.stage="eliminated";log(e.type+"联赛阶段第"+rank+"名，未能晋级。")}else{e.stage="knockout";addKnockouts()}}}
  if(ev.kind==="cup"){const penalties=our===their,win=our>their||(penalties&&Math.random()<C(.5+(overall(p)-75)/250,.35,.68));s.cup.results.push({stage:ev.stage,hs,as,win,penalties});if(penalties)log(s.cup.name+ev.stage+"90分钟战平，"+(win?"点球晋级。":"点球出局。"));if(!win){s.cup.active=false;log(s.cup.name+" "+ev.stage+"止步。")}else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军","team")}}}
  if(ev.kind==="national"){s.nationalApps++;if(played)p.career.national++;const n=s.national;
@@ -261,10 +256,10 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
   if(ev.nationalIndex<=2){n.groupPlayed++;n.groupPoints+=our>their?3:our===their?1:0;if(n.groupPlayed===3){if(n.groupPoints>=4){n.stage="knockout";log(p.country+" "+n.name+"小组赛出线！")}else{n.active=false;n.stage="eliminated";log(p.country+" "+n.name+"小组赛出局。")}}}
   else{const pen=our===their,win=our>their||(pen&&Math.random()<.5);if(pen)log(p.country+n.name+ev.stage+(win?"通过点球大战晋级。":"点球大战遗憾出局。"));if(!win){n.active=false;n.stage="eliminated";log(p.country+" "+n.name+ev.stage+"出局。")}else if(ev.stage==="决赛"){n.active=false;n.stage="champion";award(ev.competition+"冠军","national")}}}
  }}
- if(ev.kind==="europeKO"){const e=s.uefa;if(!e.koAggregate)e.koAggregate={};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
+ if(ev.kind==="europeKO"){simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");const e=s.uefa;if(!e.koAggregate)e.koAggregate={};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
  if(ev.stage==="决赛"||ev.leg===2){let win=agg.for>agg.against||(agg.for===agg.against&&Math.random()<.5);if(agg.for===agg.against)log(e.type+ev.stage+"总比分打平，进行加时与点球决胜。");e.knockoutResults.push({stage:ev.stage,win,score:agg.for+"-"+agg.against,legs:agg.legs});if(!win){e.completed=true;e.stage="eliminated";log(e.type+ev.stage+"两回合总比分"+agg.for+"-"+agg.against+"，出局。")}else if(ev.stage==="决赛"){e.completed=true;e.stage="champion";award(e.type+"冠军","team")}else log(e.type+ev.stage+"两回合晋级。")}
 }
- if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}p.career.apps++;p.career.goals+=goals;p.career.assists+=assists;p.points+=p.career.apps%(p.age<22?3:p.age<30?5:9)===0?1:0;if(rating>=8.7&&Math.random()<.35)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
+ if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="europe"||ev.kind==="europeKO"){s.europeApps=(s.europeApps||0)+1;s.europeGoals=(s.europeGoals||0)+goals;s.europeAssists=(s.europeAssists||0)+assists}if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}p.career.apps++;p.career.goals+=goals;p.career.assists+=assists;p.points+=p.career.apps%(p.age<22?3:p.age<30?5:9)===0?1:0;if(rating>=8.7&&Math.random()<.35)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
  if(p.injuryMatches>0){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
  if(p.suspension>0){p.suspension--;if(p.suspension===0)log(p.name+"停赛期满。")}
  if(played){
@@ -295,7 +290,7 @@ function award(name,type){if(!g.honors.some(h=>h.name===name&&h.year===g.year&&h
 function finishVote(){
  const s=g.season,p=g.player,avg=s.ratings.length?s.ratings.reduce((a,b)=>a+b,0)/s.ratings.length:6;
  const honors=g.honors.filter(h=>h.year===g.year&&h.generation===g.generation).length;
- const nominated=g.npcs.map(n=>({id:n.id,name:n.name,club:n.club,score:n.ov*.57+n.goals*1.8+n.assists*1.2+n.rating*2.2+Math.min(20,n.apps)*.15+R(-12,12)}));
+ const nominated=g.npcs.map(n=>({id:n.id,name:n.name,club:n.club,score:n.ov*.57+(n.goals+(n.europeGoals||0))*1.8+(n.assists+(n.europeAssists||0))*1.2+n.rating*2.2+Math.min(20,n.apps)*.15+R(-12,12)}));
  nominated.push({id:"USER",name:p.name,club:p.club,score:overall(p)*.64+s.goals*2+s.assists*1.25+avg*2.8+honors*9});
  nominated.sort((a,b)=>b.score-a.score);
  let list=nominated.slice(0,29);if(!list.some(n=>n.id==="USER"))list.push(nominated.find(n=>n.id==="USER"));
@@ -376,10 +371,10 @@ function coachMatch(ev,choice="balanced",batch=false){
  const bias=choice==="attack"?6:choice==="defend"?-4:choice==="creative"?3:0;
  let [hs,as]=simulateScore(home,away,(ours?1:-1)*(strength-rival)+bias),our=ours?hs:as,their=ours?as:hs,penalties=false;
  if(ev.kind==="league"){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as);s.leaguePlayed++;advanceWorld()}
- if(ev.kind==="europe"){updateTable(s.uefa.table,home,away,hs,as);simulateUefaOthers(s.uefa,ev);s.uefa.played++;
+ if(ev.kind==="europe"){updateTable(s.uefa.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,0,0,"europe");simulateUefaOthers(s.uefa,ev);s.uefa.played++;
   if(s.uefa.played===8){const rank=sortedTable(s.uefa.table).findIndex(t=>t.name===c.club)+1;s.uefa.rank=rank;if(rank>24){s.uefa.completed=true;s.uefa.stage="eliminated"}else{s.uefa.stage="knockout";addKnockouts()}}}
  if(ev.kind==="cup"){penalties=our===their;const win=our>their||(penalties&&Math.random()<.5);s.cup.results.push({stage:ev.stage,hs,as,win,penalties});if(!win){s.cup.active=false}else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军（主教练）","coach")}}}
- if(ev.kind==="europeKO"){const e=s.uefa;e.koAggregate=e.koAggregate||{};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
+ if(ev.kind==="europeKO"){simulateNPCGame(home,away,hs,as,0,0,"europe");const e=s.uefa;e.koAggregate=e.koAggregate||{};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
   if(ev.stage==="决赛"||ev.leg===2){const win=agg.for>agg.against||(agg.for===agg.against&&Math.random()<.5);e.knockoutResults.push({stage:ev.stage,win,score:agg.for+"-"+agg.against,legs:agg.legs});if(!win){e.completed=true;e.stage="eliminated"}else if(ev.stage==="决赛"){e.completed=true;e.stage="champion";award(e.type+"冠军（主教练）","coach")}}
  }
  c.record[our>their?"w":our===their?"d":"l"]++;
