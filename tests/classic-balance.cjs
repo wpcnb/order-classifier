@@ -33,7 +33,7 @@ ok("Long-run goals less than one per appearance",ratio>.05&&ratio<.88);
 ok("No 75-goal normal season",years.every(y=>y.goals<75));
 t.tab("career");ok("Career has numeric medals and goals trend",t.html.includes("累计获奖次数")&&t.html.includes("历年进球和助攻折线图"));
 t.tab("overview");ok("No forbidden wording appears in current game UI",!t.html.includes("\u6a21\u62df"));
-t.tab("career");ok("Official 2026 winner is listed separately",t.html.includes("凯恩1055分"));
+t.tab("overview");ok("Official 2026 winner is listed separately",t.html.includes("凯恩1055分"));t.tab("career");
 
 const clubs=Object.values(s.leagueTable),teamGoals=clubs.reduce((a,b)=>a+b.gf,0)/clubs.reduce((a,b)=>a+b.pl,0);
 ok("League team score model calibrated",teamGoals>.3&&teamGoals<3);
