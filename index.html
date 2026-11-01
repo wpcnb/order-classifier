@@ -96,15 +96,24 @@ function retirementAge(n){
 }
 function reconcileRealPlayer(n,person,i,year){
  n.realPerson=true;n.birthYear=verifiedBirthYear(person[0],person[4]);
- n.baseOverall=person[3];n.age=Math.max(16,year-n.birthYear);
+ n.baseOverall=person[3];n.age=Math.max(16,year-n.birthYear-(n.name==='姆巴佩'?1:0));
  if(n.retired||n.age>=retirementAge(n)){n.retired=true;n.retiredAt=n.retiredAt||year;return}
  const decline=Math.max(0,n.age-30),youngBonus=n.age<27?Math.min(3,27-n.age)*.45:0;
  const ageCap=clamp(Math.round(n.baseOverall+youngBonus-Math.pow(decline,1.38)*1.7),35,99);
  n.overall=clamp(Math.min(n.overall||ageCap,ageCap),35,99);
- if(n.age>=34&&n.age<retirementAge(n)&&!n.retired&&year>2026){
-   const chance=clamp((n.age-33)*.055,0,.37);
-   if(rnd()<chance){n.retired=true;n.retiredAt=year}
- }
+ // Retirement probabilities apply on a season boundary, never on page refresh.
+}
+function retireRealPlayersForNewSeason(state){
+ const year=state.year;
+ state.npcs.filter(n=>n.realPerson&&!n.retired).forEach(n=>{
+  const currentAge=year-(n.birthYear||2026-(n.age||27))-(n.name==='姆巴佩'?1:0);
+  if(currentAge>=retirementAge(n)||currentAge>=34&&rnd()<clamp((currentAge-33)*.06,0,.43)){
+   n.retired=true;n.retiredAt=year;n.age=currentAge;
+   state.footballRetirements=state.footballRetirements||[];
+   state.footballRetirements.push({name:n.name,age:currentAge,year,club:n.club});
+  }
+ });
+ state.footballRetirements=(state.footballRetirements||[]).slice(-200)
 }
 function npcSeasonTransition(n,year){
  if(n.realPerson)return;
@@ -374,8 +383,8 @@ function awardHistoryBlock(){
  return '<details class="award-history" style="margin-top:15px"><summary>历届金球奖 · '+all.length+'届 · 已获'+awardCounter('金球奖')+'座</summary>'+
   '<div style="overflow:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>年份</th><th>获奖人物</th><th>你的结果</th><th>你的票分</th></tr></thead><tbody>'+
   all.slice().reverse().map(b=>{
-   const newest=b.model>=5,winner=newest?b.winner?.name:'旧届记录';
-   const result=newest?(b.playerNominated?(b.playerRank===1?'冠军':'第'+b.playerRank+'名'):'未入围30人'):(b.playerRank>0?'第'+b.playerRank+'名':'未入围');
+   const newest=b.model>=5,winner=b.suspended?'本届未举行':newest?b.winner?.name:'旧届记录';
+   const result=b.suspended?'评选暂停':newest?(b.playerNominated?(b.playerRank===1?'冠军':'第'+b.playerRank+'名'):'未入围30人'):(b.playerRank>0?'第'+b.playerRank+'名':'未入围');
    return '<tr style="border-bottom:1px solid #41616a"><td style="padding:9px">'+b.year+'</td><td style="padding:9px">'+esc(winner)+'</td>'+
     '<td style="padding:9px" class="'+(b.playerRank===1?'gold':'')+'">'+result+'</td>'+
     '<td style="padding:9px">'+(newest?b.playerPoints:'旧规则')+'</td></tr>'
@@ -388,7 +397,7 @@ function awardsPanel(){
  const actual='<details class="award-history" style="margin-top:12px"><summary>2026年真实历史金球奖 · 凯恩1055分</summary>'+
   '<p class="muted small">以下为《法国足球》2026年公布的真实评选前10名，与游戏世界2026/27赛季的奖项分开记录。</p>'+
   '<div class="europe-list">'+official.map((row,i)=>'<div class="europe-fixture"><b>'+(i+1)+'. '+esc(row[0])+'</b><strong>'+row[1]+'分</strong></div>').join('')+'</div></details>';
- const card=latest?'<div class="metrics">'+metric('获奖人物',esc(b.winner.name))+
+ const card=b?.suspended?'<div class="list-item"><b>本届金球奖未举行</b><p class="muted">'+esc(b.reason)+'</p><p class="muted small">候选球员须真实存在且未退役；现役名单不够30人时，不能凭空添加人选。</p></div>':latest?'<div class="metrics">'+metric('获奖人物',esc(b.winner.name))+
    metric('获奖票分',b.winner.points+' / 1500')+
    metric('你的名次',b.playerNominated?'第'+b.playerRank+'名':'未入围30人')+
    metric('你的得分',b.playerNominated?b.playerPoints+' / 1500':'—')+'</div>'+
@@ -540,7 +549,7 @@ function nextSeason(){if(!s||s.phase!=='season_end'||s.retired)return;if(s.tier=
  n.apps=0;n.goals=0;n.assists=0;n.form=0;
  if(n.realPerson)return;
  npcSeasonTransition(n,s.year)
-});syncRealPlayerAges(s);if(s.contract===0){s.contract=2;s.salary=Math.floor(s.salary*1.09/100)*100;addLog(s,'合约自动延长两年，周薪调整为 '+money(s.salary)+'。');}if(s.age>=39){retire();}else addLog(s,'新的赛季开始。俱乐部期待你的表现。');commit();}
+});syncRealPlayerAges(s);retireRealPlayersForNewSeason(s);if(s.contract===0){s.contract=2;s.salary=Math.floor(s.salary*1.09/100)*100;addLog(s,'合约自动延长两年，周薪调整为 '+money(s.salary)+'。');}if(s.age>=39){retire();}else addLog(s,'新的赛季开始。俱乐部期待你的表现。');commit();}
 function retire(){s.retired=true;s.phase='retired';s.offers=[];s.story=null;addLog(s,'宣布退役：结束 '+(s.age-16)+' 年职业生涯。');}
 function doTrain(id){
  if(s.trainingUsed||s.phase!=='prep'||s.story)return;
