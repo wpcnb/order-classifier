@@ -167,15 +167,80 @@ function startUnitedSave(){
  addLog(p,'截至2026年11月1日：曼联欧冠3场1胜2负积3分，真实赛果已锁定。');
  return p;
 }
+// Standalone match calibration inspired by xG/Poisson principles used in open football sims.
+// This is original code; no third-party source code, assets or licensed databases are copied.
+const MATCH_ENGINE_REVISION=4;
+function randomPoisson(lambda){
+ const expected=clamp(Number(lambda)||0,.02,5.8);
+ let stop=Math.exp(-expected),k=0,p=1;
+ do{k++;p*=rnd()}while(p>stop&&k<12);
+ return clamp(k-1,0,9);
+}
+function seasonPlayerRate(p){
+ const shot=clamp((p.stats.shoot-55)/95,.0,.44),ov=over(p);
+ const basic={ST:.36,LW:.24,CM:.075,CB:.018,GK:.001}[p.pos]||.16;
+ return clamp(basic*(.76+ov/240+shot)+(p.form-55)*.0016,.001,p.pos==='ST'?1.02:p.pos==='LW'?.79:p.pos==='CM'?.30:p.pos==='CB'?.10:.02);
+}
+function assistRate(p){const pass=clamp((p.stats.pass-55)/100,0,.36);return clamp(({ST:.14,LW:.25,CM:.30,CB:.065,GK:.005}[p.pos]||.12)*(.82+pass+.14*over(p)/100),0,.54)}
+function awardCounter(title){
+ if(!s||!Array.isArray(s.awards))return 0;
+ return s.awards.filter(x=>String(x.title||'').includes(title)).length;
+}
+function honorSummary(){
+ if(!s)return [];
+ const num=a=>awardCounter(a);
+ return [{name:'金球奖',count:num('金球奖'),icon:'金球'},
+         {name:'联赛金靴',count:num('金靴'),icon:'金靴'},
+         {name:'赛季最佳球员',count:num('最佳球员'),icon:'MVP'},
+         {name:'欧冠冠军',count:num('欧冠冠军'),icon:'欧冠'},
+         {name:'欧联冠军',count:num('欧联冠军'),icon:'欧联'},
+         {name:'全部荣誉',count:s.awards.length,icon:'总计'}]
+}
+function honorStats(){return '<div class="metrics">'+honorSummary().map(a=>metric(a.name,'<span class="gold">'+a.count+'</span>')).join('')+'</div>'}
+function historicalAnomaly(){
+ if(!s?.history?.length||s.balancedHistoryAt)return false;
+ return s.history.some(y=>y.apps>5&&y.goals>Math.max(9,y.apps*1.05))||s.totals.apps>100&&s.totals.goals/s.totals.apps>1.15
+}
+function recalibrateHistory(){
+ if(!s||s.balancedHistoryAt||!s.history?.length){notice('当前存档暂无需要校准的历史数据');return}
+ const caps={ST:{g:.92,a:.48},LW:{g:.69,a:.63},CM:{g:.31,a:.75},CB:{g:.13,a:.28},GK:{g:.025,a:.045}};
+ const cfg=caps[s.pos]||caps.LW,old=s.history.map(y=>({...y})),oldTotal={...s.totals},current={...s.seasonTotals};
+ const oldGoals=old.reduce((z,y)=>z+(Number(y.goals)||0),0),oldAssists=old.reduce((z,y)=>z+(Number(y.assists)||0),0);
+ const correct=(y)=>{let apps=Math.max(0,Number(y.apps)||0);return {
+   ...y,goals:Math.min(Number(y.goals)||0,Math.min(72,Math.round(apps*cfg.g))),
+   assists:Math.min(Number(y.assists)||0,Math.min(48,Math.round(apps*cfg.a))),balanced:true
+ }};
+ const revised=old.map(correct),newGoals=revised.reduce((z,y)=>z+y.goals,0),newAssists=revised.reduce((z,y)=>z+y.assists,0);
+ const currentApps=Math.max(0,Number(current.apps)||0);
+ const currentGoals=Math.min(current.goals||0,Math.min(72,Math.round(currentApps*cfg.g))),currentAssists=Math.min(current.assists||0,Math.min(48,Math.round(currentApps*cfg.a)));
+ const before={apps:s.totals.apps,goals:s.totals.goals,assists:s.totals.assists},after={
+   apps:before.apps,goals:Math.max(0,oldTotal.goals-oldGoals-(current.goals||0))+newGoals+currentGoals,
+   assists:Math.max(0,oldTotal.assists-oldAssists-(current.assists||0))+newAssists+currentAssists
+ };
+ const ok=confirm('旧版比赛引擎产生了不合理的进球数。将按位置和各赛季出场数上限，修正历年记录：进球 '+before.goals+' → '+after.goals+'，助攻 '+before.assists+' → '+after.assists+'。\n\n历史金球奖及其他已获得的荣誉保持原样，不能凭空增加奖杯。原始统计会作为备份保留在存档中。是否校准？');
+ if(!ok)return;
+ s.oldStatsBackup={savedAt:new Date().toISOString(),history:old,totals:oldTotal,seasonTotals:current};
+ s.history=revised;s.totals.goals=after.goals;s.totals.assists=after.assists;s.seasonTotals.goals=currentGoals;s.seasonTotals.assists=currentAssists;
+ s.balancedHistoryAt=new Date().toISOString();s.matchEngineVersion=MATCH_ENGINE_REVISION;
+ addLog(s,'已对旧版历史数据进行可恢复校准：生涯进球 '+before.goals+' → '+after.goals+'，金球奖等历史荣誉未改动。');
+ tab='career';commit();notice('历史统计校准完成；金球奖等荣誉未改变，原始记录已备份')
+}
+
 function simulateNPCWeek(){
  const ns=s.npcs;if(!Array.isArray(ns))return;
  ns.forEach(n=>{
-  const a=clamp((n.overall-55)/75,.05,.52);
-  n.apps++;n.goals+=rnd()<a*(n.pos==='ST'?1.4:n.pos==='LW'?1.05:.42)?1:0;
-  n.assists+=rnd()<a*(n.pos==='CM'?1.25:.8)?1:0;
-  n.form=clamp(n.form+Math.round(n.overall/20+rnd()*7-3),0,100);
+   const quality=clamp((n.overall-60)/100,0,.40);
+   const role={ST:.32,LW:.23,CM:.095,CB:.022,GK:.001}[n.pos]||.12;
+   const assist={ST:.13,LW:.22,CM:.27,CB:.06,GK:.004}[n.pos]||.14;
+   if(rnd()<.89){n.apps++;
+    const goals=randomPoisson(clamp((role+quality*.36)*(n.pos==='GK'?.05:1),.001,.95));
+    n.goals+=Math.min(goals,3);
+    n.assists+=Math.min(randomPoisson(assist+quality*.11),2);
+   }
+   n.form=clamp(n.form+randint(-4,5),0,100);
  });
 }
+
 function ballonVote(){
  const current=s.seasonTotals;
  const candidates=s.npcs.map(n=>({name:n.name,club:n.club,id:n.id,score:n.overall*.6+n.goals*1.8+n.assists*1.1+n.form*.06+randint(-10,10)}));
@@ -278,11 +343,25 @@ function opponent(){
 }
 function startMatch(){if(!s||s.retired||s.story||s.phase!=='prep')return;if(s.injury){completeMatch(-1);return;}let opp=opponent();let moments=s.pos==='GK'?['对手形成单刀，你迎来了最关键的一次扑救。','禁区混战，对方前锋突然起脚。','比赛进入最后十分钟，对方打出快速反击。']:s.pos==='CB'?['对手前锋突破到禁区附近，你必须做出防守决定。','你在后场成功断球，前方出现大片空当。','对方反击形成二打一，后防只剩你一个人。']:['你在禁区弧顶拿到球，队友已经开始跑位。','球队打出反击，你面对空旷的前场。','比赛最后阶段，你获得一次改变战局的机会。'];s.match={opp,moment:pick(moments)};s.phase='moment';tab='match';addLog(s,'第 '+s.week+' 轮：对阵 '+opp.name+' 的比赛开始。');commit();}
 function matchChance(index){let st=s.stats;let profile=s.pos==='GK'?[[st.defense,st.mental],[st.physical,st.pace],[st.defense,st.pace]]:s.pos==='CB'?[[st.defense,st.mental],[st.physical,st.pace],[st.pass,st.mental]]:[[st.pass,st.mental],[st.pace,st.shoot],[st.shoot,st.physical]];let pair=profile[index]||profile[0], base=(pair[0]+pair[1])/2;return clamp(.22+base/170+s.form/500+s.morale/800-(s.match.opp.strength-60)/400-(s.difficulty==='hard'?.12:s.difficulty==='easy'?-.10:0)-(s.stamina<35?.13:0),.12,.90);}
-function completeMatch(option){let opp=s.match?.opp||opponent(),o=over(s),phys=s.stamina,wasInjured=s.injury>0;let selected=option>=0,success=selected&&rnd()<matchChance(option),baseTeam=clubPower(s.club);
-let homeScore=clamp(Math.floor((baseTeam-opp.strength)/19+1.35+rnd()*2.1+(success?1:0)),0,5),awayScore=clamp(Math.floor((opp.strength-baseTeam)/20+.9+rnd()*2.1-(success?.3:0)),0,5);
-let appeared=!wasInjured&&rnd()<clamp(.53+(o-baseTeam)/110+s.manager/280+(s.form-50)/250-(phys<30?.15:0),.36,.98);
-let goals=0,assists=0,clean=0,saves=0;
-if(appeared){const role={ST:.35,LW:.23,CM:.11,CB:.025,GK:.001}[s.pos],aRole={ST:.14,LW:.27,CM:.34,CB:.11,GK:.01}[s.pos];goals=Math.min(homeScore,Math.floor((role*(.7+o/85)*(success?1.7:1)+rnd()*.80)*2));assists=Math.min(Math.max(0,homeScore-goals),Math.floor((aRole*(.7+s.stats.pass/75)*(success?1.5:1)+rnd()*.75)*2));clean=awayScore===0?1:0;saves=s.pos==='GK'?randint(1,8):0;if(success&&s.pos==='GK'&&awayScore>0&&rnd()<.35){awayScore--;clean=awayScore===0?1:0;}}
+function completeMatch(option){
+ const opp=s.match?.opp||opponent(),o=over(s),phys=s.stamina,wasInjured=s.injury>0;
+ const baseTeam=clubPower(s.club),selected=option>=0;
+ const appeared=!wasInjured&&rnd()<clamp(.52+(o-baseTeam)/125+s.manager/330+(s.form-50)/310-(phys<30?.18:0),.30,.95);
+ const success=appeared&&selected&&rnd()<matchChance(option);
+ const strength=baseTeam-opp.strength;
+ const focus=success?1.07:1;
+ const offense=clamp(1.30*Math.exp(strength/90)*focus,.28,3.15);
+ const defense=clamp(1.12*Math.exp(-strength/110)*(success?.96:1),.25,3.05);
+ let homeScore=randomPoisson(offense),awayScore=randomPoisson(defense);
+ let goals=0,assists=0,clean=0,saves=0;
+ if(appeared){
+   const rate=seasonPlayerRate(s)*(success?1.16:1)*(s.difficulty==='hard'?.85:s.difficulty==='easy'?1.11:1);
+   goals=Math.min(homeScore,randomPoisson(rate));
+   assists=Math.min(Math.max(0,homeScore-goals),randomPoisson(assistRate(s)*(success?1.12:1)));
+   clean=awayScore===0?1:0;
+   saves=s.pos==='GK'?randint(1,7):0;
+   if(success&&s.pos==='GK'&&awayScore>0&&rnd()<.20){awayScore--;clean=awayScore===0?1:0}
+ }
 let rating=appeared?clamp(5.6+(success?.65:-.05)+(goals*.85)+(assists*.5)+(homeScore>awayScore?.35:homeScore===awayScore?.1:-.3)+(rnd()-.5)*1.1,4.2,9.9):0;rating=Math.round(rating*10)/10;
 const t=s.seasonTotals;t.w+=homeScore>awayScore?1:0;t.d+=homeScore===awayScore?1:0;t.l+=homeScore<awayScore?1:0;t.points+=homeScore>awayScore?3:homeScore===awayScore?1:0;t.gf+=homeScore;t.ga+=awayScore;if(!s.leagueTable)s.leagueTable=buildLeague(s);const fixture=s.leagueRounds?.[s.week-1]?.find(m=>m.home===s.club||m.away===s.club);if(fixture&&fixture.away===s.club)applyScore(opp.name,s.club,awayScore,homeScore);else applyScore(s.club,opp.name,homeScore,awayScore);simulateLeague(opp.name);simulateNPCWeek();
 if(appeared){t.apps++;t.goals+=goals;t.assists+=assists;t.clean+=clean;t.saves+=saves;t.ratings.push(rating);s.totals.apps++;s.totals.goals+=goals;s.totals.assists+=assists;s.totals.clean+=clean;s.totals.saves+=saves;s.form=ratio(s.form+(rating-6.5)*4);s.manager=ratio(s.manager+(rating-6.5)*2.5);s.fame=ratio(s.fame+(rating>=8?2:0));}
