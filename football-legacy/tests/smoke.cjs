@@ -50,6 +50,13 @@ x.click("simSeason");s=x.state;assert.equal(s.season.stage,"review");x.click("ne
 message("Coach tactics, scouting and transfers; father-coached second generation promoted from youth");
 const reload=game(null,x.save);assert.equal(reload.state.generation,2);assert.equal(reload.state.player.club,s.player.club);assert.equal(reload.state.player.parentCoach.name,s.player.parentCoach.name);
 message("Saved v4 dynastic game survives browser reload");
+for(let j=0;j<17;j++){x.click("simSeason");x.click("nextSeason")}
+let thirdStart=x.state;assert(thirdStart.player.age>=32);
+x.click("retireCoach");thirdStart=x.state;assert.equal(thirdStart.generation,3);assert.equal(thirdStart.player.name,"陆白·3世");assert.equal(thirdStart.player.parentCoach.name,"陆白·2世");
+for(let j=0;j<17;j++){x.click("simSeason");x.click("nextSeason")}
+x.click("retireCoach");let fourth=x.state;assert.equal(fourth.generation,4);assert.equal(fourth.player.name,"陆白·4世");assert.equal(fourth.ancestors.length,3);
+assert(x.save.length<4_500_000,"Four-generation save exceeded browser storage budget");
+message("Four consecutive generations across more than 40 years with stable family names and save size");
 const map=new Map([["name","林澈"],["country","英格兰"],["position","RW"],["leagueId","GER"],["club","多特蒙德青训"]]);
 const y=game(map);y.submit();let c=y.state;assert.equal(c.player.country,"英格兰");assert.equal(c.player.leagueId,"GER");assert.equal(c.player.club,"多特蒙德青训");
 y.click("simSeason");c=y.state;assert.equal(c.season.leaguePlayed,34);assert(Object.values(c.season.leagueTable).every(t=>t.p===34));y.click("nextSeason");c=y.state;assert.equal(c.player.club,"多特蒙德");assert.equal(c.player.youth,false);
