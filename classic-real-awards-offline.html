@@ -276,7 +276,7 @@ function simulateNPCWeek(){
 function ballonVote(){
  ensureRealAwardRoster(s);
  const stats=s.seasonTotals,avg=stats.ratings?.length?stats.ratings.reduce((a,b)=>a+b,0)/stats.ratings.length:6.3;
- const named=s.npcs.filter(n=>n.realPerson&&n.apps>=Math.min(8,s.fixtures*.22));
+ const active=s.npcs.filter(n=>n.realPerson&&n.apps>=Math.min(8,s.fixtures*.22));const named=active.length>=29?active:s.npcs.filter(n=>n.realPerson);
  const candidates=named.map(n=>({
   id:n.id,name:n.name,club:n.club,goals:n.goals,assists:n.assists,apps:n.apps,
   overall:n.overall,rating:clamp(6+n.overall/90+n.form/280,6,8.8),
