@@ -4,817 +4,93 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080f20">
-<title>废星·无限合成 | 小说开局试玩</title>
+<title>废星：无限合成 | 试玩版</title>
 <style>
-
-*{
-box-sizing:border-box}
-html{
-scroll-behavior:smooth}
-body{
-margin:0;
-background:#080f20;
-color:#e9f3ff;
-font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif}
-button{
-font:inherit;
-cursor:pointer}
-button:focus-visible{
-outline:3px solid #a9deff;
-outline-offset:3px}
-.shell{
-max-width:1080px;
-margin:auto;
-padding:14px 14px 50px}
-.bar{
-display:flex;
-flex-wrap:wrap;
-align-items:center;
-justify-content:space-between;
-gap:9px;
-padding:11px 0 18px}
-.logo{
-font-size:20px;
-font-weight:900;
-letter-spacing:1px}
-.logo span{
-color:#69dcd2}
-.tag{
-border:1px solid #344768;
-border-radius:99px;
-padding:7px 11px;
-color:#9ab8d5;
-font-size:12px;
-background:#131d34}
-.hero{
-position:relative;
-overflow:hidden;
-min-height:240px;
-border:1px solid #3e5269;
-border-radius:22px;
-background:radial-gradient(circle at 76% 18%,#355274 0,#1c344c 19%,transparent 42%),linear-gradient(150deg,#152943,#080f20);
-padding:24px 24px 118px}
-.hero h1{
-position:relative;
-z-index:2;
-font-size:clamp(26px,5vw,40px);
-margin:8px 0 7px}
-.hero p{
-position:relative;
-z-index:2;
-max-width:570px;
-color:#bfcede;
-line-height:1.7;
-margin:0}
-.eyebrow{
-font-size:11px;
-letter-spacing:2px;
-font-weight:850;
-color:#83e9dd}
-.scape{
-position:absolute;
-bottom:0;
-left:0;
-right:0;
-height:120px;
-width:100%}
-.stats{
-display:grid;
-grid-template-columns:repeat(4,minmax(0,1fr));
-gap:9px;
-margin:12px 0 19px}
-.stat{
-border:1px solid #344462;
-border-radius:13px;
-padding:11px;
-background:#111e34;
-min-width:0}
-.stat b{
-display:block;
-font-size:22px;
-color:#fff}
-.stat span{
-display:block;
-font-size:11px;
-color:#9fb6cf;
-letter-spacing:.3px}
-.grid{
-display:grid;
-grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);
-gap:14px}
-.panel{
-border:1px solid #304360;
-border-radius:18px;
-background:#101a2e;
-padding:17px;
-min-width:0;
-margin-bottom:14px}
-.heading{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:8px;
-flex-wrap:wrap;
-margin-bottom:12px}
-.heading h2{
-margin:0;
-font-size:18px}
-.subtle{
-font-size:12px;
-color:#9db3c9}
-.btn{
-border:1px solid #47617d;
-border-radius:12px;
-background:#1c314b;
-color:#e8f7ff;
-min-height:44px;
-padding:10px 14px;
-font-weight:700}
-.btn.primary{
-background:linear-gradient(135deg,#66d9cf,#7bbcff);
-border:0;
-color:#051522}
-.btn:disabled{
-opacity:.45;
-cursor:not-allowed}
-.actions{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:9px;
-margin:12px 0}
-.inventory{
-display:grid;
-grid-template-columns:repeat(2,minmax(0,1fr));
-gap:9px;
-max-height:none}
-.item{
-display:block;
-width:100%;
-min-width:0;
-text-align:left;
-border:1px solid #3b5069;
-border-radius:14px;
-background:#17243a;
-color:#eaf4fc;
-padding:9px;
-position:relative}
-.item.selected{
-border-color:#77e5d9;
-box-shadow:inset 0 0 0 1px #77e5d9;
-background:#203c4b}
-.item:active{
-transform:scale(.99)}
-.item .art{
-display:grid;
-place-items:center;
-height:90px;
-background:radial-gradient(ellipse,#263b55 0%,#111e31 75%);
-border-radius:10px;
-margin-bottom:8px}
-.art svg{
-width:100%;
-height:86px}
-.item .name{
-font-weight:800;
-font-size:13px;
-line-height:1.45;
-min-height:38px}
-.item .meta{
-font-size:11px;
-color:#a8bdcf;
-display:flex;
-justify-content:space-between;
-gap:4px;
-margin-top:4px}
-.qty{
-position:absolute;
-right:15px;
-top:14px;
-background:#07172cbb;
-padding:3px 7px;
-border-radius:8px;
-font-size:12px;
-font-weight:800}
-.empty{
-grid-column:1/-1;
-text-align:center;
-color:#a6b8cc;
-padding:25px}
-.preview{
-display:grid;
-grid-template-columns:1fr 35px 1fr;
-align-items:center;
-gap:6px;
-margin:8px 0}
-.slot{
-border:1px solid #435772;
-background:#162740;
-border-radius:12px;
-padding:10px 4px;
-min-width:0;
-text-align:center}
-.slot .art{
-height:99px;
-display:grid;
-place-items:center}
-.slot svg{
-width:100%;
-height:95px}
-.slot b{
-display:block;
-font-size:12px;
-overflow-wrap:anywhere}
-.slot small{
-display:block;
-color:#95b9d1;
-margin-top:4px;
-font-size:11px}
-.plus{
-text-align:center;
-color:#72e1d4;
-font-weight:900;
-font-size:24px}
-.next{
-background:linear-gradient(160deg,#173944,#263454);
-border-color:#579baf}
-.explain{
-line-height:1.7;
-color:#b9cbd9;
-font-size:13px;
-min-height:46px}
-.pill{
-display:inline-block;
-padding:5px 8px;
-border-radius:7px;
-background:#23344c;
-color:#9bffdf;
-font-size:12px}
-.line{
-border:0;
-border-top:1px solid #30415b;
-margin:17px 0}
-.log{
-list-style:none;
-margin:0;
-padding:0;
-display:grid;
-gap:9px}
-.log li{
-padding:9px 11px;
-background:#16263d;
-border-left:3px solid #68cbbd;
-border-radius:5px;
-font-size:12px;
-color:#c7d6e7;
-line-height:1.6}
-.codex{
-display:grid;
-gap:8px}
-.milestone{
-display:flex;
-justify-content:space-between;
-gap:10px;
-padding:9px 0;
-border-bottom:1px solid #273955;
-font-size:13px}
-.milestone span{
-color:#9fb5d0}
-.hint{
-font-size:12px;
-color:#a4bbce;
-line-height:1.7}
-.notice{
-padding:11px 13px;
-border:1px solid #45627a;
-border-radius:11px;
-background:#173045;
-color:#d1f9f0;
-font-size:13px;
-margin-top:11px;
-min-height:42px}
-.footer{
-color:#7692ad;
-text-align:center;
-padding:16px 0 2px;
-font-size:11px;
-line-height:1.8}
-.danger{
-color:#b5c6db;
-background:transparent;
-border:1px solid #42536a;
-border-radius:9px;
-font-size:12px;
-padding:8px 11px;
-min-height:40px}
-.mini{
-font-size:11px;
-color:#7ec7c9}
-.spark{
-color:#ffda93}
-@media(min-width:850px){
-.inventory{
-grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-@media(max-width:660px){
-.grid{
-grid-template-columns:1fr}
-.hero{
-min-height:225px;
-padding:20px 18px 110px}
-.stats{
-grid-template-columns:repeat(2,minmax(0,1fr))}
-.panel{
-padding:14px}
-.preview{
-grid-template-columns:1fr 24px 1fr}
-.slot .art,.slot svg{
-height:85px}
-}
-@media(prefers-reduced-motion:reduce){
-html{
-scroll-behavior:auto}
-.item:active{
-transform:none}
-}
-
-.route-chart{
-display:flex;
-align-items:stretch;
-gap:6px;
-overflow-x:auto;
-padding:7px 0 10px}
-.route-node{
-flex:0 0 120px;
-padding:9px;
-border:1px solid #405a73;
-border-radius:10px;
-background:#172940;
-color:#c5d6e6;
-font-size:11px;
-line-height:1.5}
-.route-node.current{
-border-color:#76e5d5;
-color:#e9fffa;
-background:#1b3d45}
-.route-node b{
-display:block;
-color:#fff;
-margin:3px 0}
-.route-arrow{
-align-self:center;
-color:#6dd8c8}
-.story-progress{
-width:100%;
-height:8px;
-margin:8px 0 2px;
-accent-color:#79e0d1}
-.effect{
-margin-top:10px;
-color:#a9dad5;
-font-size:12px;
-line-height:1.6}
-
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#080f20;color:#e9f3ff;font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif}button{font:inherit;cursor:pointer}button:focus-visible{outline:3px solid #a9deff;outline-offset:3px}.shell{max-width:1080px;margin:auto;padding:14px 14px 50px}.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:9px;padding:11px 0 18px}.logo{font-size:20px;font-weight:900;letter-spacing:1px}.logo span{color:#69dcd2}.tag{border:1px solid #344768;border-radius:99px;padding:7px 11px;color:#9ab8d5;font-size:12px;background:#131d34}.hero{position:relative;overflow:hidden;min-height:240px;border:1px solid #3e5269;border-radius:22px;background:radial-gradient(circle at 76% 18%,#355274 0,#1c344c 19%,transparent 42%),linear-gradient(150deg,#152943,#080f20);padding:24px 24px 118px}.hero h1{position:relative;z-index:2;font-size:clamp(26px,5vw,40px);margin:8px 0 7px}.hero p{position:relative;z-index:2;max-width:570px;color:#bfcede;line-height:1.7;margin:0}.eyebrow{font-size:11px;letter-spacing:2px;font-weight:850;color:#83e9dd}.scape{position:absolute;bottom:0;left:0;right:0;height:120px;width:100%}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0 19px}.stat{border:1px solid #344462;border-radius:13px;padding:11px;background:#111e34;min-width:0}.stat b{display:block;font-size:22px;color:#fff}.stat span{display:block;font-size:11px;color:#9fb6cf;letter-spacing:.3px}.grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px}.panel{border:1px solid #304360;border-radius:18px;background:#101a2e;padding:17px;min-width:0;margin-bottom:14px}.heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}.heading h2{margin:0;font-size:18px}.subtle{font-size:12px;color:#9db3c9}.btn{border:1px solid #47617d;border-radius:12px;background:#1c314b;color:#e8f7ff;min-height:44px;padding:10px 14px;font-weight:700}.btn.primary{background:linear-gradient(135deg,#66d9cf,#7bbcff);border:0;color:#051522}.btn:disabled{opacity:.45;cursor:not-allowed}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.inventory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-height:none}.item{display:block;width:100%;min-width:0;text-align:left;border:1px solid #3b5069;border-radius:14px;background:#17243a;color:#eaf4fc;padding:9px;position:relative}.item.selected{border-color:#77e5d9;box-shadow:inset 0 0 0 1px #77e5d9;background:#203c4b}.item:active{transform:scale(.99)}.item .art{display:grid;place-items:center;height:90px;background:radial-gradient(ellipse,#263b55 0%,#111e31 75%);border-radius:10px;margin-bottom:8px}.art svg{width:100%;height:86px}.item .name{font-weight:800;font-size:13px;line-height:1.45;min-height:38px}.item .meta{font-size:11px;color:#a8bdcf;display:flex;justify-content:space-between;gap:4px;margin-top:4px}.qty{position:absolute;right:15px;top:14px;background:#07172cbb;padding:3px 7px;border-radius:8px;font-size:12px;font-weight:800}.empty{grid-column:1/-1;text-align:center;color:#a6b8cc;padding:25px}.preview{display:grid;grid-template-columns:1fr 35px 1fr;align-items:center;gap:6px;margin:8px 0}.slot{border:1px solid #435772;background:#162740;border-radius:12px;padding:10px 4px;min-width:0;text-align:center}.slot .art{height:99px;display:grid;place-items:center}.slot svg{width:100%;height:95px}.slot b{display:block;font-size:12px;overflow-wrap:anywhere}.slot small{display:block;color:#95b9d1;margin-top:4px;font-size:11px}.plus{text-align:center;color:#72e1d4;font-weight:900;font-size:24px}.next{background:linear-gradient(160deg,#173944,#263454);border-color:#579baf}.explain{line-height:1.7;color:#b9cbd9;font-size:13px;min-height:46px}.pill{display:inline-block;padding:5px 8px;border-radius:7px;background:#23344c;color:#9bffdf;font-size:12px}.line{border:0;border-top:1px solid #30415b;margin:17px 0}.log{list-style:none;margin:0;padding:0;display:grid;gap:9px}.log li{padding:9px 11px;background:#16263d;border-left:3px solid #68cbbd;border-radius:5px;font-size:12px;color:#c7d6e7;line-height:1.6}.codex{display:grid;gap:8px}.milestone{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #273955;font-size:13px}.milestone span{color:#9fb5d0}.hint{font-size:12px;color:#a4bbce;line-height:1.7}.notice{padding:11px 13px;border:1px solid #45627a;border-radius:11px;background:#173045;color:#d1f9f0;font-size:13px;margin-top:11px;min-height:42px}.footer{color:#7692ad;text-align:center;padding:16px 0 2px;font-size:11px;line-height:1.8}.danger{color:#b5c6db;background:transparent;border:1px solid #42536a;border-radius:9px;font-size:12px;padding:8px 11px;min-height:40px}.mini{font-size:11px;color:#7ec7c9}.spark{color:#ffda93}@media(min-width:850px){.inventory{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:660px){.grid{grid-template-columns:1fr}.hero{min-height:225px;padding:20px 18px 110px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}.preview{grid-template-columns:1fr 24px 1fr}.slot .art,.slot svg{height:85px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.item:active{transform:none}}
 </style>
 </head>
 <body>
 <main class="shell" id="game">
-  <header class="bar">
-<div class="logo">废星<span>·无限合成</span>
-</div>
-<div class="tag">小说开局试玩 · 自动本机存档</div>
-</header>
+  <header class="bar"><div class="logo">废星<span>·无限合成</span></div><div class="tag">离线逻辑 · 自动本机存档 · 独立试玩版</div></header>
   <section class="hero">
-    <div class="eyebrow">WASTELAND / SYNTHESIS PROTOCOL</div>
-<h1>和憨仔一起，从垃圾地球出发。</h1>
-    <p>你是拾荒者程乞，与你的机器人伙伴憨仔生活在垃圾地球。一次争夺改变了你们的命运，神秘水晶护腕随之开启。捡拾科技造物，让它们一步步进化。</p>
-    <svg class="scape" viewBox="0 0 1000 180" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-<defs>
-<linearGradient id="wasteSky" x2="0" y2="1">
-<stop stop-color="#263e60" stop-opacity="0"/>
-<stop offset="1" stop-color="#111c30"/>
-</linearGradient>
-</defs>
-<path d="M0 135L70 109l60 20 55-45 58 46 90-50 77 49 75-28 98 37 90-45 81 24 62-45 90 46 94-41V180H0Z" fill="#233650"/>
-<path d="M0 153l100-25 96 32 91-33 55 31 87-39 87 34 76-31 72 33 75-31 82 24 78-29 111 39V180H0Z" fill="#101a2d"/>
-<g stroke="#8197ad" stroke-opacity=".45" fill="none">
-<path d="M120 127V34h55v88M138 34V16h20v18M145 48h11M145 63h11M145 78h11M145 93h11M145 108h11M750 143V62h72v81M768 78h40M768 98h40M768 117h40"/>
-<path d="M375 136l70-79 47 78m-91-33h64m-48-20h34M635 143l-10-76 34-11 15 89"/>
-</g>
-<circle cx="830" cy="30" r="16" fill="#b5d0e1" opacity=".7"/>
-<circle cx="824" cy="27" r="13" fill="#d4e6f5" opacity=".35"/>
-<path d="M0 174Q210 154 390 171T780 168T1000 164" stroke="#60afbd" stroke-opacity=".27" stroke-width="2" fill="none"/>
-</svg>
+    <div class="eyebrow">WASTELAND / SYNTHESIS PROTOCOL</div><h1>垃圾堆里，合成整个宇宙。</h1>
+    <p>你在废弃地球醒来，腕上只有一枚合成核心。拾取两个同类、同材质、同等级的物品，令它们合而为一；从0.7级走向16级文明，之后继续无限进化。</p>
+    <svg class="scape" viewBox="0 0 1000 180" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><defs><linearGradient id="wasteSky" x2="0" y2="1"><stop stop-color="#263e60" stop-opacity="0"/><stop offset="1" stop-color="#111c30"/></linearGradient></defs><path d="M0 135L70 109l60 20 55-45 58 46 90-50 77 49 75-28 98 37 90-45 81 24 62-45 90 46 94-41V180H0Z" fill="#233650"/><path d="M0 153l100-25 96 32 91-33 55 31 87-39 87 34 76-31 72 33 75-31 82 24 78-29 111 39V180H0Z" fill="#101a2d"/><g stroke="#8197ad" stroke-opacity=".45" fill="none"><path d="M120 127V34h55v88M138 34V16h20v18M145 48h11M145 63h11M145 78h11M145 93h11M145 108h11M750 143V62h72v81M768 78h40M768 98h40M768 117h40"/><path d="M375 136l70-79 47 78m-91-33h64m-48-20h34M635 143l-10-76 34-11 15 89"/></g><circle cx="830" cy="30" r="16" fill="#b5d0e1" opacity=".7"/><circle cx="824" cy="27" r="13" fill="#d4e6f5" opacity=".35"/><path d="M0 174Q210 154 390 171T780 168T1000 164" stroke="#60afbd" stroke-opacity=".27" stroke-width="2" fill="none"/></svg>
   </section>
-  <section class="panel" style="margin-top:14px" aria-live="polite">
-    <div class="heading">
-<h2>📖 开局故事</h2>
-<span class="pill" id="chapterLabel">第一步</span>
-</div>
-    <p class="explain" id="storyText">
-</p>
-<div class="hint" id="storyGoal">
-</div>
-<progress class="story-progress" id="storyProgress" max="11" value="0" aria-label="开篇任务进度">
-</progress>
-<div class="mini" id="storyProgressText">
-</div>
-  </section>
-  <section class="stats" aria-label="游戏数据">
-<div class="stat">
-<b id="civ">0.7级</b>
-<span>已达技术文明</span>
-</div>
-<div class="stat">
-<b id="merges">0</b>
-<span>累计合成</span>
-</div>
-<div class="stat">
-<b id="coins">90</b>
-<span>回收代币</span>
-</div>
-<div class="stat">
-<b id="count">0</b>
-<span>背包物品数</span>
-</div>
-</section>
+  <section class="stats" aria-label="游戏数据"><div class="stat"><b id="civ">0.7级</b><span>已达技术文明</span></div><div class="stat"><b id="merges">0</b><span>累计合成</span></div><div class="stat"><b id="coins">90</b><span>回收代币</span></div><div class="stat"><b id="count">0</b><span>背包物品数</span></div></section>
   <section class="grid">
     <div>
       <section class="panel">
-        <div class="heading">
-<h2>① 废墟探索</h2>
-<span class="subtle">探索不消耗行动力</span>
-</div>
-        <div class="hint">每次从科技垃圾堆带回3件随机物品，并获得回收代币。随着装备升级，会获得额外收获。</div>
-        <div class="actions">
-<button class="btn primary" id="explore" type="button">⌁ 探索废墟（+3件）</button>
-<button class="btn" id="scan" type="button">◎ 旧货站寻找同款</button>
-</div>
-        <div class="hint" id="scanCost">选择物品后，可花费代币从旧货站寻找一件同型号物品。</div>
-<div class="effect" id="exploreBonus">
-</div>
-        <div id="notice" class="notice" role="status" aria-live="polite">试玩已准备好初始材料。先探索，再选择物品进行合成。</div>
+        <div class="heading"><h2>① 废墟探索</h2><span class="subtle">探索不消耗行动力</span></div>
+        <div class="hint">每次从废弃城区带回3件随机物品，并获得回收代币。随着最高合成等级提高，也会发现更高等级的遗物。</div>
+        <div class="actions"><button class="btn primary" id="explore" type="button">⌁ 探索废墟（+3件）</button><button class="btn" id="scan" type="button">◎ 复制选中物品</button></div>
+        <div class="hint" id="scanCost">选择物品后，可用代币扫描获得一个完全相同的物品。</div>
+        <div id="notice" class="notice" role="status" aria-live="polite">初始背包已有可合成物品。点选下方物品，然后启动合成。</div>
       </section>
       <section class="panel">
-        <div class="heading">
-<h2>② 我的物品仓库</h2>
-<span class="subtle" id="inventoryTypes">6种物品路线</span>
-</div>
-        <div id="inventory" class="inventory">
-</div>
+        <div class="heading"><h2>② 我的物品仓库</h2><span class="subtle" id="inventoryTypes">6种物品路线</span></div>
+        <div id="inventory" class="inventory"></div>
       </section>
     </div>
     <div>
       <section class="panel">
-        <div class="heading">
-<h2>③ 量子合成台</h2>
-<span class="pill" id="tierLabel">选择物品</span>
-</div>
-        <div class="preview">
-<div class="slot">
-<div class="art" id="sourceArt">
-</div>
-<b id="sourceName">请选择物品</b>
-<small id="sourceMeta">需要2件</small>
-</div>
-<div class="plus">→</div>
-<div class="slot next">
-<div class="art" id="resultArt">
-</div>
-<b id="resultName">等待合成</b>
-<small id="resultMeta">更高等级</small>
-</div>
-</div>
-        <div class="hint">当前物品的合成路线（每一步都需要两件同款）</div>
-<div class="route-chart" id="routeChart" aria-label="合成路线图">
-</div>
-<p class="explain" id="description">选择要升级的主体；另一件同类、同材质、同等级物品作为材料。两件合成为一件更高级的科技造物。</p>
+        <div class="heading"><h2>③ 量子合成台</h2><span class="pill" id="tierLabel">选择物品</span></div>
+        <div class="preview"><div class="slot"><div class="art" id="sourceArt"></div><b id="sourceName">请选择物品</b><small id="sourceMeta">需要2件</small></div><div class="plus">→</div><div class="slot next"><div class="art" id="resultArt"></div><b id="resultName">等待合成</b><small id="resultMeta">更高等级</small></div></div>
+        <p class="explain" id="description">同类 + 同材质 + 同等级 × 2 = 进阶物品 × 1。升级后的外形、性质和能力会发生变化。</p>
         <button class="btn primary" id="synthesize" type="button" style="width:100%">✦ 合成两件物品</button>
-        <div class="actions">
-<button class="btn" id="automerge" type="button">连锁合成全部重复品</button>
-<button class="btn" id="reset" type="button">重开存档</button>
-</div>
-        <div class="hint">每次选中的是升级主体，另一件同型号物品会被消耗。16级文明及后续合成是游戏扩展设定。</div>
+        <div class="actions"><button class="btn" id="automerge" type="button">连锁合成全部重复品</button><button class="btn" id="reset" type="button">重开存档</button></div>
+        <div class="hint">选中的一条物品路线不能与其他材质混合。16级是文明分级的想象上限，并不是合成等级上限。</div>
       </section>
       <section class="panel">
-        <div class="heading">
-<h2>存档保护</h2>
-<span class="pill" id="saveStatus">检查存档中</span>
-</div>
-        <p class="hint">进度自动保存在当前浏览器。建议定期备份到平板；清理浏览器数据或更换设备前尤其需要备份。</p>
-        <div class="actions">
-<button class="btn" id="exportSave" type="button">⬇ 备份存档</button>
-<button class="btn" id="importSave" type="button">⬆ 导入存档</button>
-</div>
-        <input id="importFile" type="file" accept=".json,application/json" hidden>
-        <button class="btn" id="restoreSave" type="button" style="width:100%">恢复上一次自动备份</button>
-        <div class="hint">恢复或导入前会让你确认。旧版存档保留在原位置，并可自动读取。</div>
+        <div class="heading"><h2>文明进化图鉴</h2><span class="subtle">最高16级文明</span></div>
+        <div class="codex" id="codex"></div>
       </section>
       <section class="panel">
-        <div class="heading">
-<h2>文明进化图鉴</h2>
-<span class="subtle">最高16级文明</span>
-</div>
-        <div class="codex" id="codex">
-</div>
-      </section>
-      <section class="panel">
-        <div class="heading">
-<h2>探索日志</h2>
-<span class="subtle">最近五条</span>
-</div>
-        <ol class="log" id="log">
-</ol>
+        <div class="heading"><h2>探索日志</h2><span class="subtle">最近五条</span></div>
+        <ol class="log" id="log"></ol>
       </section>
     </div>
   </section>
-  <footer class="footer">根据王自律《我合成了全世界》开篇设定制作的非官方试玩，剧情与玩法为游戏化改编。<br>进度保存在当前浏览器；请定期备份存档，清除网站数据或换设备可能丢失进度。</footer>
+  <footer class="footer">原创科幻互动试玩 · 灵感来自废星拾荒与物品合成题材，非原著官方游戏。<br>游戏状态仅保存在当前设备的浏览器中；清除网站数据会丢失存档。</footer>
 </main>
 <script>
-
 (function(){
 'use strict';
 var root=document.getElementById('game');
 if(root.dataset.ready)return;
 root.dataset.ready='1';
-var $=function(id){return document.getElementById(id);
-};
+var $=function(id){return document.getElementById(id);};
 var families=[
- {id:'robot',base:'保姆机器人',mat:'机器人复合金属',names:['破损保姆机器人','安全防护保姆机器人','环境适应保姆机器人','探索辅助机器人','智能修复机器人','量子智能机器人','空间救援机器人','时间守护机器人','法则守护机器人','星际守护机器人','创世守护机器人']},
- {id:'shoe',base:'机械探险鞋',mat:'机械合金',names:['破损机械探险鞋','机械探险护腿','喷气式涡轮动力鞋','智能推进战靴','重力推进战靴','量子推进战靴','空间穿行战靴','时间穿行战靴','法则战靴','星际战靴','创世战靴']},
- {id:'surgical',base:'辅助手套',mat:'医用合金',names:['外科手术辅助手套','智能辅助手套','重力场调节手套','精密重力手套','动力重力手套','量子机械手套','空间机械手套','时间机械手套','法则机械手套','星核机械手套','创世机械手套']},
- {id:'alloy',base:'合金材料',mat:'同型合金',names:['镍基高温合金','金属间化合物','非晶合金','高熵合金','高强度合金','量子合金','空间合金','时间合金','法则合金','星核合金','创世合金']},
- {id:'armor',base:'动力外骨骼',mat:'军用合金',names:['破损动力外骨骼','极限战士外骨骼','极限战士装甲','记忆金属动力装甲','智能战术装甲','量子装甲','空间装甲','时间装甲','法则装甲','星际装甲','创世装甲']},
- {id:'sticks',base:'木筷子',mat:'竹木',legacy:true,names:['普通木筷','金刚木筷','活性木筷','自愈木筷','灵能木筷','量子木筷','空间木筷','因果木筷','法则木筷','创世木筷','终极木筷']},
- {id:'table',base:'木桌',mat:'实木',legacy:true,names:['旧木桌','强化木桌','超密木桌','自愈木桌','智能木桌','量子木桌','空间木桌','时间木桌','法则木桌','星系木桌','创世木桌']},
- {id:'cup',base:'金属水杯',mat:'不锈钢',legacy:true,names:['旧钢杯','高强度钢杯','自洁钢杯','温控钢杯','能量钢杯','量子钢杯','空间钢杯','时间钢杯','法则钢杯','星核钢杯','创世钢杯']},
- {id:'glove',base:'机械手套',mat:'合金',legacy:true,names:['破损机械手套','强化机械手套','辅助机械手套','动力机械手套','重力机械手套','量子机械手套','空间机械手套','时间机械手套','法则机械手套','星核机械手套','创世机械手套']},
- {id:'phone',base:'智能手机',mat:'复合玻璃',legacy:true,names:['破屏手机','强化手机','全息手机','自愈手机','神经手机','量子手机','空间手机','时间手机','法则手机','星系手机','创世手机']},
+ {id:'sticks',base:'木筷子',mat:'竹木',names:['普通木筷','金刚木筷','活性木筷','自愈木筷','灵能木筷','量子木筷','空间木筷','因果木筷','法则木筷','创世木筷','终极木筷']},
+ {id:'table',base:'木桌',mat:'实木',names:['旧木桌','强化木桌','超密木桌','自愈木桌','智能木桌','量子木桌','空间木桌','时间木桌','法则木桌','星系木桌','创世木桌']},
+ {id:'cup',base:'金属水杯',mat:'不锈钢',names:['旧钢杯','高强度钢杯','自洁钢杯','温控钢杯','能量钢杯','量子钢杯','空间钢杯','时间钢杯','法则钢杯','星核钢杯','创世钢杯']},
+ {id:'glove',base:'机械手套',mat:'合金',names:['破损机械手套','强化机械手套','辅助机械手套','动力机械手套','重力机械手套','量子机械手套','空间机械手套','时间机械手套','法则机械手套','星核机械手套','创世机械手套']},
  {id:'drone',base:'探测无人机',mat:'钛合金',names:['报废探测无人机','修复探测无人机','高精无人机','智能无人机','光子无人机','量子无人机','空间无人机','时间无人机','法则无人机','星系无人机','创世无人机']},
- {id:'comm',base:'通讯器',mat:'复合材料',names:['破损通讯器','修复通讯器','远程通讯器','全息通讯器','智能通讯器','量子通讯器','空间通讯器','时间通讯器','法则通讯器','星系通讯器','创世通讯器']}
+ {id:'phone',base:'智能手机',mat:'复合玻璃',names:['破屏手机','强化手机','全息手机','自愈手机','神经手机','量子手机','空间手机','时间手机','法则手机','星系手机','创世手机']}
 ];
 var traits=['基础物理性能','高密度强化','环境适应与自主恢复','自我修复及精准感应','能量转换与智能重构','量子调控','空间折叠与远距传输','局部时间操控','因果概率干预','物理法则重塑','宇宙尺度结构编织','超越已知文明的递归创生'];
-var key = 'waste-synthesis-novel-opening-v3';
-var previousKey = key + ':previous';
-var beforeResetKey = key + ':before-reset';
-var oldGameKey = 'waste-synthesis-save-v1';
-var previousNovelKey = 'waste-synthesis-novel-opening-v2';
-var storageHealthy = true;
-var storageMessage = '自动存档已开启';
-
-function defaults() {
-  return {
-    inv: {'robot:0': 2, 'shoe:0': 2, 'surgical:0': 2, 'armor:0': 2, 'alloy:0': 2},
-    selected: 'robot:0',
-    coins: 90,
-    merges: 0,
-    explores: 0,
-    max: 0,
-    stage: 0,
-    discovered: {},
-    log: ['程乞和憨仔准备前往垃圾山拾荒。']
-  };
-}
-
-// Reject invalid or foreign save data before it can replace a working game.
-function nonnegativeInteger(value) {
-  return Number.isSafeInteger(value) && value >= 0;
-}
-
-function validItemKey(value) {
-  if (typeof value !== 'string') return false;
-  var match = /^([a-z]+):(0|[1-9][0-9]*)$/.exec(value);
-  if (!match || !families.some(function(family) { return family.id === match[1];
- })) return false;
-  var tier = Number(match[2]);
-  return nonnegativeInteger(tier) && tier < Number.MAX_SAFE_INTEGER - 2;
-}
-
-function renameV2Item(value) {
-  if (value.indexOf('glove:') === 0) return 'surgical:' + value.slice(6);
-  if (value.indexOf('phone:') === 0) return 'comm:' + value.slice(6);
-  return value;
-}
-
-function validateState(input, fromV2) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw Error('存档格式不正确');
-  if (!input.inv || typeof input.inv !== 'object' || Array.isArray(input.inv)) throw Error('存档缺少物品仓库');
-  var rawKeys = Object.keys(input.inv);
-  if (rawKeys.length > 100000) throw Error('存档物品种类异常');
-  var clean = defaults();
-  clean.inv = Object.create(null);
-  rawKeys.forEach(function(rawKey) {
-    var itemKey = fromV2 ? renameV2Item(rawKey) : rawKey;
-    var amount = input.inv[rawKey];
-    if (!validItemKey(itemKey) || !nonnegativeInteger(amount)) throw Error('存档物品数据无效');
-    if (amount > 0) clean.inv[itemKey] = amount;
-  });
-  ['coins', 'merges', 'explores', 'max'].forEach(function(field) {
-    var value = input[field] === undefined ? 0 : input[field];
-    if (!nonnegativeInteger(value)) throw Error('存档进度数据无效');
-    clean[field] = value;
-  });
-  var stage = input.stage === undefined ? 0 : input.stage;
-  if (!nonnegativeInteger(stage) || stage > 11) throw Error('故事进度无效');
-  clean.stage = stage;
-  clean.discovered = Object.create(null);
-  if (input.discovered !== undefined) {
-    if (!input.discovered || typeof input.discovered !== 'object' || Array.isArray(input.discovered)) throw Error('图鉴数据无效');
-    Object.keys(input.discovered).forEach(function(rawKey) {
-      var itemKey = fromV2 ? renameV2Item(rawKey) : rawKey;
-      if (!validItemKey(itemKey) || input.discovered[rawKey] !== true) throw Error('图鉴条目无效');
-      clean.discovered[itemKey] = true;
-    });
-  }
-  var selected = typeof input.selected === 'string' ? input.selected : 'robot:0';
-  if (fromV2) selected = renameV2Item(selected);
-  clean.selected = validItemKey(selected) ? selected : 'robot:0';
-  clean.log = Array.isArray(input.log) ? input.log.filter(function(line) {
-    return typeof line === 'string';
-  }).slice(0, 5).map(function(line) { return line.slice(0, 1000);
- }) : [];
-  return clean;
-}
-
-function parseStored(raw, fromV2) {
-  var object = JSON.parse(raw);
-  if (object && object.format === 'waste-synthesis-save') object = object.state;
-  return validateState(object, fromV2);
-}
-
-// Copy the old game's items into the new story, while leaving its original save untouched.
-function migrateOldGame(raw) {
-  var old = parseStored(raw, false);
-  var combined = defaults();
-  Object.keys(old.inv).forEach(function(itemKey) {
-    combined.inv[itemKey] = (combined.inv[itemKey] || 0) + old.inv[itemKey];
-  });
-  combined.coins = old.coins;
-  combined.merges = old.merges;
-  combined.explores = old.explores;
-  combined.max = old.max;
-  combined.log.unshift('已读取旧版仓库和进度；小说开篇从头开始。');
-  return combined;
-}
-
-function protectDamagedSave(raw) {
-  try {
-    localStorage.setItem(key + ':damaged:' + Date.now(), raw);
-    storageMessage = '发现异常存档，已保留原数据';
-    return true;
-  } catch (error) {
-    storageHealthy = false;
-    storageMessage = '存档异常且无法备份，请勿清除浏览器数据';
-    return false;
-  }
-}
-
-function loadInitial() {
-  try {
-    var raw = localStorage.getItem(key);
-    if (raw) {
-      try { return parseStored(raw, false);
- }
-      catch (error) { protectDamagedSave(raw);
- return defaults();
- }
-    }
-    var v2 = localStorage.getItem(previousNovelKey);
-    if (v2) {
-      try {
-        storageMessage = '已保留上一版试玩进度';
-        return parseStored(v2, true);
-      } catch (error) { storageMessage = '上一版试玩存档异常，原数据仍保留';
- }
-    }
-    var old = localStorage.getItem(oldGameKey);
-    if (old) {
-      try {
-        storageMessage = '已读取旧版存档';
-        return migrateOldGame(old);
-      } catch (error) { storageMessage = '旧版存档无法读取，原数据仍保留';
- }
-    }
-  } catch (error) {
-    storageHealthy = false;
-    storageMessage = '浏览器无法读写存档，请使用备份功能';
-  }
-  return defaults();
-}
-
-var s = loadInitial();
-
-// Keep the last distinct state before replacing the current automatic save.
-function store() {
-  if (!storageHealthy) {
-    $('saveStatus').textContent = storageMessage;
-    return false;
-  }
-  try {
-    var next = JSON.stringify(s);
-    var current = localStorage.getItem(key);
-    if (current !== next) {
-      if (current) localStorage.setItem(previousKey, current);
-      localStorage.setItem(key, next);
-    }
-    $('saveStatus').textContent = storageMessage;
-    return true;
-  } catch (error) {
-    storageHealthy = false;
-    storageMessage = '自动存档失败，请立即备份';
-    $('saveStatus').textContent = storageMessage;
-    return false;
-  }
-}
-
-function backupEnvelope() {
-  return {format: 'waste-synthesis-save', version: 3, savedAt: new Date().toISOString(), state: s};
-}
-
-function exportBackup() {
-  try {
-    var blob = new Blob([JSON.stringify(backupEnvelope(), null, 2)], {type: 'application/json'});
-    var url = URL.createObjectURL(blob);
-    var anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = '无限合成存档-' + new Date().toISOString().slice(0, 10) + '.json';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(function() { URL.revokeObjectURL(url);
- }, 1000);
-    info('已生成存档文件，请确认平板已经下载。');
-    render();
-  } catch (error) {
-    info('生成存档文件失败，请检查浏览器下载权限。');
-    render();
-  }
-}
-
-function replaceWithBackup(raw, explanation) {
-  var candidate;
-  try { candidate = parseStored(raw, false);
- }
-  catch (error) { info('存档无效：' + error.message);
- render();
- return;
- }
-  if (!window.confirm(explanation + ' 当前进度将被替换，建议先备份。继续吗？')) return;
-  s = candidate;
-  storageHealthy = true;
-  storageMessage = '已恢复存档';
-  info('存档恢复成功。');
-  render();
-}
-
-function readBackupFile(file) {
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) {
-    info('存档文件过大，未导入。');
-    render();
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function() { replaceWithBackup(String(reader.result), '将导入所选存档。');
- };
-  reader.onerror = function() { info('无法读取存档文件。');
- render();
- };
-  reader.readAsText(file, 'UTF-8');
-}
-
-function fget(id){return families.find(function(f){return f.id===id;
-});
-}
-function split(k){var p=k.split(':');
-return {f:fget(p[0]),tier:Math.max(0,Math.min(Number.MAX_SAFE_INTEGER-2,Number(p[1])||0))};
-}
-function name(f,t){return f.names[t]||('超维'+f.base+' · '+(t-10)+'阶');
-}
-function trait(t){return traits[Math.min(t,traits.length-1)]+(t>11?' · 迭代'+(t-11):'');
-}
-function civ(t){var arr=[0.7,1,1.5,2,2.8,4,5.5,7.5,10,13,16];
-return t<=10?arr[t].toString()+'级': '16级+';
-}
+var key='waste-synthesis-save-v1';
+function defaults(){return {inv:{'sticks:0':4,'cup:0':2,'glove:0':2,'drone:0':2,'table:0':2,'phone:0':2},selected:'sticks:0',coins:90,merges:0,explores:0,max:0,log:['合成核心已激活。你在废星的废弃城区苏醒。']};}
+var s=defaults();
+try{var saved=JSON.parse(localStorage.getItem(key)||'null');if(saved&&saved.inv&&typeof saved.inv==='object'&&Number.isFinite(saved.merges)){s=saved;s.coins=Math.max(0,Number(s.coins)||0);s.max=Math.max(0,Number(s.max)||0);s.log=Array.isArray(s.log)?s.log.slice(0,5):[];}}catch(e){}
+function store(){try{localStorage.setItem(key,JSON.stringify(s));}catch(e){}}
+function fget(id){return families.find(function(f){return f.id===id;});}
+function split(k){var p=k.split(':');return {f:fget(p[0]),tier:Math.max(0,Math.min(99999,Number(p[1])||0))};}
+function name(f,t){return f.names[t]||('超维'+f.base+' · '+(t-10)+'阶');}
+function trait(t){return traits[Math.min(t,traits.length-1)]+(t>11?' · 迭代'+(t-11):'');}
+function civ(t){var arr=[0.7,1,1.5,2,2.8,4,5.5,7.5,10,13,16];return t<=10?arr[t].toString()+'级': '16级+';}
 function shape(f,t){
  var hue=(187+t*24)%360, light=61, primary='hsl('+hue+',68%,'+light+'%)', dark='hsl('+hue+',42%,23%)';
  var svg='<svg role="img" aria-label="'+name(f,t)+'示意图" viewBox="0 0 160 110" xmlns="http://www.w3.org/2000/svg"><ellipse cx="80" cy="99" rx="51" ry="6" fill="#050e20" opacity=".5"/>';
  if(t>0)svg+='<circle cx="80" cy="53" r="'+(36+(t%4)*4)+'" fill="none" stroke="'+primary+'" stroke-width="1.5" stroke-dasharray="5 6" opacity=".57"/>';
  if(t>4)svg+='<path d="M18 54h28M114 54h28M80 3v16M80 89v12" stroke="'+primary+'" stroke-width="2" opacity=".7"/>';
- if(f.id==='robot'){
-  svg+='<rect x="46" y="18" width="68" height="60" rx="15" fill="'+dark+'" stroke="'+primary+'" stroke-width="4"/><circle cx="64" cy="42" r="6" fill="'+primary+'"/><circle cx="96" cy="42" r="6" fill="'+primary+'"/><path d="M62 61q18 10 36 0M80 18V8M58 78v18M102 78v18M46 58L30 76M114 58l16 18" fill="none" stroke="'+primary+'" stroke-width="5" stroke-linecap="round"/>';
- }else if(f.id==='shoe'){
-  svg+='<path d="M45 25h35l8 35 28 12q11 4 11 17H38q-10-3-7-12l12-15z" fill="'+dark+'" stroke="'+primary+'" stroke-width="4"/><path d="M48 42h35M48 52h37M40 90h88" fill="none" stroke="'+primary+'" stroke-width="4"/><path d="M23 77l-9 5 9 4" fill="none" stroke="#f4be75" stroke-width="4"/>';
- }else if(f.id==='alloy'){
-  svg+='<ellipse cx="80" cy="34" rx="38" ry="14" fill="'+primary+'"/><path d="M42 34v42q38 22 76 0V34q-38 18-76 0z" fill="'+dark+'" stroke="'+primary+'" stroke-width="4"/><ellipse cx="80" cy="34" rx="38" ry="14" fill="none" stroke="#d4f9ff" stroke-width="3"/><path d="M61 53v22M80 56v25M99 53v22" stroke="'+primary+'" stroke-width="3"/>';
- }else if(f.id==='armor'){
-  svg+='<path d="M53 19l-21 17 13 22 10-8v43h50V50l10 8 13-22-21-17-15 9H68z" fill="'+dark+'" stroke="'+primary+'" stroke-width="4"/><path d="M60 44h40M57 64h46M80 35v48" stroke="'+primary+'" stroke-width="3"/><circle cx="80" cy="55" r="8" fill="'+primary+'"/>';
- }else if(f.id==='sticks'){
+ if(f.id==='sticks'){
   svg+='<g transform="rotate(-13 80 55)"><rect x="59" y="11" width="8" height="82" rx="4" fill="'+primary+'" stroke="#e5fdff" stroke-width="1"/><rect x="92" y="11" width="8" height="82" rx="4" fill="'+primary+'" stroke="#e5fdff" stroke-width="1"/><path d="M63 25v50M96 25v50" stroke="#0a1a2b" stroke-opacity=".65" stroke-width="2"/></g>';
  }else if(f.id==='table'){
   svg+='<path d="M29 39L94 24L139 39L72 58Z" fill="'+primary+'" stroke="#c5fcff" stroke-width="2"/><path d="M29 39v12l43 21V58M139 39v13L72 72V58" fill="'+dark+'" stroke="#8bd3dc" stroke-width="1.5"/><path d="M43 58v38m70-36v35" stroke="'+primary+'" stroke-width="9" stroke-linecap="round"/>';
  }else if(f.id==='cup'){
   svg+='<path d="M45 24h62l-7 66H52Z" fill="'+dark+'" stroke="'+primary+'" stroke-width="4"/><ellipse cx="76" cy="24" rx="31" ry="8" fill="#142a40" stroke="#d8faff" stroke-width="3"/><path d="M105 35h14q22 10 0 32h-17" stroke="'+primary+'" stroke-width="7" fill="none"/><path d="M64 45v25M78 45v25" stroke="'+primary+'" stroke-width="3"/>';
- }else if(f.id==='glove'||f.id==='surgical'){
+ }else if(f.id==='glove'){
   svg+='<path d="M52 94L40 56Q37 42 46 40Q55 38 61 54V24Q61 14 71 16Q79 16 79 26V15Q80 4 89 8Q96 9 96 18V25Q101 15 108 20Q114 24 110 35V57Q128 38 137 44Q143 52 129 70L112 94Z" fill="'+dark+'" stroke="'+primary+'" stroke-width="4"/><circle cx="89" cy="61" r="12" fill="'+primary+'"/><circle cx="89" cy="61" r="5" fill="#142b40"/><path d="M58 81h54" stroke="#d7fbff" stroke-width="2"/>';
  }else if(f.id==='drone'){
   svg+='<path d="M44 47L20 31M116 47l24-16M44 65L20 82M116 65l24 17" stroke="'+primary+'" stroke-width="7"/><circle cx="20" cy="31" r="13" fill="none" stroke="#9adff5" stroke-width="3"/><circle cx="140" cy="31" r="13" fill="none" stroke="#9adff5" stroke-width="3"/><circle cx="20" cy="82" r="13" fill="none" stroke="#9adff5" stroke-width="3"/><circle cx="140" cy="82" r="13" fill="none" stroke="#9adff5" stroke-width="3"/><path d="M51 39H109L122 60L105 79H55L38 60Z" fill="'+dark+'" stroke="'+primary+'" stroke-width="3"/><circle cx="80" cy="59" r="13" fill="#0b243a" stroke="#d3ffff" stroke-width="3"/><circle cx="80" cy="59" r="5" fill="'+primary+'"/>';
@@ -825,198 +101,36 @@ function shape(f,t){
  if(t>=7)svg+='<path d="M137 6l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#fae7af"/>';
  return svg+'</svg>';
 }
-function keys(){return Object.keys(s.inv).filter(function(k){return s.inv[k]>0&&split(k).f;
-}).sort(function(a,b){var d=split(b).tier-split(a).tier;
-return d||a.localeCompare(b);
-});
-}
-function selected(){var p=split(s.selected||'robot:0');
-return p.f?p:split('robot:0');
-}
-function info(msg){$('notice').textContent=msg;
-s.log.unshift(msg);
-s.log=s.log.slice(0,5);
-}
-var storySteps=[
- ['垃圾地球','程乞与机器人伙伴憨仔靠拾荒生活。新一批科技垃圾落下，二人准备前往垃圾山。','点击「探索废墟」，开始第一次拾荒。'],
- ['护腕觉醒','拾荒时发生争抢，憨仔为了保护程乞受损。危急时，程乞的水晶护腕启动。','选中破损保姆机器人，合成两件。'],
- ['伙伴归来','合成后的憨仔重新启动。程乞开始测试护腕对装备的作用。','选中破损机械探险鞋，合成两件。'],
- ['飞向天空','探险鞋已经进化。程乞决定继续提升它，尝试获得飞行能力。','合成两件机械探险护腿。数量不足可到旧货站寻找同款。'],
- ['高级合金','债务仍在，程乞把目光投向自己积攒的镍基高温合金。','合成两件镍基高温合金。'],
- ['材料升级','合金能够变得更珍贵，但程乞也需要谨慎判断它们的价值。','合成两件金属间化合物。'],
- ['医疗垃圾堆','为了更高效地翻找深处的物品，程乞开始升级医用辅助手套。','合成两件外科手术辅助手套。'],
- ['重力手套','智能辅助手套仍可继续进化，重力能力将帮助程乞清理垃圾。','合成两件智能辅助手套。'],
- ['深埋的秘密','程乞在垃圾深处发现与昔日战士有关的装备残骸。','合成两件破损动力外骨骼。'],
- ['极限战士装备','旧装备逐步进化，程乞开始为之后的危险做准备。','合成两件极限战士外骨骼。'],
- ['记忆金属装甲','战甲还可以继续升级，成为程乞面对危险的重要依靠。','合成两件极限战士装甲。'],
- ['开篇探索完成','护腕让废旧科技重新发挥价值。继续探索垃圾地球，合成更高等级的装备。','自由探索与合成；文明等级与部分高阶装备是本试玩的延伸设定。']
-];
-var storyTargets=['robot:1','shoe:1','shoe:2','alloy:1','alloy:2','surgical:1','surgical:2','armor:1','armor:2','armor:3'];
-function advanceStory(){
- s.discovered=s.discovered||{};
- while(s.stage>=1 && s.stage<=storyTargets.length && s.discovered[storyTargets[s.stage-1]])s.stage++;
-}
-function renderStory(){
- var st=Math.max(0,Math.min(11,Number(s.stage)||0)), story=storySteps[st];
- $('chapterLabel').textContent=story[0];
-$('storyText').textContent=story[1];
-$('storyGoal').textContent='目标：'+story[2];
- $('storyProgress').value=st;
-$('storyProgressText').textContent='开篇进度 '+st+' / 11';
-}
-function routeChart(f,t){
- var start=Math.max(0,t-1), out=[];
- for(var i=start;
-i<start+4;
-i++)out.push('<div class="route-node'+(i===t?' current':'')+'"><span>第 '+i+' 阶</span><b>'+name(f,i)+'</b><span>'+(i===t?'当前选择':'同款 × 2 可继续合成')+'</span></div>');
- return out.join('<span class="route-arrow" aria-hidden="true">→</span>');
-}
-function hasTier(id,tier){return keys().some(function(k){var p=split(k);
-return p.f.id===id&&p.tier>=tier;
-});
-}
-function exploreBuffs(){
- var extra=(hasTier('shoe',2)?1:0)+(hasTier('surgical',2)?1:0), coins=hasTier('robot',1)?10:0;
- return {extra:extra,coins:coins};
-}
-
+function keys(){return Object.keys(s.inv).filter(function(k){return s.inv[k]>0&&split(k).f;}).sort(function(a,b){var d=split(b).tier-split(a).tier;return d||a.localeCompare(b);});}
+function selected(){var p=split(s.selected||'sticks:0');return p.f?p:split('sticks:0');}
+function info(msg){$('notice').textContent=msg;s.log.unshift(msg);s.log=s.log.slice(0,5);}
 function render(){
- var ks=keys(), quantity=ks.reduce(function(n,k){return n+s.inv[k];
-},0), p=selected(), selectedQty=s.inv[s.selected]||0;
- renderStory();
- $('civ').textContent=civ(s.max);
-$('merges').textContent=s.merges;
-$('coins').textContent=Math.floor(s.coins);
-$('count').textContent=quantity;
+ var ks=keys(), quantity=ks.reduce(function(n,k){return n+s.inv[k];},0), p=selected(), selectedQty=s.inv[s.selected]||0;
+ $('civ').textContent=civ(s.max);$('merges').textContent=s.merges;$('coins').textContent=Math.floor(s.coins);$('count').textContent=quantity;
  $('inventoryTypes').textContent=ks.length+'种物品状态';
- $('routeChart').innerHTML=routeChart(p.f,p.tier);
- var buffs=exploreBuffs();
-$('exploreBonus').textContent='装备加成（游戏扩展）：喷气鞋、重力手套各增加1件拾荒所得；升级憨仔增加10代币。当前：额外 '+buffs.extra+' 件，'+buffs.coins+' 代币。';
- $('inventory').innerHTML=ks.length?ks.map(function(k){var a=split(k),isSel=s.selected===k;
-return '<button type="button" class="item'+(isSel?' selected':'')+'" data-key="'+k+'" aria-pressed="'+isSel+'"><span class="art">'+shape(a.f,a.tier)+'</span><span class="qty">×'+s.inv[k]+'</span><div class="name">'+name(a.f,a.tier)+'</div><div class="meta"><span>'+a.f.mat+'</span><span>合成 '+a.tier+'阶</span></div></button>';
-}).join(''):'<div class="empty">背包为空，先点击探索废墟。</div>';
- $('sourceArt').innerHTML=shape(p.f,p.tier);
-$('resultArt').innerHTML=shape(p.f,p.tier+1);
- $('sourceName').textContent=name(p.f,p.tier);
-$('sourceMeta').textContent=p.f.mat+' · 持有 '+selectedQty+'件';
- $('resultName').textContent=name(p.f,p.tier+1);
-$('resultMeta').textContent='→ '+civ(p.tier+1)+'文明技术';
+ $('inventory').innerHTML=ks.length?ks.map(function(k){var a=split(k),isSel=s.selected===k;return '<button type="button" class="item'+(isSel?' selected':'')+'" data-key="'+k+'" aria-pressed="'+isSel+'"><span class="art">'+shape(a.f,a.tier)+'</span><span class="qty">×'+s.inv[k]+'</span><div class="name">'+name(a.f,a.tier)+'</div><div class="meta"><span>'+a.f.mat+'</span><span>合成 '+a.tier+'阶</span></div></button>';}).join(''):'<div class="empty">背包为空，先点击探索废墟。</div>';
+ $('sourceArt').innerHTML=shape(p.f,p.tier);$('resultArt').innerHTML=shape(p.f,p.tier+1);
+ $('sourceName').textContent=name(p.f,p.tier);$('sourceMeta').textContent=p.f.mat+' · 持有 '+selectedQty+'件';
+ $('resultName').textContent=name(p.f,p.tier+1);$('resultMeta').textContent='→ '+civ(p.tier+1)+'文明技术';
  $('tierLabel').textContent='第 '+p.tier+' → '+(p.tier+1)+' 阶';
- $('description').textContent='选中物品作为主体，消耗另一件同类、同材质、同等级的物品；合成后获得「'+trait(p.tier+1)+'」。';
- $('synthesize').disabled=selectedQty<2 || (Number(s.stage)||0)===0;
- $('synthesize').textContent=(Number(s.stage)||0)===0?'先完成第一次探索':selectedQty>=2?'✦ 以选中物品为主体合成':'需要两件相同物品';
+ $('description').textContent='合成后获得「'+trait(p.tier+1)+'」；始终保留'+p.f.mat+'的核心物质属性与原始物品用途。';
+ $('synthesize').disabled=selectedQty<2;
+ $('synthesize').textContent=selectedQty>=2?'✦ 合成：2件 → 1件':'需要两件相同物品';
  var price=15+Math.min(5000,p.tier*9);
- $('scanCost').textContent='旧货站寻找同款：花费 '+price+' 代币，获得 '+name(p.f,p.tier)+' ×1。';
+ $('scanCost').textContent='扫描选中物品：花费 '+price+' 代币，复制 '+name(p.f,p.tier)+' ×1。';
  $('scan').disabled=selectedQty<1||s.coins<price;
- $('codex').innerHTML=[0,1,3,5,7,10,11].map(function(t){var unlocked=s.max>=t;
-return '<div class="milestone"><span>'+(t===11?'超越16级':civ(t)+'文明')+' · '+trait(t)+'</span><b style="color:'+(unlocked?'#78e2d0':'#657d97')+'">'+(unlocked?'已解锁':'未解锁')+'</b></div>';
-}).join('');
- $('log').innerHTML=s.log.map(function(m){return '<li>'+m.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</li>';
-}).join('');
+ $('codex').innerHTML=[0,1,3,5,7,10,11].map(function(t){var unlocked=s.max>=t;return '<div class="milestone"><span>'+(t===11?'超越16级':civ(t)+'文明')+' · '+trait(t)+'</span><b style="color:'+(unlocked?'#78e2d0':'#657d97')+'">'+(unlocked?'已解锁':'未解锁')+'</b></div>';}).join('');
+ $('log').innerHTML=s.log.map(function(m){return '<li>'+m.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</li>';}).join('');
  store();
 }
-function add(k,n){s.inv[k]=(s.inv[k]||0)+n;
-if(s.inv[k]<=0)delete s.inv[k];
-}
-function merge(k){if((s.inv[k]||0)<2)return false;
-var p=split(k),newKey=p.f.id+':'+(p.tier+1);
-add(k,-2);
-add(newKey,1);
-s.discovered=s.discovered||{};
-s.discovered[newKey]=true;
-advanceStory();
-s.merges++;
-s.max=Math.max(s.max,p.tier+1);
-s.coins+=10+p.tier*3;
-s.selected=newKey;
-return name(p.f,p.tier+1);
-}
-$('inventory').addEventListener('click',function(e){var item=e.target.closest('button[data-key]');
-if(!item)return;
-s.selected=item.dataset.key;
-render();
-});
-$('explore').addEventListener('click',function(){var finds=[],buffs=exploreBuffs();
-for(var i=0;
-i<3+buffs.extra;
-i++){var pool=families.filter(function(f){return !f.legacy || (Number(s.stage)||0)>=11;
-});
-var f=pool[Math.floor(Math.random()*pool.length)];
-var tier=0;
-if(s.max>1&&Math.random()<.44){tier=Math.max(0,s.max-(Math.random()<.28?1:2));
-}var k=f.id+':'+tier;
-add(k,1);
-finds.push(name(f,tier));
-}s.explores++;
-if((Number(s.stage)||0)===0){s.stage=1;
-advanceStory();
-}var earned=25+s.max*4+buffs.coins;
-s.coins+=earned;
-info('第'+s.explores+'次探索：找到 '+finds.join('、')+'；获得 '+earned+' 代币。');
-render();
-});
-$('scan').addEventListener('click',function(){var p=selected(),price=15+Math.min(5000,p.tier*9);
-if((s.inv[s.selected]||0)<1||s.coins<price){info('寻找失败：物品不存在或代币不足。');
-render();
-return;
-}s.coins-=price;
-add(s.selected,1);
-info('找到同款：'+name(p.f,p.tier)+' +1。');
-render();
-});
-$('synthesize').addEventListener('click',function(){if((Number(s.stage)||0)===0){info('请先探索垃圾山。');
-render();
-return;
-}var before=s.selected,res=merge(before);
-if(res){info('合成成功！获得「'+res+'」，技术达到 '+civ(s.max)+'。');
-}else{info('合成失败：需要两个完全相同的物品。');
-}render();
-});
-$('automerge').addEventListener('click',function(){if((Number(s.stage)||0)<11){info('请先完成开局故事中的手动合成。');
-render();
-return;
-}var n=0,changed=true;
-while(changed&&n<1000){changed=false;
-var arr=keys();
-for(var i=0;
-i<arr.length;
-i++){while((s.inv[arr[i]]||0)>=2&&n<1000){merge(arr[i]);
-changed=true;
-n++;
-}}}info(n?'连锁合成 '+n+' 次，最高技术达到 '+civ(s.max)+'。':'目前没有可合成的重复物品。');
-render();
-});
-$('exportSave').addEventListener('click', exportBackup);
-$('importSave').addEventListener('click', function() { $('importFile').click();
- });
-$('importFile').addEventListener('change', function(event) {
-  readBackupFile(event.target.files && event.target.files[0]);
-  event.target.value = '';
-});
-$('restoreSave').addEventListener('click', function() {
-  try {
-    var raw = localStorage.getItem(previousKey) || localStorage.getItem(beforeResetKey);
-    if (!raw) { info('还没有可恢复的自动备份。');
- render();
- return;
- }
-    replaceWithBackup(raw, '将恢复上一次自动备份。');
-  } catch (error) { info('无法读取自动备份，请尝试导入备份文件。');
- render();
- }
-});
-$('reset').addEventListener('click', function() {
-  if (!window.confirm('确认重开？当前进度会先尝试保留一份备份。')) return;
-  try { localStorage.setItem(beforeResetKey, JSON.stringify(s));
- }
-  catch (error) { info('无法备份，未重开。请先导出存档。');
- render();
- return;
- }
-  s = defaults();
-  $('notice').textContent = '新的探索开始。';
-  render();
-});
+function add(k,n){s.inv[k]=(s.inv[k]||0)+n;if(s.inv[k]<=0)delete s.inv[k];}
+function merge(k){if((s.inv[k]||0)<2)return false;var p=split(k),newKey=p.f.id+':'+(p.tier+1);add(k,-2);add(newKey,1);s.merges++;s.max=Math.max(s.max,p.tier+1);s.coins+=10+p.tier*3;s.selected=newKey;return name(p.f,p.tier+1);}
+$('inventory').addEventListener('click',function(e){var item=e.target.closest('button[data-key]');if(!item)return;s.selected=item.dataset.key;render();});
+$('explore').addEventListener('click',function(){var finds=[];for(var i=0;i<3;i++){var f=families[Math.floor(Math.random()*families.length)];var tier=0;if(s.max>1&&Math.random()<.44){tier=Math.max(0,s.max-(Math.random()<.28?1:2));}var k=f.id+':'+tier;add(k,1);finds.push(name(f,tier));}s.explores++;var earned=25+s.max*4;s.coins+=earned;info('第'+s.explores+'次探索：找到 '+finds.join('、')+'；获得 '+earned+' 代币。');render();});
+$('scan').addEventListener('click',function(){var p=selected(),price=15+Math.min(5000,p.tier*9);if((s.inv[s.selected]||0)<1||s.coins<price){info('扫描失败：物品不存在或代币不足。');render();return;}s.coins-=price;add(s.selected,1);info('扫描复制成功：'+name(p.f,p.tier)+' +1。');render();});
+$('synthesize').addEventListener('click',function(){var before=s.selected,res=merge(before);if(res){info('合成成功！获得「'+res+'」，技术达到 '+civ(s.max)+'。');}else{info('合成失败：需要两个完全相同的物品。');}render();});
+$('automerge').addEventListener('click',function(){var n=0,changed=true;while(changed&&n<1000){changed=false;var arr=keys();for(var i=0;i<arr.length;i++){while((s.inv[arr[i]]||0)>=2&&n<1000){merge(arr[i]);changed=true;n++;}}}info(n?'连锁合成 '+n+' 次，最高技术达到 '+civ(s.max)+'。':'目前没有可合成的重复物品。');render();});
+$('reset').addEventListener('click',function(){if(!window.confirm('确认重开？这将清除当前浏览器里的无限合成存档。'))return;s=defaults();$('notice').textContent='新的探索开始。';render();});
 render();
 })();
 </script>
