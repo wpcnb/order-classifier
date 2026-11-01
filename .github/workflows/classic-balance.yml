@@ -5,11 +5,13 @@ on:
     paths:
       - "index.html"
       - "tests/classic-balance.cjs"
+      - "tests/classic-world.cjs"
       - ".github/workflows/classic-balance.yml"
   pull_request:
     paths:
       - "index.html"
       - "tests/classic-balance.cjs"
+      - "tests/classic-world.cjs"
       - ".github/workflows/classic-balance.yml"
   workflow_dispatch:
 permissions:
@@ -27,3 +29,5 @@ jobs:
           node-version: '22'
       - name: Test career scoring and award balance
         run: node tests/classic-balance.cjs
+      - name: Test realistic aging, sponsorships and career rankings
+        run: node tests/classic-world.cjs
