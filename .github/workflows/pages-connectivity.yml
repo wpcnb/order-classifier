@@ -55,3 +55,29 @@ jobs:
             fi
           done
           echo "All tested GitHub Pages routes served over public HTTPS."
+      - name: Probe via Singapore, Hong Kong, Tokyo and Los Angeles nodes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request,urllib.parse
+          host="https://wpcnb.github.io/order-classifier/"
+          nodes=["sg1.node.check-host.net","hk1.node.check-host.net","jp1.node.check-host.net","us1.node.check-host.net"]
+          url="https://check-host.net/check-http?host="+urllib.parse.quote(host,safe="")+"&"+"&".join("node="+urllib.parse.quote(n,safe="") for n in nodes)
+          def fetch(url):
+              req=urllib.request.Request(url,headers={"Accept":"application/json","User-Agent":"GitHub-Pages-Diagnostics/1.0"})
+              with urllib.request.urlopen(req,timeout=20) as resp:return json.load(resp)
+          try:
+              started=fetch(url)
+              print("CHECK_HOST_START",json.dumps(started,ensure_ascii=False))
+              request_id=started.get("request_id")
+              if not request_id:raise RuntimeError("No check-host request ID")
+              for attempt in range(8):
+                  time.sleep(3)
+                  status=fetch("https://check-host.net/check-result/"+urllib.parse.quote(request_id,safe=""))
+                  if all(status.get(n) is not None for n in started.get("nodes",{})):
+                      break
+              print("CHECK_HOST_REGIONAL_RESULTS",json.dumps(status,ensure_ascii=False))
+          except Exception as exc:
+              print("CHECK_HOST_UNAVAILABLE",repr(exc))
+              print("Warning: third-party probes are optional; no conclusion about Singapore reachability without a result.")
+          PY
