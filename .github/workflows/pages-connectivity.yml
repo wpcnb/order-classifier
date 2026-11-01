@@ -1,0 +1,57 @@
+name: GitHub Pages connectivity diagnostics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages-connectivity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-live-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify DNS resolves
+        run: |
+          echo "DNS resolution for wpcnb.github.io"
+          getent ahostsv4 wpcnb.github.io | head -8
+          echo "DNS resolution for github.com"
+          getent ahostsv4 github.com | head -3
+      - name: Verify old and new webpages via public HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://wpcnb.github.io/order-classifier/"
+            "https://wpcnb.github.io/order-classifier/football-legacy/"
+            "https://wpcnb.github.io/order-classifier/football-legacy/offline.html"
+            "https://wpcnb.github.io/order-classifier/classic-v3-offline.html"
+          )
+          for url in "${urls[@]}"; do
+            echo "==== Probing $url ===="
+            worked=false
+            for attempt in 1 2 3 4 5 6; do
+              if curl --location --fail --show-error --silent \
+                 --connect-timeout 8 --max-time 25 \
+                 --output /tmp/pages-probe.html \
+                 --write-out "HTTP %{http_code}; remote IP %{remote_ip}; content-type %{content_type}; bytes %{size_download}; total %{time_total}s\\n" \
+                 "$url"; then
+                echo "DOCTYPE:"
+                head -c 100 /tmp/pages-probe.html
+                echo
+                worked=true
+                break
+              fi
+              echo "Attempt $attempt failed, retrying in 10s"
+              sleep 10
+            done
+            if [ "$worked" != true ]; then
+              echo "::error::GitHub Pages URL inaccessible from US GitHub Actions runner: $url"
+              exit 1
+            fi
+          done
+          echo "All tested GitHub Pages routes served over public HTTPS."
