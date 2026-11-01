@@ -30,7 +30,7 @@ const NAMES1=["亚历克斯","卢卡","伊万","阿尔瓦罗","安德烈","维�
 const UCL_PTS=[15,12,10,8,7,5,4,3,2,1];
 let g=null,page="dashboard",draft=null,awardViewed=false,toastTimeout=0;
 function toDate(d){return d==="—"?"":d}
-function power(team){for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power;}return 80}
+function power(team){if(team.endsWith("青训"))return Math.max(42,power(team.slice(0,-2))-30);for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power;}return 80}
 function overall(p){const a=Object.values(p.stats),w=WEIGHTS[p.position]||WEIGHTS.CM;return Math.round(a.reduce((s,v,i)=>s+v*w[i],0))}
 function mkTalent(){let s={};Object.keys(STATS).forEach(k=>s[k]=R(42,67));let specialty=P(Object.keys(STATS));s[specialty]=C(s[specialty]+R(9,16),1,99);return {stats:s,potential:R(80,98),specialty}}
 function initNPC(){const n=STAR_SEEDS.map(([name,club,pos,ov],i)=>({id:"star"+i,name,club,pos,ov,apps:0,goals:0,assists:0,rating:7,form:60}));Object.values(DB).forEach(l=>l.teams.forEach((t,i)=>{for(let j=0;j<2;j++)n.push({id:l.id+i+"_"+j,name:P(NAMES1)+"·"+P(NAMES2),club:t.name,pos:P(["ST","LW","RW","CM","CB"]),ov:C(t.power+R(-13,4),45,92),apps:0,goals:0,assists:0,rating:6.5,form:50})}));return n}
@@ -69,7 +69,7 @@ function makeSchedule(player,year,prevRank=10){
  national={name:tournament,knockout,active:true,groupPoints:0,groupPlayed:0,results:[],stage:"group"};
  }
  events.sort((a,b)=>a.date.localeCompare(b.date)||({europe:0,national:1,cup:2,league:3}[a.kind]-({europe:0,national:1,cup:2,league:3}[b.kind])));
- return {events,leagueRounds:league,leagueTable:Object.fromEntries(DB[player.leagueId].teams.map(x=>[x.name,{name:x.name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),uefa,cup,national,index:0,completed:0,leaguePlayed:0,results:[],ratings:[],goals:0,assists:0,apps:0,clean:0,points:0,nationalApps:0,stage:"playing"};
+ return {events,leagueRounds:league,leagueTable:Object.fromEntries(DB[player.leagueId].teams.map(x=>{const name=x.name+(player.youth?"青训":"");return [name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]})),uefa,cup,national,index:0,completed:0,leaguePlayed:0,results:[],ratings:[],goals:0,assists:0,apps:0,clean:0,points:0,nationalApps:0,stage:"playing"};
 }
 function initialPlayer(custom=false){const talent=custom?draft.talent:mkTalent();const id=custom?draft.leagueId:"ENG",team=custom?draft.club:"曼联",age=custom?16:22,position=custom?draft.position:"LW";const stats={...talent.stats};if(!custom){Object.assign(stats,{pace:81,shoot:74,pass:72,dribble:80,defense:43,physical:72,mental:74})}
  return {name:custom?draft.name:"陆白",country:custom?draft.country:"中国",age,position,club:team,leagueId:id,youth:custom,number:custom?R(14,39):9,stats,potential:talent.potential,trait:talent.specialty,stamina:95,morale:82,form:69,coachTrust:66,points:0,autoPoints:true,autoTraining:true,wage:custom?1200:68000,cash:custom?3000:350000,contract:custom?2:4,fame:custom?5:33,career:{apps:0,goals:0,assists:0,national:0},parentCoach:null};}
@@ -90,7 +90,7 @@ function training(k){const p=g.player;if(!STATS[k]||p.points<=0||p.stats[k]>=p.p
 function coachPoint(k){const c=g.player.parentCoach;if(!c||!Object.hasOwn(c.skills,k)||!c.points)return;c.skills[k]++;c.points--;save();render()}
 function advance(skip=false){if(!g||g.season.stage!=="playing")return;const ev=currentEvent();if(!ev){endSeason();return}if(!skip&&(!g.player.autoPoints&&g.player.points>0||g.player.parentCoach&&!g.player.autoPoints&&g.player.parentCoach.points>0)){if(!confirm("有未分配的能力点，是否先继续比赛？你也可以前往训练页面加点。"))return}automaticPrep();if(skip){playEvent(ev,"balanced",true);return}g.live={index:g.season.index,event:ev};page="match";save();render()}
 function calcRating(outcome,goals,assists,win){return Math.round(C(5.5+(outcome?.7:0)+goals*.82+assists*.48+(win?.5:-.16)+(Math.random()-.5)*1.05,4.4,9.9)*10)/10}
-function playEvent(ev,choice="balanced",batch=false){const p=g.player,s=g.season;let isOut=(ev.kind==="cup"&&!s.cup.active)||(ev.kind==="europe"&&(!s.uefa||s.uefa.completed))||(ev.kind==="national"&&(p.age<18||s.national&&!s.national.active));let eventResult=null;
+function playEvent(ev,choice="balanced",batch=false){const p=g.player,s=g.season;let isOut=(ev.kind==="cup"&&!s.cup.active)||((ev.kind==="europe"||ev.kind==="europeKO")&&(!s.uefa||s.uefa.completed))||(ev.kind==="national"&&(p.age<18||s.national&&!s.national.active));let eventResult=null;
  if(isOut){s.index++;s.completed++;g.live=null;if(!batch){save();render()}return}
  const home=ev.home|| (ev.kind==="national"?p.country:ev.kind==="cup"?(s.cup.stage%2?p.club:"对手") :p.club),away=ev.away|| (ev.kind==="national"?"国家队对手":ev.kind==="cup"?(s.cup.stage%2?"对手":p.club):"对手");
  const ownHome=home===p.club||ev.kind==="national"&&home===p.country;
