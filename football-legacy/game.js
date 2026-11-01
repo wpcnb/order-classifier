@@ -533,21 +533,21 @@ function reportPage(){
  const m=g.lastMatch;if(!m)return '<section class="card"><h2>暂无比赛报告</h2><p class="muted">选择一场比赛开始模拟后即可解锁。</p></section>';
  const p=g.player,our=m.home===(g.mode==="coach"?g.coach.club:p.club)||m.kind==="national"&&m.home===p.country;
  const ours=our?m.hs:m.as,opp=our?m.as:m.hs;
- const notes=[];
- if(m.goals)for(let i=0;i<m.goals;i++)notes.push({min:R(12,88),text:p.name+" 打入个人第"+(i+1)+"球"});
- if(m.assists)for(let i=0;i<m.assists;i++)notes.push({min:R(8,86),text:p.name+" 送出助攻"});
- if(ours>0)notes.push({min:R(11,88),text:(g.mode==="coach"?g.coach.club:p.club)+" 攻势形成进球"});
- if(opp>0)notes.push({min:R(13,86),text:(our?m.away:m.home)+" 取得进球"});
+ const seed=Array.from((m.home||"")+(m.away||"")+(m.date||"")+m.hs+":"+m.as).reduce((h,k)=>(h*33+k.charCodeAt(0))>>>0,5381);const sr=(low,high,offset)=>low+((seed+offset*7919+(offset*offset*317))%(high-low+1));const notes=[];
+ if(m.goals)for(let i=0;i<m.goals;i++)notes.push({min:sr(12,88,10+i),text:p.name+" 打入个人第"+(i+1)+"球"});
+ if(m.assists)for(let i=0;i<m.assists;i++)notes.push({min:sr(8,86,30+i),text:p.name+" 送出助攻"});
+ if(ours>0)notes.push({min:sr(11,88,50),text:(g.mode==="coach"?g.coach.club:p.club)+" 攻势形成进球"});
+ if(opp>0)notes.push({min:sr(13,86,51),text:(our?m.away:m.home)+" 取得进球"});
  if(m.injury)notes.push({min:89,text:"医疗报告：预计缺阵"+m.injury+"场"});
  notes.sort((a,b)=>a.min-b.min);
- const shotsHome=Math.max(m.hs+R(3,8),m.hs),shotsAway=Math.max(m.as+R(3,8),m.as);
- const poss=C(Math.round(50+(m.hs-m.as)*3+R(-12,12)),27,73);
+ const shotsHome=Math.max(m.hs+sr(3,8,60),m.hs),shotsAway=Math.max(m.as+sr(3,8,61),m.as);
+ const poss=C(Math.round(50+(m.hs-m.as)*3+sr(-12,12,62)),27,73);
  const metricRow=(label,a,b)=>'<div class="kv"><b>'+a+'</b><span class="muted">'+label+'</span><b>'+b+'</b></div>';
  return '<section class="card"><div class="row"><div class="cap">POST MATCH · 比赛报告</div><span class="chip">'+E(m.date||"")+' · '+E(m.competition||DB[p.leagueId].name)+'</span></div>'+
  '<div class="scoreboard"><div class="inside"><div class="cap">'+(m.real?"已核实结果":"游戏模拟 · 已完赛")+'</div><div class="vs">'+E(m.home)+' <span class="gold">'+m.hs+' : '+m.as+'</span> '+E(m.away)+'</div><p class="muted small">'+E(m.stage||"正式比赛")+'</p></div></div>'+
  '<div class="grid4 gap">'+metric("本场评分",m.coach?"教练执教":m.played?m.rating+"/10":"未上场")+metric("个人进球",m.goals||0)+metric("个人助攻",m.assists||0)+metric("比赛结果",ours>opp?"获胜":ours<opp?"落败":"战平")+'</div>'+
  '<div class="grid2 gap"><section class="card"><h2>比赛事件</h2><div class="list">'+(notes.length?notes.map(x=>'<div class="item"><span class="gold">'+x.min+"′"+'</span> '+E(x.text)+'</div>').join(''):'<p class="muted">双方交锋激烈，未产生个人数据事件。</p>')+'</div></section>'+
- '<section class="card"><h2>模拟技术统计</h2>'+metricRow("射门",shotsHome,shotsAway)+metricRow("控球率",poss+"%",(100-poss)+"%")+metricRow("角球",R(2,9),R(2,9))+metricRow("预期进球（模型）",(m.hs*.68+shotsHome*.07).toFixed(2),(m.as*.68+shotsAway*.07).toFixed(2))+'<p class="muted small gap">统计属于游戏生成，每次重看报告时部分展示性数据会重新计算；比分与核心表现永久存档。</p></section></div>'+
+ '<section class="card"><h2>模拟技术统计</h2>'+metricRow("射门",shotsHome,shotsAway)+metricRow("控球率",poss+"%",(100-poss)+"%")+metricRow("角球",sr(2,9,63),sr(2,9,64))+metricRow("预期进球（模型）",(m.hs*.68+shotsHome*.07).toFixed(2),(m.as*.68+shotsAway*.07).toFixed(2))+'<p class="muted small gap">技术统计为游戏内一致性展示数据，不代表官方真实比赛；同一比赛重复打开不会变化。</p></section></div>'+
  '<div class="flex gap"><button class="button primary" data-action="nextMatch" '+(g.season.stage!=="playing"?"disabled":"")+'>下一场比赛</button><button class="button" data-page="calendar">查看全年赛历</button><button class="button goldbtn" data-action="simSeason" '+(g.season.stage!=="playing"?"disabled":"")+'>一键完成剩余赛季</button></div></section>'
 }
 
