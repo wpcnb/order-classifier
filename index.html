@@ -14,6 +14,12 @@ body{background:radial-gradient(ellipse at 80% 0%,#214073 0%,transparent 45%),ra
 .europe-list{display:grid;gap:8px;margin:15px 0}.europe-fixture{display:grid;grid-template-columns:110px 1fr 165px;gap:12px;align-items:center;background:#132641;padding:12px;border:1px solid #375071;border-radius:12px}.europe-fixture.historic{border-left:4px solid #72dfa9}.europe-fixture b{font-size:15px}
 .talent-box{background:#182b49;padding:18px;border-radius:16px}.talent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.talent-grid>div{background:#213958;display:flex;justify-content:space-between;padding:12px;border-radius:10px}
 @media(max-width:800px){.europe-fixture{grid-template-columns:1fr;gap:5px}.talent-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* Career trophy and journalist history presentation */
+.award-history{border:1px solid #8d7651;border-radius:12px;padding:13px;background:linear-gradient(120deg,#42331d,#15333a);color:#f2ead8}
+.award-history summary{cursor:pointer;font-size:14px;font-weight:800;min-height:30px;display:list-item}
+.award-history th{color:#d6edda;padding:10px 9px;border-bottom:1px solid #64786e;font-size:12px}
+.award-history .gold{font-weight:900;color:#ffd27d}
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Football Career Simulator</div><div class="brand">绿茵<b>传奇</b> <span style="font-size:12px;color:#b9cfd0">冠军之路 · v3.0</span></div></div><span class="pill">原创 · 单机 · 可离线</span></header><div id="app"></div><div id="toast" class="toast hidden" role="status" aria-live="polite"></div><footer class="footer">本作品为原创足球经营模拟游戏，与任何俱乐部、赛事及虎扑无官方关联。数据、概率和奖项均为虚构的游戏模型。<br>自动存档仅保存在本浏览器；建议定期导出 JSON 备份。</footer></div><input type="file" id="fileUpload" accept=".json,application/json"><script>
 (()=>{'use strict';
 const KEY='green-legend-v2';const $=id=>document.getElementById(id);const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));const randint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));const rnd=()=>Math.random();const pick=a=>a[Math.floor(rnd()*a.length)];const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));const money=n=>'¥'+Math.floor(n).toLocaleString('zh-CN');const BAR=(x)=>'<div class="meter"><span style="width:'+clamp(x,0,100)+'%"></span></div>';
@@ -276,12 +282,21 @@ function ballonVote(){
  addLog(s,'金球奖评选：第'+rank+'名，'+tally.YOU+'票分；本届100名模拟记者合计6700票分。')
 }
 
+function awardHistoryBlock(){
+ const all=s.ballots||[];
+ if(!all.length)return '';
+ return '<details class="award-history" style="margin-top:15px"><summary>查看历届金球奖：'+all.length+'届，累计 '+awardCounter('金球奖')+' 座</summary>'+
+ '<div style="overflow:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>赛季</th><th>排名</th><th>票分</th><th>计票规则</th></tr></thead><tbody>'+
+ all.slice().reverse().map(b=>'<tr style="border-bottom:1px solid #41616a"><td style="padding:9px">'+b.year+'</td><td style="padding:9px" class="'+(b.playerRank===1?'gold':'')+'">'+
+ (b.playerRank===1?'冠军 · 金球奖':'第'+b.playerRank+'名')+'</td><td style="padding:9px">'+b.playerPoints+'</td><td style="padding:9px">'+(b.model>=4?'写实评分':'旧版模拟')+'</td></tr>').join('')+'</tbody></table></div></details>'
+}
+
 function awardsPanel(){
  const b=s?.ballots?.slice(-1)[0],gold=awardCounter('金球奖');
  return '<section class="card" style="margin-top:13px"><div class="row"><h2>金球奖 · 100名模拟记者</h2><span class="pill">生涯已获 <b class="gold">'+gold+'</b> 座金球奖</span></div>'+
  '<p class="muted small">统一使用出场、进球、助攻、评分、能力与团队荣誉评分；每位记者选10人，按15、12、10、8、7、5、4、3、2、1分累计，同分比较高位选票。这是游戏模拟，不代表现实颁奖。</p>'+
  (b?'<div class="metrics">'+metric('最新届年份',b.year)+metric('你的排名','第 '+b.playerRank+' 名')+metric('本届票分',b.playerPoints)+metric('金球奖总数',gold)+'</div>'+
- '<div class="europe-list">'+b.results.slice(0,15).map((x,i)=>'<div class="europe-fixture"><b>'+(i+1)+'. '+esc(x.name)+(x.id==='YOU'?'（你）':'')+'</b><span class="muted">'+esc(x.club)+' · '+(x.goals??'—')+'球 '+(x.assists??'—')+'助</span><strong>'+x.points+' 分</strong></div>').join('')+'</div>':'<p class="muted">模拟完成首个赛季后生成本届排名。</p>')+'</section>'
+ '<div class="europe-list">'+b.results.slice(0,15).map((x,i)=>'<div class="europe-fixture"><b>'+(i+1)+'. '+esc(x.name)+(x.id==='YOU'?'（你）':'')+'</b><span class="muted">'+esc(x.club)+' · '+(x.goals??'—')+'球 '+(x.assists??'—')+'助</span><strong>'+x.points+' 分</strong></div>').join('')+'</div>':'<p class="muted">模拟完成首个赛季后生成本届排名。</p>')+awardHistoryBlock()+'</section>'
 }
 
 const DRILLS=[{id:'shoot',name:'射门训练',title:'提升射门与比赛终结能力',up:{shoot:3,mental:1},cost:13},{id:'pass',name:'传控训练',title:'提升传球和比赛组织能力',up:{pass:3,mental:1},cost:11},{id:'pace',name:'速度训练',title:'提升冲刺速度与身体素质',up:{pace:2,physical:2},cost:16},{id:'def',name:'防守训练',title:'提升防守和战术纪律',up:{defense:3,mental:1},cost:12},{id:'rest',name:'恢复训练',title:'降低受伤风险并恢复体能',up:{},cost:-22}];
