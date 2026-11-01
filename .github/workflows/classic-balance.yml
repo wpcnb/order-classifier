@@ -1,0 +1,29 @@
+name: Classic football game balance
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "tests/classic-balance.cjs"
+      - ".github/workflows/classic-balance.yml"
+  pull_request:
+    paths:
+      - "index.html"
+      - "tests/classic-balance.cjs"
+      - ".github/workflows/classic-balance.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulated-career:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test career scoring and award balance
+        run: node tests/classic-balance.cjs
