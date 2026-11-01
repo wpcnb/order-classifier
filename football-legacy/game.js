@@ -320,6 +320,14 @@ function endSeason(){
   if(leagueAvg>=7.8)award(league.name+"赛季最佳球员","individual");
   if(p.age<=21&&leagueAvg>=7.2)award(league.name+"最佳年轻球员","individual");
  }
+ if(s.uefa&&s.europeApps>=3){
+  const euroNPC=g.npcs.filter(n=>s.uefa.table[n.club]);
+  const bestGoals=euroNPC.reduce((m,n)=>Math.max(m,n.europeGoals||0),0);
+  const bestAssists=euroNPC.reduce((m,n)=>Math.max(m,n.europeAssists||0),0);
+  if((s.europeGoals||0)>=Math.max(5,bestGoals))award(s.uefa.type+"最佳射手","individual");
+  if((s.europeAssists||0)>=Math.max(4,bestAssists))award(s.uefa.type+"助攻王","individual");
+ }
+ if(!p.youth&&avg>=8.1&&s.apps>=24)award("世界年度最佳阵容","individual");
  if(s.uefa&&!s.uefa.completed){s.uefa.completed=true;s.uefa.stage="season-end";log("赛季结束，未完成的欧战结算为终止。")}
  finishVote();
  const champions={};for(const [id,w]of Object.entries(s.world||{}))champions[id]=sortedTable(w.table)[0]?.name;
