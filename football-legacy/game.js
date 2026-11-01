@@ -48,7 +48,59 @@ function notify(s){const t=$("toast");t.textContent=s;t.classList.remove("hidden
 function titleResult(d){return d.home+" "+d.hs+" : "+d.as+" "+d.away}
 function makeRR(names){const a=names.slice();if(a.length%2)a.push(null);const n=a.length,first=[],rotate=a.slice();for(let r=0;r<n-1;r++){const matches=[];for(let i=0;i<n/2;i++){let x=rotate[i],y=rotate[n-1-i];if(!x||!y)continue;const flip=(r+i)%2===1;matches.push({home:flip?y:x,away:flip?x:y})}first.push(matches);rotate.splice(1,0,rotate.pop())}return first.concat(first.map(round=>round.map(f=>({home:f.away,away:f.home}))))}
 function leagueCalendar(id,club,year){let teams=DB[id].teams.map(z=>z.name+(club.endsWith("青训")?"青训":""));if(!teams.includes(club))teams[teams.length-1]=club;let rr=makeRR(teams);if(year===2026&&id==="ENG"&&club==="曼联"){rr=MANU_26.map(([date,opp,ha,gf,ga],idx)=>{let j=rr.findIndex(r=>r.some(f=>f.home===(ha==="H"?club:opp)&&f.away===(ha==="H"?opp:club)));if(j<0)throw Error("曼联完整赛程生成失败:"+opp+ha);const round=rr.splice(j,1)[0];round._date=date;round._manu={gf,ga,opp,ha};return round}).concat(rr);return rr.slice(0,38).map((round,i)=>({round:i+1,date:MANU_26[i][0],fixtures:round,verified:i<9?{gf:MANU_26[i][3],ga:MANU_26[i][4]}:null}))}const monthDates=[9,16,23,30];return rr.map((round,i)=>({round:i+1,date:new Date(Date.UTC(year,7,22+i*7)).toISOString().slice(0,10),fixtures:round,verified:null}))}
-function createUefa(club,id,year,rank){if(!["ENG","ESP","ITA","GER","FRA","POR","NED"].includes(id))return null;let type=(year===2026&&club==="曼联")?"欧冠":rank<=4?"欧冠":rank<=7?"欧联":null;if(!type)return null;let matches=[];if(type==="欧冠"&&club==="曼联"&&year===2026){matches=MANU_CL.map(([date,opp,ha,gf,ga],i)=>({id:"u"+i,kind:"europe",date,competition:"欧冠",home:ha==="H"?club:opp,away:ha==="H"?opp:club,verified:i<3?{gf,ga}:null,stage:"联赛阶段 · 第"+(i+1)+"轮"}))}else{const teams=Object.values(DB).filter(l=>l.id!=="CHN"&&l.id!=="BRA").flatMap(l=>l.teams.slice(0,6).map(t=>t.name)).filter(t=>t!==club);teams.sort(()=>Math.random()-.5);matches=teams.slice(0,8).map((opp,i)=>({id:"u"+i,kind:"europe",date:(year+(i>5?1:0))+"-"+String([9,10,10,11,11,12,1,1][i]).padStart(2,"0")+"-"+String([10,13,21,3,25,8,20,27][i]).padStart(2,"0"),competition:type,home:i%2?opp:club,away:i%2?club:opp,stage:"联赛阶段 · 第"+(i+1)+"轮"}))}let clubs=(type==="欧冠"&&year===2026&&club==="曼联"?UEFA_TEAMS: [club,...Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED"].includes(l.id)).flatMap(l=>l.teams.slice(0,5).map(x=>x.name)).filter(t=>t!==club).slice(0,35)]);clubs=Array.from(new Set(clubs)).slice(0,36);while(clubs.length<36)clubs.push("欧战队"+clubs.length);return {type,table:Object.fromEntries(clubs.map(n=>[n,{name:n,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),played:0,stage:"league",completed:false,knockoutIndex:0,knockoutResults:[],matches}}
+function makeUefaDraw(clubs,preset=[]){
+ // Eight distinct opponents, eight matchdays with 18 fixtures each, four home and four away per club.
+ const ids=Array.from({length:36},(_,i)=>"S"+i);
+ const rounds=makeRR(ids).slice(0,8),slots={S0:clubs[0]},used=new Set([clubs[0]]);
+ for(let i=0;i<preset.length;i++){
+  const f=rounds[i].find(m=>m.home==="S0"||m.away==="S0"),other=f.home==="S0"?f.away:f.home;
+  slots[other]=preset[i].opponent;used.add(preset[i].opponent)
+ }
+ const unused=clubs.filter(x=>!used.has(x));
+ for(const id of ids)if(!slots[id])slots[id]=unused.shift();
+ const matches=rounds.map(r=>r.map(f=>({a:slots[f.home],b:slots[f.away]})));
+ const fixedHome=Object.fromEntries(clubs.map(x=>[x,0])),free=[];
+ for(let i=0;i<8;i++)for(const f of matches[i]){
+  if(f.a===clubs[0]||f.b===clubs[0]){
+   if(preset.length){const home=preset[i].home?clubs[0]:(f.a===clubs[0]?f.b:f.a);
+    f.home=home;f.away=home===f.a?f.b:f.a;fixedHome[home]++;
+   }else free.push(f);
+  }else free.push(f)
+ }
+ // Match-to-club max flow orients each match; every team gets exactly four home games.
+ const size=free.length,teams=clubs.length,S=0,matchBase=1,teamBase=matchBase+size,T=teamBase+teams;
+ let G=Array.from({length:T+1},()=>[]), refs=[];
+ function add(u,v,cap){const e={to:v,rev:G[v].length,cap},back={to:u,rev:G[u].length,cap:0};G[u].push(e);G[v].push(back);return e}
+ const index=Object.fromEntries(clubs.map((x,i)=>[x,i]));
+ for(let i=0;i<size;i++){add(S,matchBase+i,1);const a=free[i];refs.push([add(matchBase+i,teamBase+index[a.a],1),add(matchBase+i,teamBase+index[a.b],1)])}
+ for(let j=0;j<teams;j++)add(teamBase+j,T,4-fixedHome[clubs[j]]);
+ let flow=0;
+ while(true){let prev=Array(T+1).fill(null),q=[S];prev[S]=[-1,-1];
+  for(let head=0;head<q.length&&!prev[T];head++){const u=q[head];for(let k=0;k<G[u].length;k++){const e=G[u][k];if(e.cap>0&&!prev[e.to]){prev[e.to]=[u,k];q.push(e.to)}}}
+  if(!prev[T])break;
+  for(let x=T;x!==S;){const [u,k]=prev[x],e=G[u][k];e.cap--;G[x][e.rev].cap++;x=u}flow++;
+ }
+ if(flow!==size)throw Error("欧战对阵主客分配失败:"+flow+"/"+size);
+ free.forEach((f,i)=>{f.home=refs[i][0].cap===0?f.a:f.b;f.away=f.home===f.a?f.b:f.a});
+ return matches.map(r=>r.map(f=>({home:f.home,away:f.away})))
+}
+
+function createUefa(club,id,year,rank){
+ if(!["ENG","ESP","ITA","GER","FRA","POR","NED"].includes(id))return null;
+ const isManu=year===2026&&club==="曼联",type=isManu?"欧冠":rank<=4?"欧冠":rank<=7?"欧联":null;
+ if(!type)return null;
+ let clubs=isManu?UEFA_TEAMS.slice():[club,...Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED"].includes(l.id)).flatMap(l=>l.teams.map(t=>t.name)).filter(x=>x!==club)];
+ clubs=[club,...new Set(clubs.filter(x=>x!==club))].slice(0,36);
+ if(clubs.length!==36)throw Error("欧战参赛队不是36支");
+ const preset=isManu?MANU_CL.map(f=>({opponent:f[1],home:f[2]==="H"})):[];
+ const drawRounds=makeUefaDraw(clubs,preset);
+ const days=["09-10","10-13","10-21","11-03","11-25","12-08","01-20","01-27"];
+ const matches=drawRounds.map((round,i)=>{const f=round.find(x=>x.home===club||x.away===club),official=isManu?MANU_CL[i]:null;
+  return {id:"u"+i,kind:"europe",date:(i>=6?year+1:year)+"-"+days[i],competition:type,home:f.home,away:f.away,stage:"联赛阶段 · 第"+(i+1)+"轮",verified:official&&i<3?{gf:official[3],ga:official[4]}:null}
+ });
+ return {type,drawRounds,table:Object.fromEntries(clubs.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),played:0,stage:"league",completed:false,knockoutIndex:0,knockoutResults:[],matches}
+}
+
 function createCups(id,year){let name=id==="ENG"?"足总杯":id==="ESP"?"国王杯":id==="GER"?"德国杯":id==="ITA"?"意大利杯":id==="FRA"?"法国杯":id==="CHN"?"足协杯":id==="BRA"?"巴西杯":id==="NED"?"荷兰杯":"葡萄牙杯";return {name,active:true,stage:0,stages:["第三轮","第四轮","第五轮","八强","半决赛","决赛"],results:[]}}
 function makeSchedule(player,year,prevRank=10){
  const league=leagueCalendar(player.leagueId,player.club,year),uefa=player.youth?null:createUefa(player.club,player.leagueId,year,prevRank),cup=createCups(player.leagueId,year);
@@ -87,7 +139,20 @@ function simulateScore(a,b,boost=0){let powerdiff=power(a)-power(b)+boost;const 
 function otherLeagueGames(round,except){if(!round)return;for(const f of round.fixtures){if(f.home===except.home&&f.away===except.away)continue;const [hs,as]=simulateScore(f.home,f.away);updateTable(g.season.leagueTable,f.home,f.away,hs,as);simulateNPCGame(f.home,f.away,hs,as)}}
 function finishHistoricalLeague(ev){const f=g.season.leagueRounds.find(x=>x.round===ev.round);let hs=ev.home==="曼联"?ev.verified.gf:ev.verified.ga,as=ev.away==="曼联"?ev.verified.gf:ev.verified.ga;updateTable(g.season.leagueTable,ev.home,ev.away,hs,as);otherLeagueGames(f,ev);simulateNPCGame(ev.home,ev.away,hs,as);g.season.leaguePlayed++;g.season.results.push({...ev,hs,as,real:true})}
 function finishHistoricalEurope(ev){const e=g.season.uefa;if(!e)return;const hs=ev.home==="曼联"?ev.verified.gf:ev.verified.ga,as=ev.away==="曼联"?ev.verified.gf:ev.verified.ga;updateTable(e.table,ev.home,ev.away,hs,as);e.played++;g.season.results.push({...ev,hs,as,real:true});simulateUefaOthers(e,ev)}
-function simulateUefaOthers(uefa,ev){let names=Object.keys(uefa.table).filter(n=>n!==ev.home&&n!==ev.away);names.sort(()=>Math.random()-.5);for(let j=0;j+1<names.length;j+=2){const [hs,as]=simulateScore(names[j],names[j+1]);updateTable(uefa.table,names[j],names[j+1],hs,as)}}
+function simulateUefaOthers(uefa,ev){
+ const roundIdx=Number(ev.id?.slice(1));
+ const rounds=uefa.drawRounds?.[roundIdx];
+ if(rounds){
+  for(const m of rounds){if(m.home===g.player.club||m.away===g.player.club)continue;
+   const [hs,as]=simulateScore(m.home,m.away);updateTable(uefa.table,m.home,m.away,hs,as)
+  }
+ }else{
+  // Previous v4 save compatibility; newly created seasons use the complete drawn schedule above.
+  const names=Object.keys(uefa.table).filter(n=>n!==ev.home&&n!==ev.away);names.sort(()=>Math.random()-.5);
+  for(let j=0;j+1<names.length;j+=2){const [hs,as]=simulateScore(names[j],names[j+1]);updateTable(uefa.table,names[j],names[j+1],hs,as)}
+ }
+}
+
 function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0){
  if(!g||!g.npcs)return;
  for(const [club,goals,excluded] of [[home,hs,excludeHome],[away,as,excludeAway]]){
