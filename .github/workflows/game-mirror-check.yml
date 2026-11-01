@@ -1,0 +1,41 @@
+name: Mirror availability probe
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/game-mirror-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Check sites
+        shell: bash
+        run: |
+          for url in \
+           https://wpcnb.github.io/order-classifier/ \
+           https://raw.githack.com/wpcnb/order-classifier/main/index.html \
+           https://raw.githack.com/wpcnb/order-classifier/main/football-legacy/offline.html \
+           https://cdn.jsdelivr.net/gh/wpcnb/order-classifier@main/index.html \
+           https://cdn.statically.io/gh/wpcnb/order-classifier/main/index.html \
+           https://raw.githubusercontent.com/wpcnb/order-classifier/main/index.html; do
+            echo "SITE=$url"
+            curl -L --max-time 13 --connect-timeout 6 -sS -o /tmp/mirror.html -w 'HTTP=%{http_code} TYPE=%{content_type} SIZE=%{size_download} IP=%{remote_ip} TIME=%{time_total}\n' "$url" || echo FETCH_FAIL
+            if grep -q '绿茵传奇' /tmp/mirror.html; then echo GAME_MARKER=YES; else echo GAME_MARKER=NO; fi
+          done
+      - name: Singapore independent probes
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.parse,json,time
+          sites=['https://wpcnb.github.io/order-classifier/','https://raw.githack.com/wpcnb/order-classifier/main/index.html']
+          for site in sites:
+            try:
+              url='https://check-host.net/check-http?host='+urllib.parse.quote(site,safe='')+'&node=sg1.node.check-host.net'
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'Accept':'application/json'}),timeout=12) as r: data=json.load(r)
+              time.sleep(4)
+              with urllib.request.urlopen(urllib.request.Request('https://check-host.net/check-result/'+data['request_id'],headers={'Accept':'application/json'}),timeout=12) as r: result=json.load(r)
+              print('REGIONAL',site,json.dumps(result),data.get('permanent_link'))
+            except Exception as e: print('PROBE_FAILED',site,str(e)[:130])
+          PY
