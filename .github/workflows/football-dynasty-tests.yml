@@ -1,0 +1,30 @@
+name: Football Dynasty regression tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "football-legacy/**"
+      - ".github/workflows/football-dynasty-tests.yml"
+  pull_request:
+    paths:
+      - "football-legacy/**"
+      - ".github/workflows/football-dynasty-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout game
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify football game simulations
+        run: node football-legacy/tests/smoke.cjs
