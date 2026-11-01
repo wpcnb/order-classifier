@@ -342,18 +342,43 @@ function addKnockouts(){
 }
 function award(name,type){if(!g.honors.some(h=>h.name===name&&h.year===g.year&&h.generation===g.generation)){g.honors.push({year:g.year,name,type,generation:g.generation});log("赢得荣誉："+name)}}
 function finishVote(){
- const s=g.season,p=g.player,avg=s.ratings.length?s.ratings.reduce((a,b)=>a+b,0)/s.ratings.length:6;
+ ensureRealAwardPlayers();
+ const s=g.season,p=g.player,avg=s.ratings.length?s.ratings.reduce((a,b)=>a+b,0)/s.ratings.length:6.2;
+ const year=g.year+1,pointsFor=UCL_PTS;
  const honors=g.honors.filter(h=>h.year===g.year&&h.generation===g.generation).length;
- const nominated=g.npcs.map(n=>({id:n.id,name:n.name,club:n.club,score:n.ov*.57+(n.goals+(n.europeGoals||0))*1.8+(n.assists+(n.europeAssists||0))*1.2+n.rating*2.2+Math.min(20,n.apps)*.15+R(-12,12)}));
- nominated.push({id:"USER",name:p.name,club:p.club,score:overall(p)*.64+s.goals*2+s.assists*1.25+avg*2.8+honors*9});
- nominated.sort((a,b)=>b.score-a.score);
- let list=nominated.slice(0,29);if(!list.some(n=>n.id==="USER"))list.push(nominated.find(n=>n.id==="USER"));
- let points=Object.fromEntries(list.map(n=>[n.id,0])),votes=Object.fromEntries(list.map(n=>[n.id,Array(10).fill(0)])),ballots=[];
- for(let j=0;j<100;j++){const slate=list.map(c=>({id:c.id,score:c.score+R(-23,23)})).sort((a,b)=>b.score-a.score).slice(0,10);slate.forEach((n,i)=>{points[n.id]+=UCL_PTS[i];votes[n.id][i]++});ballots.push(slate.map(n=>n.id))}
- const ranked=list.map(n=>({id:n.id,name:n.name,club:n.club,points:points[n.id],firstPlaceVotes:votes[n.id][0],voteRanks:votes[n.id]})).sort((a,b)=>b.points-a.points||Array.from({length:10},(_,i)=>b.voteRanks[i]-a.voteRanks[i]).find(z=>z!==0)||a.name.localeCompare(b.name));
- const place=ranked.findIndex(x=>x.id==="USER")+1;
- g.ballonHistory.push({year:g.year,generation:g.generation,rank:place,playerPoints:points.USER,rankings:ranked,ballots,totalPoints:ranked.reduce((a,b)=>a+b.points,0)});
- g.awardViewIndex=g.ballonHistory.length-1;if(place===1)award("金球奖（100名模拟记者）","individual");log("金球奖评选："+p.name+"第"+place+"名，获得"+points.USER+"分。")
+ const candidates=g.npcs.filter(n=>n.realPerson).map(n=>{
+  const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
+  const rating=n.rating||6.3;
+  return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,rating,
+   realPerson:true,score:n.ov*.56+goals*2.22+assists*1.52+rating*5.4+Math.min(apps,60)*.23+R(-5,5)}
+ });
+ const you={id:"USER",name:p.name,club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg,
+  realPerson:false,score:overall(p)*.56+s.goals*2.22+s.assists*1.52+avg*5.4+Math.min(s.apps,60)*.23+honors*5.5+R(-5,5)};
+ candidates.push(you);candidates.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
+ const list=candidates.slice(0,30),qualified=list.some(x=>x.id==="USER");
+ if(list.length!==30)throw Error("金球奖候选名单必须包含30位球员");
+ const points=Object.fromEntries(list.map(x=>[x.id,0]));
+ const votes=Object.fromEntries(list.map(x=>[x.id,Array(10).fill(0)]));
+ const ballots=[];
+ for(let juror=0;juror<100;juror++){
+  const top=list.map(x=>({id:x.id,score:x.score+R(-19,19)+.16*x.goals*Math.sin(juror*1.41)}))
+    .sort((a,b)=>b.score-a.score).slice(0,10);
+  top.forEach((x,i)=>{points[x.id]+=pointsFor[i];votes[x.id][i]++});
+  ballots.push(top.map(x=>x.id))
+ }
+ const tie=(a,b)=>{for(let i=0;i<10;i++)if(votes[a.id][i]!==votes[b.id][i])return votes[b.id][i]-votes[a.id][i];return a.name.localeCompare(b.name)};
+ const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,
+  points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id],realPerson:x.realPerson}))
+   .sort((a,b)=>b.points-a.points||tie(a,b));
+ const place=qualified?ranked.findIndex(x=>x.id==="USER")+1:null;
+ const winner=ranked[0],pointTotal=ranked.reduce((a,b)=>a+b.points,0);
+ if(pointTotal!==6700||ranked.some(x=>x.points>1500))throw Error("金球奖计票检查失败");
+ g.ballonHistory.push({year,generation:g.generation,rank:place,playerNominated:qualified,playerPoints:qualified?points.USER:0,
+   winner:{id:winner.id,name:winner.name,club:winner.club,points:winner.points},
+   rankings:ranked,ballots,totalPoints:pointTotal,maxPlayerPoints:1500,model:5});
+ g.awardViewIndex=g.ballonHistory.length-1;
+ if(place===1)award("金球奖（法国足球规则）","individual");
+ log("金球奖"+year+"年："+winner.name+"获得"+winner.points+"分；"+(qualified?p.name+"排名第"+place:"你未进入30人候选名单")+"。")
 }
 
 function generateOffers(){const p=g.player,ov=overall(p),all=Object.entries(DB).flatMap(([id,l])=>l.teams.map(t=>({id,club:t.name,power:t.power})));return all.filter(t=>t.club!==p.club&&t.power<=ov+26&&t.power>=ov-17).sort(()=>Math.random()-.5).slice(0,8).map(t=>({...t,wage:Math.round((t.power*480+ov*270+p.fame*140)*(.85+Math.random()*.5)/1000)*1000,years:R(2,5)}))}
@@ -607,19 +632,35 @@ function careerHonorsPanel(){
 function careerPage(){const p=g.player;return '<div class="card"><div class="row"><div class="flex"><div class="portrait">'+overall(p)+'</div><div><div class="cap">PLAYER HISTORY · 第'+g.generation+'代</div><h2>'+E(p.name)+' · '+E(p.country)+'</h2><div class="muted">'+p.age+'岁 · '+E(POS[p.position])+' · '+E(p.club)+'</div></div></div><div class="flex"><button class="button" data-page="family">家族传承</button>'+(p.age>=32?'<button class="button goldbtn" data-action="retireCoach">退役执教＋开启下一代</button><button class="button" data-action="startCoach">单独开启主教练生涯</button><button class="button" data-action="retireSolo">退役＋下一代</button>':'<span class="chip">32岁后解锁退役分支</span>')+'</div></div><div class="grid4 gap">'+metric("生涯出场",p.career.apps)+metric("生涯进球",p.career.goals)+metric("生涯助攻",p.career.assists)+metric("国家队出场",p.career.national)+'</div>'+careerHonorsPanel()+'<h3 class="gap">球员荣誉</h3><p>'+(g.honors.filter(x=>x.generation===g.generation).map(x=>badge(x.year+" "+x.name)).join('')||'<span class="muted">尚无荣誉</span>')+'</p><h3 class="gap">赛季履历</h3><div class="list">'+g.history.filter(x=>x.generation===g.generation).slice().reverse().map(x=>'<div class="item row"><b>'+x.year+' · '+E(x.club)+'</b><span>'+E(x.league)+' 第'+x.rank+'名 · '+x.apps+'场 '+x.goals+'球 '+x.assists+'助 · '+x.average+'分</span></div>').join('')+'</div></div>'}
 function familyPage(){if(g.mode==="coach")return coachFamilyPage();return '<div class="card"><div class="row"><div><div class="cap">INFINITE FAMILY LEGACY</div><h2>家族世代 · 永续职业生涯</h2></div><span class="chip">目前第 '+g.generation+' 代</span></div><p class="muted">每一代重新抽取天赋；历代球员职业数据、荣誉不会清空。父亲退役执教后可作为下一代的主教练，一直延续到三世、四世乃至更久。</p><div class="family">'+g.ancestors.map(a=>'<div class="item"><div class="row"><b>第'+a.generation+'代 '+E(a.name)+'</b><span class="chip">'+(a.headCoach?"退役主教练":"已退役")+'</span></div><div class="muted">'+E(a.club)+' · '+a.career.apps+'场 / '+a.career.goals+'球 / '+a.career.assists+'助 · '+a.honors.length+'项荣誉</div></div>').join('')+'<div class="item mine"><div class="row"><b>第'+g.generation+'代 '+E(g.player.name)+'</b><span class="chip">正在效力</span></div><span class="muted">'+E(g.player.club)+' · '+g.player.age+'岁</span></div></div>'+(g.player.age>=32?'<div class="flex gap"><button class="button goldbtn" data-action="retireCoach">退役担任教练＋开启下一代</button><button class="button" data-action="retireSolo">退役不执教＋开启下一代</button></div>':'<p class="muted gap">球员满32岁后可以主动退役传承。也可以继续踢到40岁，再选择开启下一代。</p>')+'</div>'}
 function awardsPage(){
- const all=g.ballonHistory||[],i=Number.isInteger(g.awardViewIndex)?C(g.awardViewIndex,0,Math.max(0,all.length-1)):all.length-1,b=all[i];
- const yearButtons=all.map((a,index)=>'<button class="button '+(index===i?"goldbtn":"")+'" data-action="awardYear" data-i="'+index+'">'+a.year+' · 第'+a.generation+'代</button>').join("");
- return '<section class="card"><div class="cap">BALLON D’OR · GLOBAL FOOTBALL</div><h2>金球奖 · 100名记者完整模拟票仓</h2><p class="muted">每届共30名候选人（游戏允许玩家直接入围）；100名模拟记者独立排序前10名，按15/12/10/8/7/5/4/3/2/1分累计，总分固定6700分。同分先比较第一选票，再依次比较第二至第十选票。非现实金球奖结果。</p>'+
- (b?'<div class="flex">'+yearButtons+'</div><div class="grid4 gap">'+metric("你的排名","#"+b.rank)+metric("你的得分",b.playerPoints)+metric("记者人数",b.ballots.length)+metric("全体票分",b.totalPoints||6700)+'</div>'+
- '<div class="flex gap"><button class="button goldbtn" data-action="ballotCsv">导出本届100名记者评分 CSV（WPS可打开）</button></div>'+
- '<div class="grid2 gap"><section class="card"><h2>30人最终排名</h2><div class="list">'+b.rankings.map((n,rank)=>'<div class="item row '+(n.id==="USER"?"mine":"")+'"><div><strong>'+(rank+1)+'. '+E(n.name)+(n.id==="USER"?"（你）":"")+'</strong><div class="muted small">'+E(n.club)+' · 第一选票 '+(n.firstPlaceVotes||0)+'</div></div><b class="gold">'+n.points+'分</b></div>').join('')+'</div></section>'+
- '<section class="card"><h2>记者逐票明细（100人）</h2><p class="muted small">点击任意记者查看10个顺序排名和各自得分。</p><div class="list">'+b.ballots.map((votes,j)=>'<details class="item"><summary><b>模拟记者 '+String(j+1).padStart(3,"0")+'</b> · 第一票：'+E(b.rankings.find(n=>n.id===votes[0])?.name||"未知")+'</summary>'+
- '<div class="list gap">'+votes.map((id,k)=>'<div class="row"><span>'+(k+1)+'. '+E(b.rankings.find(n=>n.id===id)?.name||"未知")+'</span><b class="gold">+'+UCL_PTS[k]+'分</b></div>').join('')+'</div></details>').join('')+'</div></section></div>':
- '<p class="muted">模拟完成首个赛季后将自动生成第一届金球奖投票，并保留以后每一届的100份选票。</p>')+careerHonorsPanel()+'</section>'
+ const all=g.ballonHistory||[],idx=Number.isInteger(g.awardViewIndex)?C(g.awardViewIndex,0,Math.max(0,all.length-1)):all.length-1,b=all[idx],newRules=b?.model>=5;
+ const data=window.FOOTBALL_AWARD_REAL_PEOPLE,history=data?.official2026Top10||[];
+ const buttons=all.map((v,i)=>'<button class="button '+(idx===i?"goldbtn":"")+'" data-action="awardYear" data-i="'+i+'">'+v.year+' · 第'+v.generation+'代</button>').join('');
+ const old='本届属于旧版评选，历史成绩与已获奖杯保留，但候选姓名未经逐一核实，因此不展示旧版名单；以后赛季采用真实球员姓名。';
+ const panel=newRules?
+  '<div class="grid4 gap">'+metric("获奖人物",E(b.winner.name))+metric("冠军得分",b.winner.points+" / 1500")+
+  metric("你的名次",b.playerNominated?"第"+b.rank+"名":"未入围30人")+
+  metric("你的得分",b.playerNominated?b.playerPoints+" / 1500":"—")+'</div>'+
+  '<div class="grid2 gap"><section class="card"><h2>30位候选人物 · 全部排名</h2><div class="list">'+
+  b.rankings.map((x,i)=>'<div class="item row '+(x.id==="USER"?"mine":"")+'"><div><strong>'+(i+1)+'. '+E(x.name)+(x.id==="USER"?"（你）":"")+'</strong><div class="muted small">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助 · 第1选票 '+x.firstPlaceVotes+'</div></div><b class="gold">'+x.points+' / 1500</b></div>').join('')+
+  '</div></section><section class="card"><h2>100位记者 · 十人选票</h2><div class="list">'+b.ballots.map((one,i)=>
+  '<details class="item"><summary><strong>记者 '+(i+1)+'</strong> · 第一名 '+E(b.rankings.find(x=>x.id===one[0])?.name||"—")+'</summary><div class="list gap">'+
+  one.map((id,k)=>'<div class="row"><span>'+(k+1)+'. '+E(b.rankings.find(x=>x.id===id)?.name||"—")+'</span><b class="gold">+'+UCL_PTS[k]+'分</b></div>').join('')+
+  '</div></details>').join('')+'</div></section></div>'+
+  '<button class="button goldbtn gap" data-action="ballotCsv">导出本届100份投票 CSV（WPS可打开）</button>':
+  b?'<div class="item"><strong>旧版年份：'+b.year+'</strong><p class="muted">'+old+'</p>'+
+  '<div class="grid3">'+metric("你的历史名次",b.rank?"第"+b.rank+"名":"未入围")+metric("历史票分",b.playerPoints||0)+metric("已保留记录",b.ballots?.length||0)+'</div></div>':
+  '<p class="muted">完成本赛季后公布30位候选人物及100名记者投票结果。</p>';
+ const official='<details class="item gap"><summary><strong>2026年现实金球奖 · 凯恩1055分</strong></summary>'+
+  '<p class="muted small">以下为法国足球公布的2026年现实评选结果，不计入本职业生涯奖杯数。</p>'+
+  '<div class="list">'+history.map((x,i)=>'<div class="item row"><strong>'+(i+1)+'. '+E(x[0])+'</strong><b>'+x[1]+'分</b></div>').join('')+'</div></details>';
+ return '<section class="card"><div class="cap">BALLON D’OR · FRANCE FOOTBALL RULES</div><h2>金球奖 · 30人候选与100名记者</h2>'+
+ '<p class="muted">每位记者选10人，计分15、12、10、8、7、5、4、3、2、1。每人理论最高1500分，全体合计6700分；同分按第一名选票数依次判定。游戏赛季的获奖者和票分由比赛结果决定，并非现实颁奖。</p>'+
+ (all.length?'<div class="flex gap">'+buttons+'</div>':'')+panel+official+careerHonorsPanel()+'</section>'
 }
+
 function exportBallotCsv(){
  const all=g?.ballonHistory||[],idx=Number.isInteger(g.awardViewIndex)?g.awardViewIndex:all.length-1,b=all[idx];
- if(!b)return notify("本届还没有记者评分");
+ if(!b)return notify("本届还没有记者评分");if(b.model<5)return notify("旧版候选人姓名未经核验，不提供该届名单导出");
  const name=Object.fromEntries(b.rankings.map(n=>[n.id,n.name]));
  const quote=x=>'"'+String(x??"").replace(/"/g,'""')+'"';
  const header=["记者","第1名","第2名","第3名","第4名","第5名","第6名","第7名","第8名","第9名","第10名"];
