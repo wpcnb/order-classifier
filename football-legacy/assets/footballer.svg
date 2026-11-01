@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 660" width="560" height="660" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs><linearGradient id="kit" x1="0" y1="0" x2="1" y2=".9"><stop stop-color="#92f2e4"/><stop offset=".43" stop-color="#5e8ce7"/><stop offset="1" stop-color="#382e83"/></linearGradient><radialGradient id="halo"><stop stop-color="#96f9d1" stop-opacity=".32"/><stop offset=".65" stop-color="#6caefa" stop-opacity=".10"/><stop offset="1" stop-color="#8fc7ff" stop-opacity="0"/></radialGradient><linearGradient id="skin" x1="0" x2="1" y2="1"><stop stop-color="#bb8c6e"/><stop offset=".45" stop-color="#895944"/><stop offset="1" stop-color="#4e3d37"/></linearGradient><linearGradient id="boot" x1="0" x2="0" y2="1"><stop stop-color="#d2eaff"/><stop offset="1" stop-color="#4ecda2"/></linearGradient><filter id="blur"><feGaussianBlur stdDeviation="9"/></filter></defs>
+<ellipse cx="291" cy="350" rx="240" ry="320" fill="url(#halo)"/>
+<g opacity=".35" stroke="#c6ffef" stroke-width="3" fill="none"><circle cx="330" cy="330" r="250"/><path d="M112 155L430 430M430 110L130 530"/></g>
+<ellipse cx="320" cy="637" rx="210" ry="14" fill="#051f30" opacity=".6" filter="url(#blur)"/>
+<!-- A fictional footballer's dynamic action pose, no club crest or real identity -->
+<path d="M244 317L285 351L236 458L157 561L121 552L183 433Z" fill="#283451" stroke="#b8dfe7" stroke-width="4"/>
+<path d="M309 312L359 320L381 448L443 558L419 581L335 480L274 398Z" fill="#192c4c" stroke="#82c7c8" stroke-width="4"/>
+<path d="M119 547L159 553L162 575L110 594L73 583Q70 568 119 547Z" fill="url(#boot)" stroke="#d3f9ff" stroke-width="3"/>
+<path d="M416 576L441 553L483 566L519 594L505 609L443 603Z" fill="url(#boot)" stroke="#cbf6ee" stroke-width="3"/>
+<path d="M210 201L268 182L327 202L363 294L328 357L249 379L191 314Z" fill="url(#kit)" stroke="#b3edff" stroke-width="4"/>
+<path d="M251 377L331 355L353 416L300 440L242 417Z" fill="#173d65" stroke="#9ed6d7" stroke-width="3"/>
+<path d="M214 209L176 234L143 301L115 340L135 357L176 339L226 277Z" fill="url(#skin)" stroke="#e4c8ab" stroke-width="3"/>
+<path d="M329 209L353 210L396 268L454 288L458 318L385 319L325 267Z" fill="url(#skin)" stroke="#c79c84" stroke-width="3"/>
+<path d="M122 339L111 331L99 349L104 370L116 378L136 356Z" fill="url(#skin)"/>
+<path d="M460 288L476 293L483 328L464 338L447 315Z" fill="url(#skin)"/>
+<path d="M261 196L278 156L305 160L316 208Q282 234 261 196Z" fill="url(#skin)"/>
+<ellipse cx="290" cy="117" rx="48" ry="57" fill="url(#skin)" stroke="#d4ad93" stroke-width="3"/>
+<path d="M239 111Q237 57 282 55Q332 53 342 98L333 135Q322 105 306 97Q277 116 242 103Z" fill="#202a33"/>
+<path d="M279 156Q291 165 306 149" stroke="#e4ac8a" fill="none" stroke-width="3"/>
+<path d="M261 187L285 205L309 185L326 198L301 238L271 239L246 204Z" fill="#d6eff8" opacity=".8"/>
+<path d="M254 246Q295 262 347 241M237 299Q279 317 357 292" fill="none" stroke="#b4f7ec" stroke-width="5" opacity=".34"/>
+<path d="M270 273L295 257L320 273L314 297L292 302L270 291Z" fill="#eafff6" opacity=".18"/>
+<g transform="translate(444 482) rotate(-13)"><circle r="39" fill="#f4f8ff" stroke="#c0e9f4" stroke-width="4"/><path d="M-11-15L8-22L25-2L15 18L-8 20L-25 0Z" fill="#173a59"/><path d="M-11-15L-24-27M25-2L37-9M15 18L26 33M-8 20L-16 33M-25 0L-37 1" fill="none" stroke="#173a59" stroke-width="5"/></g>
+</svg>
