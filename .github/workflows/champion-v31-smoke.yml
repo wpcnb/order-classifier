@@ -1,0 +1,29 @@
+name: Champion Road v3.1 smoke checks
+on:
+  push:
+    branches: [main]
+    paths: [index.html, '.github/workflows/champion-v31-smoke.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  html-js-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate inline JavaScript and v3.1 navigation
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const assert = require('node:assert/strict');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
+          assert.ok(scripts.length > 0, 'Expected inline script');
+          for (const source of scripts) new vm.Script(source);
+          for (const keyword of ['战术室', 'function tacticsPanel()', 'function createSafetyBackup()', 'function restoreSafetyBackup()', 'tactics:tacticsPanel']) {
+            assert.ok(html.includes(keyword), 'Missing '+keyword);
+          }
+          assert.ok(html.includes("const KEY='green-legend-v2'"), 'Preserve existing saved careers');
+          console.log('HTML script syntax and v3.1 feature presence OK');
+          NODE
