@@ -697,7 +697,7 @@ function sponsorshipPage(){
  '<p class="muted">尚无合作收入。</p>')+'</div></section>'
 }
 
-function marketPanel(){return '<div class="grid"><section class="card"><h2>经纪人办公室</h2><div class="mini-label">当前俱乐部</div><div class="big">'+esc(s.club)+'</div><p class="muted">合同剩余 '+s.contract+' 年 · 周薪 '+money(s.salary)+'</p><p class="muted">球员身价：'+money(value(s))+' · 名气 '+ratio(s.fame)+'</p><div class="divider"></div><button type="button" class="btn" data-action="renew" '+(s.retired?'disabled':'')+'>洽谈续约（提高工资）</button><p class="muted small">完成赛季并积累表现，获得更高等级联赛的转会邀请。</p></section><section class="card"><h2>转会市场</h2>'+(s.offers.length?s.offers.map((offer,i)=>'<div class="list-item"><div class="row"><strong>'+esc(offer.club)+'</strong><span class="pill">'+esc(LEAGUE_DB[offer.leagueId]?.label||'职业联赛')+'</span></div><p class="muted small">周薪 '+money(offer.salary)+' · 合同 '+offer.years+' 年</p><button type="button" class="btn primary" data-action="sign" data-index="'+i+'" '+(s.retired?'disabled':'')+'>接受报价</button></div>').join(''):'<p class="muted">暂无有效报价。赛季结束后，经纪人将根据你的综合实力和赛场表现寻找机会。</p>')+'</section></div>'}
+function marketPanel(){return '<div class="grid"><section class="card"><h2>经纪人办公室</h2><div class="mini-label">当前俱乐部</div><div class="big">'+esc(s.club)+'</div><p class="muted">合同剩余 '+s.contract+' 年 · 周薪 '+money(s.salary)+'</p><p class="muted">球员身价：'+money(value(s))+' · 名气 '+ratio(s.fame)+'</p><div class="divider"></div><button type="button" class="btn" data-action="renew" '+(s.retired?'disabled':'')+'>洽谈续约（提高工资）</button><p class="muted small">完成赛季并积累表现，获得更高等级联赛的转会邀请。</p></section><section class="card"><h2>转会市场</h2>'+(s.offers.length?s.offers.map((offer,i)=>'<div class="list-item"><div class="row"><strong>'+esc(offer.club)+'</strong><span class="pill">'+esc(LEAGUE_DB[offer.leagueId]?.label||'职业联赛')+'</span></div><p class="muted small">转会报价 '+money(offer.fee||value(s))+'（支付给原俱乐部） · 周薪 '+money(offer.salary)+' · 合同 '+offer.years+' 年 · 预期地位 '+esc(offer.role||'待谈判')+'</p><button type="button" class="btn primary" data-action="sign" data-index="'+i+'" '+(s.retired?'disabled':'')+'>接受报价</button></div>').join(''):'<p class="muted">暂无有效报价。赛季结束后，经纪人将根据你的综合实力和赛场表现寻找机会。</p>')+'</section></div>'}
 function restoreHistoryStats(){
  if(!s?.oldStatsBackup)return notice('没有可恢复的旧版统计备份');
  if(!confirm('将把赛季履历和生涯进球、助攻恢复到校准前的数据。\n所有金球奖及其他荣誉不受影响。确定恢复？'))return;
@@ -894,12 +894,12 @@ if(appeared){t.apps++;t.goals+=goals;t.assists+=assists;t.clean+=clean;t.saves+=
 const staminaLoss=wasInjured?0:randint(7,16)+(selected&&option===1?4:0);s.stamina=ratio(s.stamina-staminaLoss+randint(6,12));s.morale=ratio(s.morale+(homeScore>awayScore?4:homeScore===awayScore?0:-4));s.cash+=s.salary;s.trainingUsed=false;
 if(s.injury)s.injury--;else if(appeared&&phys<38&&rnd()<.13){s.injury=randint(1,3);addLog(s,'赛后出现肌肉伤势，预计缺阵 '+s.injury+' 场。');if(s.injury>=2)s.pendingDecision={type:'injury',text:'你遭遇伤病，需要作出康复选择。'};}
 let desc=s.club+' '+homeScore+' : '+awayScore+' '+opp.name+'，'+(appeared?'个人评分 '+rating+'，'+goals+'球 '+assists+'助攻':'本场未登场')+(success?'；关键时刻判断正确':'');s.lastResult=desc;addLog(s,desc);
-if(s.week===8&&s.age>=18&&o>=60&&s.fame>=22){let caps=1;s.totals.national+=caps;t.national+=caps;if(rnd()<(.09+o/700)&&s.pos!=='GK'){s.totals.nationalGoals++;}addLog(s,'获得 '+s.country+' 国家队征召，新增 '+caps+' 次出场。');}
+if(s.week===8&&!s.retired&&s.age>=18&&o>=60&&s.fame>=22){let caps=1;s.totals.national+=caps;t.national+=caps;if(rnd()<(.09+o/700)&&s.pos!=='GK'){s.totals.nationalGoals++;}addLog(s,'获得 '+s.country+' 国家队征召，新增 '+caps+' 次出场。');}
 s.week++;s.match=null;s.nextOpp=null;s.phase='prep';if(s.week>s.fixtures){endSeason();}else{if([3,6,10,13].includes(s.week)&&!s.storyKeys.includes(s.season+'-'+s.week)){s.storyKeys.push(s.season+'-'+s.week);s.story={index:randint(0,STORIES.length-1)};}}
 commit();}
 function endSeason(){let t=s.seasonTotals,o=over(s),rank=standings().findIndex(x=>x.name===s.club)+1,won=rank===1&&t.points>=18;let cup=t.points>=24&&rnd()<.30;let leagueLeader=Math.max(0,...s.npcs.filter(n=>n.league===s.leagueId).map(n=>n.goals||0));let bootRanking=seasonGoldenBootRanking();let scoring=s.pos!=='GK'&&bootRanking.eligible&&bootRanking.rank===1&&t.goals>=7;let average=t.ratings.length?t.ratings.reduce((a,b)=>a+b,0)/t.ratings.length:0;
 if(won){s.awards.push({year:s.year,type:'title',title:leagueName(s)+'冠军'});s.cash+=120000;s.fame=ratio(s.fame+9);}if(cup){s.awards.push({year:s.year,type:'title',title:'国内杯赛冠军'});s.cash+=40000;s.fame=ratio(s.fame+5);}if(scoring){s.awards.push({year:s.year,type:'personal',title:leagueName(s)+'金靴奖'});s.cash+=18000;s.fame=ratio(s.fame+8);}if(average>=7.85&&t.apps>=Math.min(16,s.fixtures*.45)){s.awards.push({year:s.year,type:'personal',title:'赛季最佳球员'});s.fame=ratio(s.fame+8);}if(s.year%4===2&&s.age>=20&&s.totals.national>=3){let n=rnd();if(n<.13+o/700){s.awards.push({year:s.year,type:'title',title:'国家队洲际冠军'});s.fame=ratio(s.fame+12);}}
-if(s.europe&&!s.europe.completed){let attempts=0;while(attempts++<14&&!s.europe.completed)simulateEuropeRound();}ballonVote();settleSponsors();const b=s.ballots[s.ballots.length-1];
+if(s.europe&&!s.europe.completed){let attempts=0;while(attempts++<14&&!s.europe.completed)simulateEuropeRound();}if(!s.retired)ballonVote();settleSponsors();const b=s.retired?null:s.ballots[s.ballots.length-1];
 s.history.push({year:s.year,club:s.club,league:leagueName(s),apps:t.apps,goals:t.goals,assists:t.assists,points:t.points,won,rank,
    ballonRank:b?.playerRank??null,ballonNominated:!!b?.playerNominated,ballonWinner:b?.winner?.name||null,
    ballonPoints:b?.playerPoints||0,goldenBootRank:bootRanking.eligible?bootRanking.rank:null,
@@ -908,11 +908,23 @@ s.history.push({year:s.year,club:s.club,league:leagueName(s),apps:t.apps,goals:t
 if(s.age>32){if(rnd()<.75)s.stats.pace=ratio(s.stats.pace-randint(0,2));if(rnd()<.6)s.stats.physical=ratio(s.stats.physical-1);if(rnd()<.25)s.stats.mental=ratio(s.stats.mental+1)}
  else {const potential=Math.max(s.talent?.potential||85,...Object.values(s.stats));const main=s.pos==='ST'?'shoot':s.pos==='LW'?'shoot':s.pos==='CM'?'pass':s.pos==='CB'?'defense':'mental';if(s.stats[main]<potential&&rnd()<.7)s.stats[main]++;if(s.age<=23&&s.stats.mental<potential&&rnd()<.4)s.stats.mental++}if(s.age>32)s.stamina=ratio(s.stamina-3);s.cash+=t.points*950;
 s.lastSummary={won,cup,scoring,average:average.toFixed(2),points:t.points,goals:t.goals,assists:t.assists,ballonRank:b?.playerRank??null,bootRank:bootRanking.rank,sponsorIncome:t.sponsorIncome||0,teamLeaders:teamLeaders()};s.phase='season_end';s.offers=generateOffers();addLog(s,'赛季结束：'+t.points+'分'+(won?'，荣膺联赛冠军':'')+(cup?'，捧得杯赛冠军':'')+'。');tab='overview';}
-function generateOffers(){if(s.tier===0)return [{club:s.club.replace(/青训$/,''),leagueId:s.leagueId,years:3,salary:6500,stage:'senior',promotion:true}];const overall=over(s),all=Object.entries(LEAGUE_DB).flatMap(([id,d])=>d.teams.map(c=>({...c,leagueId:id})));return all.filter(c=>c.name!==s.club&&c.strength<=overall+22&&c.strength>=overall-18).sort(()=>rnd()-.5).slice(0,5).map(c=>({club:c.name,leagueId:c.leagueId,years:randint(2,5),salary:Math.round((c.strength*300+overall*130+s.fame*80)*(.85+rnd()*.4)/100)*100,stage:'senior'}));}
+function generateOffers(){
+ if(s.tier===0)return [{club:s.club.replace(/青训$/,''),leagueId:s.leagueId,years:3,salary:6500,stage:'senior',promotion:true,role:'一线队轮换',fee:0}];
+ const overall=over(s),gold=(s.awards||[]).filter(a=>String(a.title||'').includes('金球奖')).length;
+ const elite=gold>=1||overall>=86;
+ const min=elite?80:Math.max(40,overall-18);
+ const all=Object.entries(LEAGUE_DB).flatMap(([id,d])=>d.teams.map(c=>({...c,leagueId:id})));
+ const choices=all.filter(c=>c.name!==s.club&&c.strength>=min&&c.strength<=overall+22);
+ return choices.sort(()=>rnd()-.5).slice(0,5).map(c=>{
+  const role=c.strength>overall+6?'重要轮换':c.strength>overall-4?'竞争首发':'核心球员';
+  const salary=Math.round(clamp((Math.pow(c.strength/75,6)*85000+overall*500+s.fame*400)*(.85+rnd()*.35),3000,700000)/1000)*1000;
+  return {club:c.name,leagueId:c.leagueId,years:randint(2,5),salary,role,fee:Math.round(value(s)*(.9+rnd()*.3)/1000000)*1000000,stage:'senior'};
+ });
+}
 function nextSeason(){
  if(!s||s.phase!=='season_end')return;
  if(s.tier===0){const old=s.club;s.club=s.club.replace(/青训$/,'');s.tier=1;s.salary=Math.max(6000,s.salary);addLog(s,'从'+old+'升入'+s.club+'一线队。');}
- s.age++;s.year++;s.season++;s.week=1;s.contract=Math.max(0,s.contract-1);s.phase='prep';s.trainingUsed=false;s.story=null;s.storyKeys=[];s.seasonTotals=newSeasonTotals();
+ s.age++;s.year++;s.season++;s.week=1;s.contract=Math.max(0,s.contract-1);s.pendingDecision=null;s.phase='prep';s.trainingUsed=false;s.story=null;s.storyKeys=[];s.seasonTotals=newSeasonTotals();
  s.schedule=makeSchedule(s);s.leagueTable=buildLeague(s);s.nextOpp=null;s.offers=[];s.tournaments=null;s.stamina=ratio(Math.max(s.stamina,78));s.morale=ratio(s.morale+6);s.form=ratio(s.form+4);s.europe=buildEurope(s);
  const expired=(s.sponsorships||[]).filter(x=>x.endYear<=s.year);
  s.sponsorHistory=s.sponsorHistory||[];s.sponsorHistory.push(...expired.map(x=>({...x})));
