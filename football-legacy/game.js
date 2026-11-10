@@ -663,18 +663,26 @@ function finalizeSharedSeason(){
  }
  activeDuo=original;g=originalGame;
 }
-const ELITE_CLUBS=new Set(["曼联","曼城","利物浦","阿森纳","切尔西","皇家马德里","巴塞罗那","马德里竞技","拜仁慕尼黑","多特蒙德","巴黎圣日耳曼","国际米兰","AC米兰","尤文图斯","那不勒斯"]);
-const TRANSFER_LEVELS=["中超","欧洲非五大联赛","五大联赛","五大联赛豪门"];
+// Club reputation tiers are based on specific teams, not just their domestic league.
+const LEGENDARY_CLUBS=new Set(["皇家马德里","巴塞罗那","巴黎圣日耳曼","曼城","曼联","利物浦","拜仁慕尼黑"]);
+const FIVE_ELITE_CLUBS=new Set(["阿森纳","切尔西","热刺","马德里竞技","国际米兰","AC米兰","尤文图斯","那不勒斯","多特蒙德","勒沃库森","罗马","马赛","里昂"]);
+const NON_FIVE_ELITE_CLUBS=new Set(["本菲卡","波尔图","葡萄牙体育","阿贾克斯","埃因霍温","费耶诺德"]);
+const TRANSFER_LEVELS=["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"];
 const TRANSFER_GOALS={
  europe:{g:7,a:5,sum:10,apps:15,avg:6.8,ov:0},
- chinaFive:{g:14,a:9,sum:18,apps:20,avg:7.3,ov:80},
- europeFive:{g:12,a:8,sum:16,apps:18,avg:7.2,ov:80},
- elite:{g:18,a:12,sum:24,apps:20,avg:7.7,ov:85}
+ nonFiveElite:{g:10,a:7,sum:14,apps:18,avg:7.05,ov:75},
+ five:{g:13,a:9,sum:19,apps:20,avg:7.3,ov:80},
+ fiveElite:{g:17,a:11,sum:24,apps:20,avg:7.55,ov:84},
+ legendary:{g:21,a:13,sum:30,apps:22,avg:7.85,ov:88}
 };
+const TRANSFER_GATES=[TRANSFER_GOALS.europe,TRANSFER_GOALS.nonFiveElite,TRANSFER_GOALS.five,TRANSFER_GOALS.fiveElite,TRANSFER_GOALS.legendary];
 function transferLevel(id,club){
+ if(LEGENDARY_CLUBS.has(club))return 5;
  if(id==="CHN")return 0;
- if(["NED","POR","BRA"].includes(id))return 1;
- return FIVE_LEAGUES.includes(id)?(ELITE_CLUBS.has(club)?3:2):1;
+ if(id==="NED"||id==="POR")return NON_FIVE_ELITE_CLUBS.has(club)?2:1;
+ if(FIVE_LEAGUES.includes(id))return FIVE_ELITE_CLUBS.has(club)?4:3;
+ // South American clubs are never mislabeled as "European non-top-five".
+ return 0;
 }
 function clubSeasonNumbers(s){
  const played=(s.results||[]).filter(x=>x.played&&x.kind!=="national");
@@ -689,45 +697,40 @@ function seasonPerformance(){
  const p=g.player,n=clubSeasonNumbers(g.season),tier=transferLevel(p.leagueId,p.club),ov=overall(p);
  const offense=["ST","LW","RW","CAM"].includes(p.position),exempt=p.youth||!offense||n.apps<15;
  const poor=!exempt&&(n.avg<6.5||n.goals<4&&n.assists<3&&n.goals+n.assists<6&&n.avg<7.15);
- p.poorStreak=poor?(p.poorStreak||0)+1:0;p.forcedMove=p.poorStreak>=2;
- const europe=transferQualified(TRANSFER_GOALS.europe,n,ov);
- const five=transferQualified(tier===0?TRANSFER_GOALS.chinaFive:TRANSFER_GOALS.europeFive,n,ov);
- const elite=transferQualified(TRANSFER_GOALS.elite,n,ov);
- let maxTier=tier;
- if(!poor&&!exempt){
-  if(tier===0&&europe)maxTier=1;
-  if(tier<=1&&five)maxTier=2;
-  if(tier>=2&&elite)maxTier=3;
- }
- const gate=tier===0?TRANSFER_GOALS.europe:tier===1?TRANSFER_GOALS.europeFive:TRANSFER_GOALS.elite;
- const comment=exempt?"出场不足或非进攻位置，不触发进攻数据降档":
-  p.forcedMove?"连续两个赛季未达标，必须降档":
+ p.poorStreak=poor?(p.poorStreak||0)+1:0;
+ // The CSL is the bottom of the career ladder; never invent a lower-tier transfer.
+ p.forcedMove=p.poorStreak>=2&&tier>0;
+ const gate=TRANSFER_GATES[tier]||null,qualified=!!gate&&transferQualified(gate,n,ov);
+ const maxTier=!poor&&!exempt&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
+ const comment=exempt?"出场不足或非进攻位置，不按进球助攻处罚":
+  p.forcedMove?"连续两个赛季未达标，必须降至较低一级球队":
+  tier===0&&poor&&p.poorStreak>=2?"中超已是起步最低档，留队或同级转会，不会假装降档":
   poor?"本赛季低于留队标准，累计不达标"+p.poorStreak+"季":
-  maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"尚未达到更高平台转会门槛";
- const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:gate.g,assistsTarget:gate.a,
-  tier,maxTier,poor,exempt,offense,poorStreak:p.poorStreak,forcedMove:p.forcedMove,europe,five,elite,comment};
+  tier===TRANSFER_LEVELS.length-1?"已达到最高的世界传奇豪门档次":
+  maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"尚未达到下一档转会门槛";
+ const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:gate?.g??null,assistsTarget:gate?.a??null,
+  tier,maxTier,poor,exempt,offense,poorStreak:p.poorStreak,forcedMove:p.forcedMove,qualified,comment};
  p.transferAssessment={...assessment,year:g.year};
  if(!exempt&&!poor&&maxTier>tier)p.points=Math.min(15,(p.points||0)+2);
  return assessment;
 }
 function generateOffers(){
  const p=g.player,ov=overall(p),current=transferLevel(p.leagueId,p.club),a=p.transferAssessment||g.lastReview?.performance||{};
- const limit=p.forcedMove?Math.max(0,current-1):(Number.isInteger(a.maxTier)?a.maxTier:current);
- const all=Object.entries(DB).flatMap(([id,l])=>l.teams.map(t=>({id,club:t.name,power:power(t.name),tier:transferLevel(id,t.name)})));
+ const limit=p.forcedMove?current-1:(Number.isInteger(a.maxTier)?Math.min(a.maxTier,current+1):current);
+ const all=Object.entries(DB).filter(([id])=>id!=="BRA").flatMap(([id,l])=>l.teams.map(t=>({id,club:t.name,power:power(t.name),tier:transferLevel(id,t.name)})));
  let pool=all.filter(o=>{
   if(o.club===p.club)return false;
-  if(p.forcedMove)return current===0?o.id==="CHN"&&o.power<power(p.club):o.tier<current;
+  if(p.forcedMove)return o.tier===current-1;
   if(o.tier>limit)return false;
   if(a.poor&&o.tier>=current&&o.power>=power(p.club))return false;
   if(o.tier>current&&o.power>ov+23)return false;
   return true;
  });
- if(p.forcedMove&&pool.length===0&&current===0)pool=all.filter(o=>o.id==="CHN"&&o.club!==p.club);
- if(p.forcedMove&&pool.length===0)pool=all.filter(o=>o.tier<current);
+ if(p.forcedMove&&pool.length===0)pool=all.filter(o=>o.club!==p.club&&o.tier<current);
  const shuffle=v=>v.slice().sort(()=>Math.random()-.5),out=[];
  const add=o=>{if(o&&!out.some(x=>x.club===o.club))out.push(o)};
- if(p.forcedMove)add(shuffle(pool.filter(o=>o.tier===Math.max(0,current-1)))[0]);
- else for(let level=current+1;level<=limit;level++)add(shuffle(pool.filter(o=>o.tier===level))[0]);
+ if(p.forcedMove)add(shuffle(pool.filter(o=>o.tier===current-1))[0]);
+ else if(limit>current)add(shuffle(pool.filter(o=>o.tier===current+1))[0]);
  for(const o of shuffle(pool))if(out.length<8)add(o);
  return out.map(o=>({...o,move:o.tier>current?"升级":o.tier<current?"降档":"同级转会",
   wage:Math.round((o.power*480+ov*270+p.fame*140)*(.85+Math.random()*.5)/1000)*1000,years:R(2,5)}));
@@ -775,7 +778,7 @@ function applyPlayerTransfer(o,automatic=false){
  const p=g.player,current=transferLevel(p.leagueId,p.club),dest=transferLevel(o.id,o.club);
  if(p.youth&&!o.promotion)return notify("青训未晋升"),false;
  if(!p.youth&&o.club.endsWith("青训"))return notify("已进入一线队，不能退回青训"),false;
- if(p.forcedMove&&!(dest<current||current===0&&o.id==="CHN"&&o.club!==p.club))return notify("未达标，必须接受降档报价"),false;
+ if(p.forcedMove&&!(dest<current))return notify("未达标，必须接受降档报价"),false;
  if(!p.forcedMove&&dest>current&&dest>(p.transferAssessment?.maxTier??current))return notify("进球助攻和评分未达到升级资格"),false;
  const wasForced=p.forcedMove,old=p.club;p.club=o.club;p.leagueId=o.id;p.youth=false;
  if(p.parentCoach)p.parentCoach.club=o.club;
@@ -788,7 +791,7 @@ function transfer(i){if(!g?.offers?.[i])return;applyPlayerTransfer(g.offers[i])}
 function nextSeason(){if(!g||g.season.stage!=="review")return;
  if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();save();render();return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}if(p.forcedMove){
-  const options=(g.offers.length?g.offers:generateOffers()).filter(o=>transferLevel(o.id,o.club)<transferLevel(p.leagueId,p.club)||p.leagueId==="CHN"&&o.id==="CHN"&&o.club!==p.club);
+  const options=(g.offers.length?g.offers:generateOffers()).filter(o=>transferLevel(o.id,o.club)<transferLevel(p.leagueId,p.club));
   const choice=options.sort((a,b)=>b.tier-a.tier||b.power-a.power)[0];
   if(!choice){notify("尚无可用降档报价，请进入转会市场");return}
   if(!applyPlayerTransfer(choice,true))return;
@@ -997,15 +1000,10 @@ function trainingPage(){if(g.mode==="coach")return coachPage();
 function transferRulePanel(){
  const level=transferLevel(g.player.leagueId,g.player.club),n=clubSeasonNumbers(g.season),r=g.lastReview?.performance;
  const gate=x=>x.g+"球或"+x.a+"助或合计"+x.sum+"次；至少"+x.apps+"场，评分≥"+x.avg+"，综合≥"+(x.ov||"不限");
- const rows=[
- "中超→荷甲/葡超："+gate(TRANSFER_GOALS.europe),
- "中超→五大联赛："+gate(TRANSFER_GOALS.chinaFive),
- "欧洲非五大→五大联赛："+gate(TRANSFER_GOALS.europeFive),
- "五大联赛→豪门："+gate(TRANSFER_GOALS.elite)
- ];
- return '<div class="item gap"><h3>按进球、助攻升级或降档</h3><p>当前：'+E(TRANSFER_LEVELS[level])+'；本季俱乐部比赛 '+n.apps+'场 '+n.goals+'球 '+n.assists+'助</p>'+
+ const rows=TRANSFER_GATES.map((target,i)=>TRANSFER_LEVELS[i]+"→"+TRANSFER_LEVELS[i+1]+"："+gate(target));
+ return '<div class="item gap"><h3>六档球队声望与成绩门槛</h3><p>当前：'+E(TRANSFER_LEVELS[level])+'；本季俱乐部比赛 '+n.apps+'场 '+n.goals+'球 '+n.assists+'助</p>'+
   rows.map(x=>'<p class="muted small">'+E(x)+'</p>').join('')+
-  '<p class="muted small">升级必须同时满足出场、评分与能力要求；先踢五大联赛才能进入豪门。连续两季低产出且低评分将强制降档，转入新球队后重新考核。</p>'+
+  '<p class="muted small">每赛季最多晋升一档；同一档内部转会不算升级或降档。两季明显不佳可逐级降档，但中超已是最低起点，只允许留队或同级转会。传奇豪门包括皇马、巴萨、巴黎、曼城、曼联等，按俱乐部声望判定，而非仅按联赛。</p>'+
   (r?'<p class="gold">上季考核：'+E(r.comment)+'</p>':'')+'</div>';
 }
 function transferPage(){if(g.mode==="coach")return coachTransferPage();const p=g.player;return '<div class="columns"><section class="card"><h2>转会与合同</h2>'+transferRulePanel()+'<div class="photo"></div><h3>'+E(p.club)+'</h3><div class="kv"><span>当前身份</span><b>'+(p.youth?"青训球员":"一线队球员")+'</b></div><div class="kv"><span>合同年限</span><b>'+p.contract+'年</b></div><div class="kv"><span>周薪</span><b>'+M(p.wage)+'</b></div><div class="kv"><span>虚拟身价</span><b>'+M(Math.round(overall(p)*overall(p)*1450))+'</b></div><p class="muted small gap">转会仅在赛季结束进行；已进一线队不会再转回任何青训体系。青训毕业自动升入当前俱乐部一线队。</p></section><section class="card"><h2>赛季转会报价</h2>'+(g.offers.length?'<div class="list">'+g.offers.map((o,i)=>'<div class="item"><div class="row"><b>'+E(o.club)+'</b><span class="chip">'+E(DB[o.id].name)+'</span></div><p class="muted small">周薪 '+M(o.wage)+' · 合同 '+o.years+'年 · '+E(o.move||"同级转会")+'</p><button class="button primary" data-action="transfer" data-i="'+i+'">接受'+(o.promotion?"一线队晋升":"转会报价")+'</button></div>').join('')+'</div>':'<p class="muted">赛季结束后会出现符合当前能力和身价的正式报价。</p>')+'</section></div>'}
@@ -1125,7 +1123,7 @@ function duoTransferPage(){
  const x=duoGames[id],p=x.player,assessment=p.transferAssessment,r=x.lastReview?.performance||assessment,level=transferLevel(p.leagueId,p.club);
  const n=clubSeasonNumbers(x.season);
  return '<section class="card"><h2>'+E(p.name)+'</h2>'+metric("目前球队",E(p.club))+'<p>'+E(TRANSFER_LEVELS[level])+' · '+n.apps+'场 '+n.goals+'球 '+n.assists+'助</p><p class="gold">'+E(r?.comment||"赛季进行中，尚待考核")+'</p><p>连续低于留队标准 '+(p.poorStreak||0)+' 个赛季</p><h3>当前转会报价</h3><div class="list">'+(x.offers.length?x.offers.slice(0,8).map(o=>'<div class="item">'+E(o.club)+' · '+E(DB[o.id].name)+' · '+E(o.move)+'</div>').join(""):'<p class="muted">赛季结束后自动生成</p>')+'</div></section>'
- }).join("")+'</div><section class="card gap"><h3>各级门槛</h3><p>中超→欧洲非五大：7球 / 5助 / 合计10；中超→五大：14球 / 9助 / 合计18；欧洲非五大→五大：12球 / 8助 / 合计16；五大→豪门：18球 / 12助 / 合计24。上述数据满足其一，还需同时符合出场、评分和能力要求。</p></section>';
+ }).join("")+'</div><section class="card gap"><h3>六档转会阶梯</h3><p>'+TRANSFER_LEVELS.map((name,i)=>(i+1)+'. '+name).join(" → ")+'</p>'+TRANSFER_GATES.map((gate,i)=>'<p class="muted small">'+E(TRANSFER_LEVELS[i]+"→"+TRANSFER_LEVELS[i+1])+'：'+gate.g+'球或'+gate.a+'助或合计'+gate.sum+'次；至少'+gate.apps+'场、评分≥'+gate.avg+'、综合≥'+(gate.ov||"不限")+'</p>').join("")+'<p>赛季最多升级一档；中超是最低起点，不允许中超→中超冒充降档。</p></section>';
 }
 function duoAwardsPage(){
  const y=duoGames.wang.year;
@@ -1157,5 +1155,5 @@ try{
   if(!g.season.world)createWorld(g.season);ensureRealAwardPlayers();
  }
 }catch(e){g=null;duoGames=null}render();
-window.__footballDynastySelfTest=()=>{const tests=[];let rr=makeRR(DB.ENG.teams.map(x=>x.name));tests.push(["英超38轮",rr.length===38]);tests.push(["每轮10场",rr.every(x=>x.length===10)]);let key={};for(const round of rr)for(const f of round){key[f.home+"|"+f.away]=(key[f.home+"|"+f.away]||0)+1}tests.push(["每对主客仅交手一次",Object.values(key).every(n=>n===1)&&Object.keys(key).length===380]);tests.push(["曼联真实赛程38场",MANU_26.length===38]);tests.push(["曼联欧冠前三场历史锁定",MANU_CL.slice(0,3).every(x=>x.length===5)]);tests.push(["七项能力",Object.keys(STATS).length===7]);tests.push(["双人开局资料",DUO_IDS.length===2&&DUO_TEMPLATES.wang.historicalOverall===83&&DUO_TEMPLATES.vini.historicalOverall===77]);tests.push(["转会层级判定",transferLevel("CHN","上海海港")===0&&transferLevel("POR","本菲卡")===1&&transferLevel("ENG","布莱顿")===2&&transferLevel("ESP","皇家马德里")===3]);return tests};
+window.__footballDynastySelfTest=()=>{const tests=[];let rr=makeRR(DB.ENG.teams.map(x=>x.name));tests.push(["英超38轮",rr.length===38]);tests.push(["每轮10场",rr.every(x=>x.length===10)]);let key={};for(const round of rr)for(const f of round){key[f.home+"|"+f.away]=(key[f.home+"|"+f.away]||0)+1}tests.push(["每对主客仅交手一次",Object.values(key).every(n=>n===1)&&Object.keys(key).length===380]);tests.push(["曼联真实赛程38场",MANU_26.length===38]);tests.push(["曼联欧冠前三场历史锁定",MANU_CL.slice(0,3).every(x=>x.length===5)]);tests.push(["七项能力",Object.keys(STATS).length===7]);tests.push(["双人开局资料",DUO_IDS.length===2&&DUO_TEMPLATES.wang.historicalOverall===83&&DUO_TEMPLATES.vini.historicalOverall===77]);tests.push(["转会层级判定",transferLevel("CHN","上海海港")===0&&transferLevel("NED","乌德勒支")===1&&transferLevel("POR","本菲卡")===2&&transferLevel("ENG","布莱顿")===3&&transferLevel("ENG","阿森纳")===4&&transferLevel("ESP","皇家马德里")===5&&transferLevel("FRA","巴黎圣日耳曼")===5]);return tests};
 })();

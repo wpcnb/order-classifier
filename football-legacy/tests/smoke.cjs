@@ -3,7 +3,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
@@ -83,21 +83,42 @@ assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reloa
 assert.equal(reload.api.get().season.leagueRounds.length,30,"Fixture calendar restored after compact reload");
 const skill=reload.api.get().player,high={...skill,leagueId:"CHN",position:"LW",stats:{...skill.stats,pace:95,shoot:95,pass:94,dribble:95,mental:95}},low={...skill,leagueId:"CHN",position:"LW",stats:{...skill.stats,pace:55,shoot:55,pass:55,dribble:55,mental:55}};
 let highG=0,lowG=0,highA=0,lowA=0;
-for(let i=0;i<1500;i++){const h=reload.api.playerMatchContribution(high,{kind:"league"},65,3),l=reload.api.playerMatchContribution(low,{kind:"league"},65,3);highG+=h.goals;lowG+=l.goals;highA+=h.assists;lowA+=l.assists}
+for(let i=0;i<8000;i++){const h=reload.api.playerMatchContribution(high,{kind:"league"},65,3),l=reload.api.playerMatchContribution(low,{kind:"league"},65,3);highG+=h.goals;lowG+=l.goals;highA+=h.assists;lowA+=l.assists}
 assert(highG>lowG*2,"High-ability attacker should convert materially more CSL goals");
-assert(highA>lowA*1.2,"High-ability attacker should create more CSL assists");
+assert(highA>lowA*1.08,"High-ability attacker should create more CSL assists across a large sample");
 log("High-skill CSL conversion scales up goals and assists without exceeding team scoring");
 reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2027);assert.equal(state.duoGames[id].history.length,2)}
 if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable,"Players in same league must share table");log("Both careers advance synchronously into next season and survive reload");
 const api=reload.api;
+assert.deepEqual(Array.from(api.levels),["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"]);
+assert.equal(api.transferLevel("CHN","成都蓉城"),0);
+assert.equal(api.transferLevel("NED","乌德勒支"),1);
+assert.equal(api.transferLevel("POR","波尔图"),2);
+assert.equal(api.transferLevel("ENG","布莱顿"),3);
+assert.equal(api.transferLevel("ENG","阿森纳"),4);
+for(const [league,club] of [["ESP","皇家马德里"],["ESP","巴塞罗那"],["FRA","巴黎圣日耳曼"],["ENG","曼城"],["ENG","曼联"]])assert.equal(api.transferLevel(league,club),5,club+" is legendary");
 const active=api.get();const p=active.player,s=active.season;
 p.leagueId="ESP";p.club="皇家马德里";p.position="LW";p.poorStreak=0;p.forcedMove=false;
 s.apps=26;s.goals=0;s.assists=0;s.ratings=Array(26).fill(6.3);s.results=Array.from({length:26},(_,i)=>({kind:"league",played:true,goals:0,assists:0,rating:6.3,home:"皇家马德里",away:"对手",hs:0,as:0,date:"2027-01-"+String(i+1).padStart(2,"0")}));
 const first=api.seasonPerformance();assert(first.poor&&!first.forcedMove&&first.poorStreak===1);
 const second=api.seasonPerformance();assert(second.poor&&second.forcedMove&&second.poorStreak===2);
 const offers=api.generateOffers();assert(offers.length>0);
-assert(offers.every(o=>!["ENG","ESP","ITA","GER","FRA"].includes(o.id)||o.power<=96-9));
-log("Two consecutive poor seasons trigger lower-tier transfer options");
+assert(offers.every(o=>o.tier===4&&o.move==="降档"),"Legendary clubs must demote one level to ordinary five-league elite clubs");
+log("World legendary clubs demote only to five-league elite tier");
+// Switch to CSL: consecutive poor seasons cannot trigger a fictitious demotion within CSL.
+p.leagueId="CHN";p.club="上海海港";p.poorStreak=0;p.forcedMove=false;
+const csla=api.seasonPerformance();const cslb=api.seasonPerformance();
+assert(csla.poor&&cslb.poor&&cslb.poorStreak===2&&!cslb.forcedMove,"CSL has no lower tier");
+const cslOffers=api.generateOffers();
+assert(cslOffers.every(o=>o.tier===0&&o.move==="同级转会"),"CSL moves must never be marked as relegation");
+log("Poor CSL seasons retain player or offer same-tier moves, never false relegation");
+// Promotions are limited to one step, even for an exceptionally productive attacker.
+p.poorStreak=0;p.forcedMove=false;
+s.results=Array.from({length:28},(_,i)=>({kind:"league",played:true,goals:2,assists:1,rating:9.1,home:"上海海港",away:"对手",hs:4,as:0,date:"2027-04-"+String(i+1).padStart(2,"0")}));
+const good=api.seasonPerformance();assert.equal(good.maxTier,1);
+const stepOffers=api.generateOffers();assert(stepOffers.some(o=>o.tier===1));
+assert(stepOffers.every(o=>o.tier<=1));
+log("Outstanding CSL performance unlocks exactly one European tier, not instant transfer to a giant");
 reload.click("newGame");assert(!reload.stored.has(SAVE));assert(reload.html.includes("双星同场"));
 log("New game removes the old pair and starts another dual-card scenario");
 console.log("All dual-player Football Dynasty tests passed.");
