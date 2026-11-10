@@ -3,14 +3,14 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,makeSchedule,setupSharedUefaSeason,linkSharedWorld,save,duo:()=>duoGames,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
  const document={getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={};const context={document,localStorage,window,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{},Blob,URL,console};
- for(const file of ["real-footballers.js","uefa2026.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file,timeout:4000});
+ for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file,timeout:4000});
  vm.runInNewContext(core,context,{filename:"game.js",timeout:4000});
  return {get html(){return node("app").innerHTML},get state(){const data=storage.get(SAVE);return data?JSON.parse(data):null},get stored(){return storage},get api(){return window.__test},flush(){let n=0;while(timers.length&&n++<200)timers.shift()()},click(action,extras={}){const fn=handlers["app:click"];fn({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},page(p){const fn=handlers["app:click"];fn({target:{closest:()=>({disabled:false,dataset:{page:p}})}})}};
 }
@@ -125,51 +125,60 @@ downGame.click("simBoth");
 assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
 assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
 log("Relegation also requires player lottery; trophyless same-tier moves are automatic");
-// 2048 regression: Paris and Barcelona must NEVER both be 2048/49 UCL champions.
-const europaSave=JSON.parse(x.stored.get(SAVE));
-const finalDate="2049-05-29";
+// Reproduce 2048 Paris / Barcelona in the SAME actual 36-team competition.
+const finals=harness([[SAVE,x.stored.get(SAVE)]]);
+const duos=finals.api.duo();
 for(const [id,club,league] of [["wang","巴黎圣日耳曼","FRA"],["vini","巴塞罗那","ESP"]]){
- const c=europaSave.duoGames[id],p=c.player,ss=c.season;
- c.year=2048;p.club=club;p.leagueId=league;p.age=40;
- c.honors=[];c.history=[];
- ss.stage="playing";ss.events=[{id:"ko_决赛_1",kind:"europeKO",date:finalDate,competition:"欧冠",stage:"决赛",leg:1,
-  home:club,away:id==="wang"?"皇家马德里":"曼城"}];
- ss.index=0;ss.completed=0;ss.results=[];ss.ratings=[];ss.goals=0;ss.assists=0;ss.apps=0;
- ss.uefa={type:"欧冠",completed:false,stage:"knockout",rank:1,koAggregate:{},knockoutResults:[],table:{}};
- ss.leagueTable={[club]:{name:club,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}};
- ss.cup={active:false,name:"模拟杯赛",stage:0,results:[]};
- ss.national=null;
+ const x=duos[id];x.year=2048;x.player.age=40;x.player.club=club;x.player.leagueId=league;
+ x.history=[];x.honors=[];x.offers=[];
+ x.season=finals.api.makeSchedule(x.player,2048,1);
 }
-europaSave.sharedUniverse.europeFinals={};europaSave.sharedUniverse.europeTitleCorrections=[];
-europaSave.sharedUniverse.rounds={};
-const finals=harness([[SAVE,JSON.stringify(europaSave)]]);
+finals.api.linkSharedWorld();finals.api.setupSharedUefaSeason();finals.api.save();
+const sharedCup=finals.state.sharedUniverse.europeCompetitions["2048:欧冠"];
+assert(sharedCup,"Both footballers must be entered into one 2048 UEFA Champions League competition");
+assert.equal(Object.keys(finals.state.sharedUniverse.europeCompetitions).length,1);
+assert.equal(sharedCup.clubs.length,36);
+assert.equal(sharedCup.rounds.length,8);
+assert(sharedCup.rounds.every(round=>round.length===18),"One 36-team, 8-matchday league phase");
+assert.equal(sharedCup.ko.filter(t=>t.stage==="决赛").length,1,"Only one actual global UCL final");
+assert.deepEqual(Object.keys(finals.state.duoGames.wang.season.uefa.table),Object.keys(finals.state.duoGames.vini.season.uefa.table));
+for(const id of ["wang","vini"]){
+ const e=finals.state.duoGames[id].season.events.filter(x=>x.kind==="europe");
+ assert.equal(e.length,8);
+ for(const m of e){
+  const actual=sharedCup.rounds[m.round].find(f=>f.id===m.fixtureId);
+  assert(actual&&actual.home===m.home&&actual.away===m.away,"Player match must be on unified schedule");
+ }
+}
 finals.click("simBoth");
-const finalState=finals.state,finalRecord=finalState.sharedUniverse.europeFinals["2048:欧冠"];
-assert(finalRecord,"Exactly one shared Champions League final must be saved");
-assert(["巴黎圣日耳曼","巴塞罗那"].includes(finalRecord.winner),"Winner must be one of the actual finalists");
-assert.deepEqual([finalRecord.home,finalRecord.away].sort(),["巴塞罗那","巴黎圣日耳曼"].sort());
-const titleClaims=["wang","vini"].map(id=>finalState.duoGames[id].honors.filter(h=>h.year===2048&&h.name==="欧冠冠军"));
-assert.equal(titleClaims.reduce((a,b)=>a+b.length,0),1,"Paris and Barcelona cannot both take same UEFA trophy");
-const finalMatches=["wang","vini"].map(id=>finalState.duoGames[id].season.results.find(z=>z.kind==="europeKO"&&z.stage==="决赛"));
-assert(finalMatches.every(Boolean),"Both clubs play the same global final");
-assert.equal(finalMatches[0].hs,finalMatches[1].hs);assert.equal(finalMatches[0].as,finalMatches[1].as);
+const finalState=finals.state,finalComp=finalState.sharedUniverse.europeCompetitions["2048:欧冠"];
+const finalRecord=finalState.sharedUniverse.europeFinals["2048:欧冠"];
+assert(finalRecord,"One shared UCL final must be recorded");
+assert.equal(finalRecord.winner,finalComp.champion,"The single champion is decided by the actual global knockout bracket");
+const lastMatch=finalComp.ko.filter(x=>x.stage==="决赛");assert.equal(lastMatch.length,1);
+assert.deepEqual([finalRecord.home,finalRecord.away].sort(),[lastMatch[0].games[0].home,lastMatch[0].games[0].away].sort());
+const claims=["wang","vini"].flatMap(id=>finalState.duoGames[id].honors.filter(h=>h.year===2048&&h.name==="欧冠冠军").map(h=>id));
+assert(claims.length<=1,"Paris and Barcelona must never both win the same UCL");
+assert.equal(claims.length,["巴黎圣日耳曼","巴塞罗那"].includes(finalRecord.winner)?1:0,
+ "Only the real shared final winner, if controlled, can receive the title");
+assert.deepEqual(finalState.duoGames.wang.season.uefa.table,finalState.duoGames.vini.season.uefa.table,"Both players share one 36-team standings table");
 const finalistReload=harness([[SAVE,finals.stored.get(SAVE)]]);
-assert.equal(finalistReload.state.sharedUniverse.europeFinals["2048:欧冠"].winner,finalRecord.winner,"UEFA winner persists after refresh");
-log("2048/49 Paris vs Barcelona now has one shared final, one result, and exactly one UCL winner");
-// An older save with two independent trophy claims is reconciled at load with audit notes.
+assert.equal(finalistReload.state.sharedUniverse.europeFinals["2048:欧冠"].winner,finalRecord.winner,"UEFA champion survives reload");
+assert.equal(finalistReload.state.sharedUniverse.europeCompetitions["2048:欧冠"].ko.filter(t=>t.stage==="决赛").length,1);
+log("2048 UCL shared season: one set of 36 clubs, group schedule, standings, knockout bracket and final winner");
+// Legacy duplicate independent champions do not rewrite actual matches; repair only title records with disclosure.
 const legacy=JSON.parse(finals.stored.get(SAVE));
-legacy.sharedUniverse.europeFinals={};legacy.sharedUniverse.europeTitleCorrections=[];
+legacy.sharedUniverse.europeCompetitions={};legacy.sharedUniverse.europeFinals={};
+legacy.sharedUniverse.europeTitleCorrections=[];
 for(const [id,club] of [["wang","巴黎圣日耳曼"],["vini","巴塞罗那"]]){
- const x=legacy.duoGames[id];
- x.honors.push({year:2048,generation:x.generation,type:"team",name:"欧冠冠军"});
+ const x=legacy.duoGames[id];x.honors.push({year:2048,generation:x.generation,type:"team",name:"欧冠冠军"});
  x.history.push({year:2048,generation:x.generation,club,average:id==="wang"?"7.90":"7.45",goals:19});
 }
 const repaired=harness([[SAVE,JSON.stringify(legacy)]]);
-const correction=repaired.state.sharedUniverse.europeTitleCorrections;
-assert.equal(correction.length,1,"Old conflicting UEFA title claims must create one audit note");
-assert.equal(["wang","vini"].reduce((n,id)=>n+repaired.state.duoGames[id].honors.filter(h=>h.name==="欧冠冠军"&&h.year===2048).length,0),1,"Old duplicate title should not survive load");
-repaired.page("honors");assert(repaired.html.includes("旧档欧战记录校正")&&repaired.html.includes("2049年"),"Corrections are visible in trophy cabinet");
-log("Old double-winner saves are corrected and show a non-destructive audit trail");
+assert.equal(repaired.state.sharedUniverse.europeTitleCorrections.length,1);
+assert.equal(["wang","vini"].reduce((n,id)=>n+repaired.state.duoGames[id].honors.filter(h=>h.name==="欧冠冠军"&&h.year===2048).length,0),1);
+repaired.page("honors");assert(repaired.html.includes("旧档欧战记录校正"));
+log("Old independent duplicate title claims are flagged and reconciled transparently");
 
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
 assert(!reload.html.includes("切换并操作"));
