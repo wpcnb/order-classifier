@@ -40,6 +40,7 @@ const sorted=[...seasons].sort((a,b)=>b.goals-a.goals).slice(0,10);
 const rank=Object.fromEntries(["wang","vini"].map(id=>[id,seasons.filter(s=>s.id===id&&s.awardRank===1).length]));
 const promotion=(id)=>seasons.filter(s=>s.id===id&&s.qualified).length;
 const result={version:process.env.BALANCE_VARIANT||"calibrated",sharedSeasons:seasons.length/2,playerSeasons:seasons.length,averageGoals:avg("goals"),averageLeagueGoals:avg("leagueGoals"),averageAssists:avg("assists"),averageApps:avg("apps"),averageRating:avg("avg"),maxGoals:sorted[0].goals,over40:seasons.filter(s=>s.goals>40).length,over60:seasons.filter(s=>s.goals>60).length,over91:seasons.filter(s=>s.goals>91).length,tiers:levels,moves:moved,qualifications:{wang:promotion("wang"),vini:promotion("vini")},awardWins:rank,ballonWinners:Object.entries(winners).sort((a,b)=>b[1]-a[1]).slice(0,9),topScorers:sorted,finals:reports};
+console.log("BALANCE_RESULT_JSON="+JSON.stringify(result));
 // Long-run balance guardrails: no fabricated promotion for lateral CSL moves,
 // no automatic rocket launch to legendary clubs, and no routine superhuman scoring.
 assert.equal(seasons.length,200,"Ten trials × ten shared seasons × two players");
