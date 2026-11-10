@@ -3,7 +3,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,cslPool:CSL_DRAW_TEAMS,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
@@ -17,11 +17,14 @@ function harness(loaded=null){
 function log(s){console.log("✓ "+s)}
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");assert(html.includes('src="./game.js'));
 const oldData=JSON.stringify({version:4,player:{name:"陆白"}});
-const x=harness([[OLD,oldData],[OLD+"-safety",oldData]]);
-assert(!x.stored.has(OLD)&&!x.stored.has(OLD+"-safety"),"old saves cleared");
+const oldDuo="football-dynasty-duo-v1-20261110",oldKeys=[OLD,OLD+"-safety",oldDuo,oldDuo+"-safety"];
+const x=harness(oldKeys.map(k=>[k,oldData]));
+for(const key of oldKeys)assert.equal(x.stored.get(key),oldData,"opening must preserve old data: "+key);
+assert(x.html.includes("导出旧版单人生涯")&&x.html.includes("导出旧版双人生涯"),"old save export available on opening");
 assert(x.html.includes("双星同场")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 assert(x.html.includes("club-wheel")&&x.html.includes("中超"));
-log("Old data cleared; opening lottery wheels visible");
+assert.equal(x.api.cslPool().length,14);assert(!x.api.cslPool().includes("长春亚泰")&&!x.api.cslPool().includes("梅州客家"));
+log("Old data preserved and export available; opening lottery wheels visible");
 x.click("preset");assert(!x.state,"Must draw before starting");
 x.click("spinClub",{id:"wang"});x.flush();
 x.click("spinClub",{id:"vini"});x.flush();
@@ -45,7 +48,7 @@ assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
 assert(x.html.includes("一键同步模拟两人"));
 log("Both named stars begin aged 16 at separate real CSL academies with scaled-down historical templates");
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
-x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
+x.page("world");assert(x.html.includes("双主角进球对比")&&x.html.includes("仅显示两名主角")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 x.page("transfer");assert(x.html.includes("双人转会")&&x.html.includes("升降档球队"));
 x.page("honors");assert(x.html.includes("双星荣誉陈列室")&&x.html.includes("金球奖逐年排名"));
 x.page("dashboard");
@@ -66,6 +69,7 @@ for(let youthYear=0;youthYear<2;youthYear++){
   assert.equal(p.forcedSameTier,false);
   assert.equal(p.forcedMove,false);
   assert(!academy.duoGames[id].honors.some(h=>h.name==="中超冠军"),"Youth champions cannot be mistaken for senior CSL champions");
+  const yr=academy.duoGames[id].worldHistory.find(h=>h.year===2026+youthYear);assert(yr,"world season history exists");assert(!String(yr.champions.CHN||"").endsWith("青训"),"Academy champion must not be recorded as senior CSL champion");
  }
 }
 assert.equal(x.state.duoGames.wang.year,2027);
@@ -160,7 +164,7 @@ downGame.click("simBoth");
 assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
 assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
 log("Relegation also requires player lottery; trophyless same-tier moves are automatic");
-const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,3);
+const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved],...oldKeys.map(k=>[k,oldData])]);assert.equal(reload.state.duoGames.wang.history.length,3);
 assert(!reload.html.includes("切换并操作"));
 assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
 assert.equal(reload.api.get().season.leagueRounds.length,30,"Fixture calendar restored after compact reload");
@@ -241,5 +245,6 @@ assert(sameOffers.every(o=>o.tier===3&&o.move==="同级转会"),"No-title transf
 log("Two trophyless seasons trigger same-tier transfers, independent of goal totals");
 
 reload.click("newGame");assert(!reload.stored.has(SAVE));assert(reload.html.includes("双星同场"));
+for(const key of oldKeys)assert.equal(reload.stored.get(key),oldData,"new game must not delete legacy save: "+key);
 log("New game removes the old pair and starts another dual-card scenario");
 console.log("All dual-player Football Dynasty tests passed.");
