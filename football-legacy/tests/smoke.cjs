@@ -141,7 +141,7 @@ assert.equal(sharedCup.clubs.length,36);
 assert.equal(sharedCup.rounds.length,8);
 assert(sharedCup.rounds.every(round=>round.length===18),"One 36-team, 8-matchday league phase");
 assert.equal(sharedCup.ko.filter(t=>t.stage==="决赛").length,1,"Only one actual global UCL final");
-assert.deepEqual(Object.keys(finals.state.duoGames.wang.season.uefa.table),Object.keys(finals.state.duoGames.vini.season.uefa.table));
+assert.equal(finals.api.duo().wang.season.uefa.table,finals.api.duo().vini.season.uefa.table,"Both players reference the exact same 36-team standings table");
 for(const id of ["wang","vini"]){
  const e=finals.state.duoGames[id].season.events.filter(x=>x.kind==="europe");
  assert.equal(e.length,8);
@@ -161,7 +161,7 @@ const claims=["wang","vini"].flatMap(id=>finalState.duoGames[id].honors.filter(h
 assert(claims.length<=1,"Paris and Barcelona must never both win the same UCL");
 assert.equal(claims.length,["巴黎圣日耳曼","巴塞罗那"].includes(finalRecord.winner)?1:0,
  "Only the real shared final winner, if controlled, can receive the title");
-assert.deepEqual(finalState.duoGames.wang.season.uefa.table,finalState.duoGames.vini.season.uefa.table,"Both players share one 36-team standings table");
+assert.equal(finals.api.duo().wang.season.uefa.table,finals.api.duo().vini.season.uefa.table,"Shared table remains a single object after full season");
 const finalistReload=harness([[SAVE,finals.stored.get(SAVE)]]);
 assert.equal(finalistReload.state.sharedUniverse.europeFinals["2048:欧冠"].winner,finalRecord.winner,"UEFA champion survives reload");
 assert.equal(finalistReload.state.sharedUniverse.europeCompetitions["2048:欧冠"].ko.filter(t=>t.stage==="决赛").length,1);
