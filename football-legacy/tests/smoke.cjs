@@ -92,7 +92,7 @@ if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)ass
 const api=reload.api;
 const active=api.get();const p=active.player,s=active.season;
 p.leagueId="ESP";p.club="皇家马德里";p.position="LW";p.poorStreak=0;p.forcedMove=false;
-s.apps=26;s.goals=0;s.assists=0;s.ratings=Array(26).fill(6.3);
+s.apps=26;s.goals=0;s.assists=0;s.ratings=Array(26).fill(6.3);s.results=Array.from({length:26},(_,i)=>({kind:"league",played:true,goals:0,assists:0,rating:6.3,home:"皇家马德里",away:"对手",hs:0,as:0,date:"2027-01-"+String(i+1).padStart(2,"0")}));
 const first=api.seasonPerformance();assert(first.poor&&!first.forcedMove&&first.poorStreak===1);
 const second=api.seasonPerformance();assert(second.poor&&second.forcedMove&&second.poorStreak===2);
 const offers=api.generateOffers();assert(offers.length>0);
