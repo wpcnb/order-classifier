@@ -117,6 +117,7 @@ function duoPayload(){
  const packedShared={
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
   awards:shared.awards||{},national:shared.national||{},
+   europeFinals:shared.europeFinals||{},europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   offseasonYears:(shared.offseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -150,6 +151,7 @@ function hydratePayload(data){
  }
  activeDuo="wang";g=duoGames.wang;
  linkSharedWorld();
+ if(reconcileEuropeanHonors())save();
 }
 let storageWarningShown=false;
 function save(){
@@ -274,6 +276,8 @@ function linkSharedWorld(){
  sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{},national:{}};
  sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};sharedUniverse.awards=sharedUniverse.awards||{};
  sharedUniverse.offseasonYears=sharedUniverse.offseasonYears||[];
+ sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+ sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
  sharedUniverse.clubRatings=sharedUniverse.clubRatings||{};
  a.npcs=b.npcs=a.npcs.filter(n=>!DUO_IDS.some(id=>n.name===duoGames[id].player.name)); // One AI roster without duplicated protagonists
  a.clubRatings=b.clubRatings=sharedUniverse.clubRatings;
@@ -350,6 +354,89 @@ function allocateSharedNpcForDay(date){
  }
  g=duoGames[original];
 }
+// Shared continental final: only one fixture, score and winner each season.
+function europeanFinalKey(year,type){return String(year)+":"+type}
+function eligibleSharedFinalist(x,date,type){
+ return x&&x.season.stage==="playing"&&x.season.uefa?.type===type&&!x.season.uefa.completed&&
+  x.season.events.slice(x.season.index).some(e=>e.kind==="europeKO"&&e.stage==="决赛"&&e.date===date);
+}
+function sharedEuropeanFinal(ev){
+ if(!duoGames||!sharedUniverse||ev.kind!=="europeKO"||ev.stage!=="决赛"||!g.season.uefa)return null;
+ const type=g.season.uefa.type,key=europeanFinalKey(g.year,type);
+ const existing=sharedUniverse.europeFinals[key];if(existing)return existing;
+ const other=DUO_IDS.map(id=>duoGames[id]).find(x=>x!==g);
+ const shared=eligibleSharedFinalist(other,ev.date,type);
+ let home=ev.home,away=ev.away;
+ if(shared&&other.player.club!==g.player.club){
+  [home,away]=Math.random()<.5?[g.player.club,other.player.club]:[other.player.club,g.player.club];
+ }
+ return {key,year:g.year,type,date:ev.date,home,away,sharedDuo:!!shared};
+}
+function assignEuropeanFinal(fixture,hs,as){
+ const winner=hs>as?fixture.home:as>hs?fixture.away:(Math.random()<.5?fixture.home:fixture.away);
+ const data={...fixture,hs,as,winner,npcAllocated:false};
+ sharedUniverse.europeFinals[fixture.key]=data;
+ return data;
+}
+function allocateSharedEuropeFinalNPC(date){
+ if(!duoGames||!sharedUniverse)return;
+ const before=g;
+ for(const entry of Object.values(sharedUniverse.europeFinals||{})){
+  if(!entry.sharedDuo||entry.npcAllocated||entry.date!==date||entry.hs===undefined)continue;
+  const matches=DUO_IDS.map(id=>({player:duoGames[id].player,match:duoGames[id].season.results.findLast(m=>m.kind==="europeKO"&&m.stage==="决赛"&&m.date===date&&m.home===entry.home&&m.away===entry.away)}));
+  if(matches.some(x=>!x.match))continue;
+  let gh=0,ga=0,ah=0,aa=0;
+  for(const x of matches){
+   if(x.player.club===entry.home){gh+=x.match.goals||0;ah+=x.match.assists||0}
+   else if(x.player.club===entry.away){ga+=x.match.goals||0;aa+=x.match.assists||0}
+  }
+  g=duoGames.wang;
+  simulateNPCGame(entry.home,entry.away,entry.hs,entry.as,gh,ga,"europe",ah,aa);
+  entry.npcAllocated=true;
+ }
+ g=before;
+}
+// Historic careers had independent European finals. No actual shared result
+// exists to reconstruct, so choose deterministically using saved season data
+// and leave a visible audit trail instead of deleting the old save.
+function reconcileEuropeanHonors(){
+ if(!duoGames||!sharedUniverse)return false;
+ const claimsBySeason={};
+ for(const id of DUO_IDS){
+  const x=duoGames[id];
+  for(const h of x.honors||[]){
+   if(h.type!=="team"||!["欧冠冠军","欧联冠军"].includes(h.name))continue;
+   const history=x.history?.findLast(m=>m.year===h.year&&m.generation===h.generation);
+   const club=history?.club||x.player.club,type=h.name.replace("冠军",""),key=europeanFinalKey(h.year,type);
+   (claimsBySeason[key]||(claimsBySeason[key]=[])).push({id,x,h,club,history});
+  }
+ }
+ let changed=false;
+ for(const [key,claims] of Object.entries(claimsBySeason)){
+  if(claims.length<2||new Set(claims.map(c=>c.club)).size<2)continue;
+  const recorded=sharedUniverse.europeFinals?.[key];
+  const score=c=>Number(c.history?.average||0)*10+Math.min(c.history?.goals||0,60)/5;
+  const winner=claims.find(c=>c.club===recorded?.winner)||
+   claims.slice().sort((a,b)=>score(b)-score(a)||a.club.localeCompare(b.club))[0];
+  if(!recorded?.winner||!claims.some(c=>c.club===recorded.winner)){
+   sharedUniverse.europeFinals[key]={key,year:winner.h.year,type:winner.h.name.replace("冠军",""),
+    winner:winner.club,legacy:true,claimClubs:claims.map(c=>c.club)};
+  }
+  for(const c of claims){
+   if(c===winner)continue;
+   c.x.honors=c.x.honors.filter(h=>h!==c.h);
+   c.x.logs=c.x.logs||[];
+   c.x.logs.unshift({year:c.h.year,week:0,description:"旧版欧冠/欧联冠军重复记录已校正："+(c.h.year+1)+"年"+c.h.name+
+    "统一登记为"+winner.club+"。旧版独立决赛无法还原。"});
+   changed=true;
+  }
+  sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
+  if(!sharedUniverse.europeTitleCorrections.some(c=>c.key===key))sharedUniverse.europeTitleCorrections.push({
+   key,year:winner.h.year,competition:winner.h.name,winner:winner.club,
+   conflictingClubs:claims.map(c=>c.club),reason:"旧版独立欧战决赛重复；按历史赛季数据确定单一归属"});
+ }
+ return changed;
+}
 function runSharedDay(date,focusId=null,focusChoice="balanced"){
  const original=activeDuo;
  let total=0;
@@ -362,7 +449,7 @@ function runSharedDay(date,focusId=null,focusChoice="balanced"){
   }
   if(g.season.stage==="playing"&&g.season.index>=g.season.events.length)endSeason();
  }
- activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);linkSharedWorld();return total;
+ activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);allocateSharedEuropeFinalNPC(date);linkSharedWorld();return total;
 }
 function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
  if(!duoGames)return;
