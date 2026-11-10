@@ -41,9 +41,10 @@ assert(x.html.includes("一键同步模拟两人"));
 log("Two playable 18-year-old China-nationality cards with distinct historical FIFA templates");
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
 x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
-x.page("transfer");assert(x.html.includes("双人自动转会"));
+x.page("transfer");assert(x.html.includes("双人转会")&&x.html.includes("升级球队"));
+x.page("honors");assert(x.html.includes("双星荣誉陈列室")&&x.html.includes("金球奖逐年排名"));
 x.page("dashboard");
-log("One-click dual dashboard, unified league rankings and automatic transfer page");
+log("One-click dual dashboard, unified league rankings and manual promotion lottery");
 x.click("simBoth");state=x.state;
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
@@ -87,6 +88,20 @@ for(let i=0;i<8000;i++){const h=reload.api.playerMatchContribution(high,{kind:"l
 assert(highG>lowG*2,"High-ability attacker should convert materially more CSL goals");
 assert(highA>lowA*1.08,"High-ability attacker should create more CSL assists across a large sample");
 log("High-skill CSL conversion scales up goals and assists without exceeding team scoring");
+const drawsBeforeReload=["wang","vini"].filter(id=>reload.state.duoGames[id].player.transferDraw?.options?.length);
+if(drawsBeforeReload.length){
+ const target=drawsBeforeReload[0];reload.page("transfer");
+ assert(reload.html.includes('promotion-wheel-'+target));
+ // A pending draw MUST prevent a next-season transition.
+ reload.click("simBoth");
+ assert.equal(reload.state.duoGames.wang.year,2026);
+ reload.click("spinPromotion",{id:target});reload.flush();
+ assert(reload.state.duoGames[target].player.transferDraw.selected,"Winning team immediately persisted");
+ const previous=reload.state.duoGames[target].player.transferDraw.selected.club;
+ const restored=harness([[SAVE,reload.stored.get(SAVE)]]);
+ assert.equal(restored.state.duoGames[target].player.transferDraw.selected.club,previous,"Lottery result survives page reload");
+}
+for(const id of ["wang","vini"])if(reload.state.duoGames[id].player.transferDraw?.options?.length&&!reload.state.duoGames[id].player.transferDraw.selected){reload.click("spinPromotion",{id});reload.flush()}
 reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2027);assert.equal(state.duoGames[id].history.length,2)}
 if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable,"Players in same league must share table");log("Both careers advance synchronously into next season and survive reload");
 const api=reload.api;
