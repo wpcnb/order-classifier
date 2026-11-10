@@ -1139,7 +1139,7 @@ function duoTop(){
  if(!duoGames)return "";
  return '<section class="card"><div class="row"><div><div class="cap">双人职业生涯 · 单一足球世界</div><h2>王楚淇 × 维尼修斯</h2></div><button class="button goldbtn" data-action="simBoth">一键同步模拟两人</button></div><div class="grid2">'+DUO_IDS.map(id=>{
  const x=duoGames[id],p=x.player,v=x.season,r=x.lastReview;
- return '<div class="item"><div class="row"><strong>'+E(p.name)+' · 综合 '+overall(p)+'</strong><span class="chip">'+p.age+'岁 · '+E(DB[p.leagueId].name)+'</span></div><p class="muted small">'+E(p.club)+' · '+x.year+'赛季 · 出场'+v.apps+' / 进球'+v.goals+' / 助攻'+v.assists+' · 伤停'+(p.injuryMatches||0)+'场</p><p class="muted small">潜力'+p.potential+' · 连续不达标'+(p.poorStreak||0)+'季 · '+(r?.performance?.comment||"赛季进行中")+'</p></div>'
+ return '<div class="item"><div class="row"><strong>'+E(p.name)+' · 综合 '+overall(p)+'</strong><span class="chip">'+p.age+'岁 · '+E(DB[p.leagueId].name)+'</span></div><p class="muted small">'+E(p.club)+' · '+x.year+'赛季 · 出场'+v.apps+' / 进球'+v.goals+' / 助攻'+v.assists+' · 伤停'+(p.injuryMatches||0)+'场</p><p class="muted small">潜力'+p.potential+' · 连续不达标'+(p.poorStreak||0)+'季 · 连续无俱乐部冠军'+(p.trophylessStreak||0)+'季 · '+(r?.performance?.comment||"赛季进行中")+'</p></div>'
  }).join("")+'</div><p class="muted small gap">两人同时参赛、同步成长和转会；统一联赛积分榜、射手榜及年度金球奖。无需切换或单独操作球员。</p></section>'
 }
 function duoDashboard(){
@@ -1165,7 +1165,7 @@ function duoTransferPage(){
  return '<div class="card"><h2>双人自动转会 · 根据赛季表现升降档</h2><p class="muted">每次同步模拟结束后按进球、助攻、出场、评分与综合能力生成报价。进入下一赛季时自动接受符合条件的升级报价；连续两季不佳将强制降档，并在新球队重新考核。</p></div><div class="grid2 gap">'+DUO_IDS.map(id=>{
  const x=duoGames[id],p=x.player,assessment=p.transferAssessment,r=x.lastReview?.performance||assessment,level=transferLevel(p.leagueId,p.club);
  const n=clubSeasonNumbers(x.season);
- return '<section class="card"><h2>'+E(p.name)+'</h2>'+metric("目前球队",E(p.club))+'<p>'+E(TRANSFER_LEVELS[level])+' · '+n.apps+'场 '+n.goals+'球 '+n.assists+'助</p><p class="gold">'+E(r?.comment||"赛季进行中，尚待考核")+'</p><p>连续低于留队标准 '+(p.poorStreak||0)+' 个赛季</p><h3>当前转会报价</h3><div class="list">'+(x.offers.length?x.offers.slice(0,8).map(o=>'<div class="item">'+E(o.club)+' · '+E(DB[o.id].name)+' · '+E(o.move)+'</div>').join(""):'<p class="muted">赛季结束后自动生成</p>')+'</div></section>'
+ return '<section class="card"><h2>'+E(p.name)+'</h2>'+metric("目前球队",E(p.club))+'<p>'+E(TRANSFER_LEVELS[level])+' · '+n.apps+'场 '+n.goals+'球 '+n.assists+'助</p><p class="gold">'+E(r?.comment||"赛季进行中，尚待考核")+'</p><p>连续低于留队标准 '+(p.poorStreak||0)+' 个赛季</p><p>连续无俱乐部冠军 '+(p.trophylessStreak||0)+' 个赛季'+(p.forcedSameTier?' · 已触发同档强制转会':'')+'</p><h3>当前转会报价</h3><div class="list">'+(x.offers.length?x.offers.slice(0,8).map(o=>'<div class="item">'+E(o.club)+' · '+E(DB[o.id].name)+' · '+E(o.move)+'</div>').join(""):'<p class="muted">赛季结束后自动生成</p>')+'</div></section>'
  }).join("")+'</div><section class="card gap"><h3>六档转会阶梯</h3><p>'+TRANSFER_LEVELS.map((name,i)=>(i+1)+'. '+name).join(" → ")+'</p>'+TRANSFER_GATES.map((gate,i)=>'<p class="muted small">'+E(TRANSFER_LEVELS[i]+"→"+TRANSFER_LEVELS[i+1])+'：'+gate.g+'球或'+gate.a+'助或合计'+gate.sum+'次；至少'+gate.apps+'场、评分≥'+gate.avg+'、综合≥'+(gate.ov||"不限")+'</p>').join("")+'<p>赛季最多升级一档；中超是最低起点，不允许中超→中超冒充降档。</p></section>';
 }
 function duoAwardsPage(){
