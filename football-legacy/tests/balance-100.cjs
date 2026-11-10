@@ -10,16 +10,17 @@ function run(seed){
  for(const name of ["real-footballers.js","uefa2026.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
  vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
  function click(action,id){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id}})}})}
+ function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.selected){click("spinPromotion",id);while(timers.length)timers.shift()()}}}
  click("spinClub","wang");while(timers.length)timers.shift()();
  click("spinClub","vini");while(timers.length)timers.shift()();
  click("preset");assert(ctx.window.__bench.state(),"Cannot initialize benchmark");
- return {click,state:ctx.window.__bench.state,level:ctx.window.__bench.level,ratings:ctx.window.__bench.ratings,storage};
+ return {click,drawPromotions,state:ctx.window.__bench.state,level:ctx.window.__bench.level,ratings:ctx.window.__bench.ratings,storage};
 }
 const seasons=[],moves=[],winners={},reports=[],sessions=10,seasonsPerSession=10;
 for(let trial=0;trial<sessions;trial++){
  const app=run(43773+trial*1789);let last={};
  for(let season=0;season<seasonsPerSession;season++){
-  app.click("simBoth");const state=app.state(),year=state.wang.year;
+  app.drawPromotions();app.click("simBoth");const state=app.state(),year=state.wang.year;
   for(const key of ["wang","vini"]){
    const x=state[key],p=x.player,s=x.season,lev=app.level(p),prior=last[key];
    const item={trial,year,id:key,club:p.club,level:lev,overall:app.ratings(p),goals:s.goals,leagueGoals:s.leagueGoals,assists:s.assists,apps:s.apps,avg:Number(s.ratings.reduce((a,b)=>a+b,0)/(s.ratings.length||1)).toFixed(2),qualified:x.lastReview?.performance?.qualified,forcedSameTier:x.lastReview?.performance?.forcedSameTier,poor:x.lastReview?.performance?.poor,champion:x.lastReview?.performance?.teamChampion,awardRank:x.ballonHistory.at(-1)?.rank};
