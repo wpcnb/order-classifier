@@ -125,6 +125,52 @@ downGame.click("simBoth");
 assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
 assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
 log("Relegation also requires player lottery; trophyless same-tier moves are automatic");
+// 2048 regression: Paris and Barcelona must NEVER both be 2048/49 UCL champions.
+const europaSave=JSON.parse(x.stored.get(SAVE));
+const finalDate="2049-05-29";
+for(const [id,club,league] of [["wang","巴黎圣日耳曼","FRA"],["vini","巴塞罗那","ESP"]]){
+ const c=europaSave.duoGames[id],p=c.player,ss=c.season;
+ c.year=2048;p.club=club;p.leagueId=league;p.age=40;
+ c.honors=[];c.history=[];
+ ss.stage="playing";ss.events=[{id:"ko_决赛_1",kind:"europeKO",date:finalDate,competition:"欧冠",stage:"决赛",leg:1,
+  home:club,away:id==="wang"?"皇家马德里":"曼城"}];
+ ss.index=0;ss.completed=0;ss.results=[];ss.ratings=[];ss.goals=0;ss.assists=0;ss.apps=0;
+ ss.uefa={type:"欧冠",completed:false,stage:"knockout",rank:1,koAggregate:{},knockoutResults:[],table:{}};
+ ss.leagueTable={[club]:{name:club,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}};
+ ss.cup={active:false,name:"模拟杯赛",stage:0,results:[]};
+ ss.national=null;
+}
+europaSave.sharedUniverse.europeFinals={};europaSave.sharedUniverse.europeTitleCorrections=[];
+europaSave.sharedUniverse.rounds={};
+const finals=harness([[SAVE,JSON.stringify(europaSave)]]);
+finals.click("simBoth");
+const finalState=finals.state,finalRecord=finalState.sharedUniverse.europeFinals["2048:欧冠"];
+assert(finalRecord,"Exactly one shared Champions League final must be saved");
+assert(["巴黎圣日耳曼","巴塞罗那"].includes(finalRecord.winner),"Winner must be one of the actual finalists");
+assert.deepEqual([finalRecord.home,finalRecord.away].sort(),["巴塞罗那","巴黎圣日耳曼"].sort());
+const titleClaims=["wang","vini"].map(id=>finalState.duoGames[id].honors.filter(h=>h.year===2048&&h.name==="欧冠冠军"));
+assert.equal(titleClaims.reduce((a,b)=>a+b.length,0),1,"Paris and Barcelona cannot both take same UEFA trophy");
+const finalMatches=["wang","vini"].map(id=>finalState.duoGames[id].season.results.find(z=>z.kind==="europeKO"&&z.stage==="决赛"));
+assert(finalMatches.every(Boolean),"Both clubs play the same global final");
+assert.equal(finalMatches[0].hs,finalMatches[1].hs);assert.equal(finalMatches[0].as,finalMatches[1].as);
+const finalistReload=harness([[SAVE,finals.stored.get(SAVE)]]);
+assert.equal(finalistReload.state.sharedUniverse.europeFinals["2048:欧冠"].winner,finalRecord.winner,"UEFA winner persists after refresh");
+log("2048/49 Paris vs Barcelona now has one shared final, one result, and exactly one UCL winner");
+// An older save with two independent trophy claims is reconciled at load with audit notes.
+const legacy=JSON.parse(finals.stored.get(SAVE));
+legacy.sharedUniverse.europeFinals={};legacy.sharedUniverse.europeTitleCorrections=[];
+for(const [id,club] of [["wang","巴黎圣日耳曼"],["vini","巴塞罗那"]]){
+ const x=legacy.duoGames[id];
+ x.honors.push({year:2048,generation:x.generation,type:"team",name:"欧冠冠军"});
+ x.history.push({year:2048,generation:x.generation,club,average:id==="wang"?"7.90":"7.45",goals:19});
+}
+const repaired=harness([[SAVE,JSON.stringify(legacy)]]);
+const correction=repaired.state.sharedUniverse.europeTitleCorrections;
+assert.equal(correction.length,1,"Old conflicting UEFA title claims must create one audit note");
+assert.equal(["wang","vini"].reduce((n,id)=>n+repaired.state.duoGames[id].honors.filter(h=>h.name==="欧冠冠军"&&h.year===2048).length,0),1,"Old duplicate title should not survive load");
+repaired.page("honors");assert(repaired.html.includes("旧档欧战记录校正")&&repaired.html.includes("2049年"),"Corrections are visible in trophy cabinet");
+log("Old double-winner saves are corrected and show a non-destructive audit trail");
+
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
 assert(!reload.html.includes("切换并操作"));
 assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
