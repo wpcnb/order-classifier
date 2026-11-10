@@ -3,7 +3,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,cslPool:CSL_DRAW_TEAMS,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,duo:()=>duoGames,makeSchedule,setupSharedUefaSeason,linkSharedWorld,playEvent,offseasonRecovery,disciplinaryRecord,save,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,cslPool:CSL_DRAW_TEAMS,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
@@ -243,6 +243,77 @@ assert.equal(noCup2.forcedMove,false);
 const sameOffers=api.generateOffers();assert(sameOffers.length>0);
 assert(sameOffers.every(o=>o.tier===3&&o.move==="同级转会"),"No-title transfer must stay within club tier");
 log("Two trophyless seasons trigger same-tier transfers, independent of goal totals");
+
+// One real simulated 2048/49 Champions League, never two independent worlds.
+const fixture=harness([[SAVE,x.stored.get(SAVE)]]);
+const participants=fixture.api.duo();
+for(const [id,club,leagueId] of [["wang","巴黎圣日耳曼","FRA"],["vini","巴塞罗那","ESP"]]){
+ const game=participants[id];game.year=2048;game.player.age=38;game.player.club=club;game.player.leagueId=leagueId;game.player.youth=false;
+ game.season=fixture.api.makeSchedule(game.player,2048,1);
+ game.honors=[];game.history=[];game.offers=[];
+}
+fixture.api.linkSharedWorld();
+fixture.api.setupSharedUefaSeason();
+fixture.api.save();
+const world=fixture.api.duo();
+const cup=fixture.state.sharedUniverse.europeCompetitions["2048:欧冠"];
+assert(cup,"2048 season must have one shared European cup");
+assert.equal(cup.clubs.length,36);
+assert.equal(cup.rounds.length,8);
+assert(cup.rounds.every(x=>x.length===18),"36 teams must play eight matchdays in one timetable");
+assert.equal(cup.ko.filter(x=>x.stage==="决赛").length,1);
+assert.equal(world.wang.season.uefa.table,world.vini.season.uefa.table,
+ "Both club seasons must reference the same standing table object");
+for(const id of ["wang","vini"]){
+ const club=world[id].player.club,evs=world[id].season.events.filter(e=>e.kind==="europe");
+ assert.equal(evs.length,8);
+ for(const e of evs){
+  const original=cup.rounds[e.round].find(x=>x.id===e.fixtureId);
+  assert(original&&[original.home,original.away].includes(club),"User European fixtures must belong to the shared competition");
+ }
+}
+fixture.click("simBoth");
+const result=fixture.state,comp=result.sharedUniverse.europeCompetitions["2048:欧冠"],champ=result.sharedUniverse.europeFinals["2048:欧冠"];
+assert(champ,"Global UEFA winner must be declared even if only NPC clubs reach the final");
+assert.equal(champ.winner,comp.champion);
+const finals=comp.ko.filter(m=>m.stage==="决赛");
+assert.equal(finals.length,1);
+assert.deepEqual([champ.home,champ.away].sort(),[finals[0].home,finals[0].away].sort());
+const claims=["wang","vini"].flatMap(id=>result.duoGames[id].honors.filter(h=>h.year===2048&&h.name==="欧冠冠军").map(h=>id));
+assert(claims.length<=1,"Paris and Barça cannot both be champions in 2048");
+assert.equal(claims.length,["巴黎圣日耳曼","巴塞罗那"].includes(champ.winner)?1:0);
+const fixtureReload=harness([[SAVE,fixture.stored.get(SAVE)]]);
+assert.equal(fixtureReload.state.sharedUniverse.europeFinals["2048:欧冠"].winner,champ.winner);
+assert.equal(fixtureReload.state.sharedUniverse.europeCompetitions["2048:欧冠"].ko.filter(x=>x.stage==="决赛").length,1);
+log("2048 Paris/Barcelona: one shared 36-team calendar, standings, knockout and champion");
+// Competition-specific bans and year-spanning injuries. Never consume a league ban in a cup match.
+const medical=harness([[SAVE,x.stored.get(SAVE)]]);
+const m=medical.api.get(),athlete=m.player;
+athlete.injuryMatches=0;athlete.stamina=95;athlete.discipline={
+ league:{yellow:4,ban:2},cup:{yellow:0,ban:0},europe:{yellow:1,ban:1},national:{yellow:0,ban:0}
+};
+m.season.stage="playing";m.season.index=0;
+const firstLeague=m.season.events.find(e=>e.kind==="league");
+assert(firstLeague);
+medical.api.playEvent(firstLeague,"balanced",true);
+assert.equal(m.season.results.at(-1).missedReason,"suspension");
+assert.equal(athlete.discipline.league.ban,1);
+assert.equal(athlete.discipline.europe.ban,1);
+assert.equal(m.season.results.at(-1).played,false);
+const cupEvent=m.season.events.find(e=>e.kind==="cup");
+assert(cupEvent,"Cup fixture required for separate competition ban regression");
+medical.api.playEvent(cupEvent,"balanced",true);
+assert.notEqual(m.season.results.at(-1).missedReason,"suspension","Domestic cup should not consume league suspension");
+assert.equal(athlete.discipline.league.ban,1);
+assert.equal(athlete.discipline.europe.ban,1);
+athlete.injuryMatches=4;athlete.stamina=42;
+const recovered=medical.api.offseasonRecovery(athlete);
+assert(recovered.injuryAfter>0&&recovered.injuryAfter<4,"Serious injury should partially heal but persist across summer");
+assert(athlete.stamina>42&&athlete.stamina<=95);
+assert.equal(athlete.discipline.league.yellow,0,"Accrued yellow cards reset at new season");
+assert.equal(athlete.discipline.league.ban,1,"Ban still applies next league season");
+assert.equal(athlete.discipline.europe.ban,1,"European ban still applies next UEFA season");
+log("Injuries, off-season recovery, UEFA and domestic suspensions remain independent");
 
 reload.click("newGame");assert(!reload.stored.has(SAVE));assert(reload.html.includes("双星同场"));
 for(const key of oldKeys)assert.equal(reload.stored.get(key),oldData,"new game must not delete legacy save: "+key);
