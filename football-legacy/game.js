@@ -674,7 +674,7 @@ function awardCandidateScore(x,year,teamTitles=0){
  const output=(Math.min(goals,24)*.88+Math.max(0,goals-24)*.38+
   Math.min(assists,15)*.63+Math.max(0,assists-15)*.25)*quality;
  return (x.ov||76)*.68+output+(x.rating||6.7)*5+apps*.12+
-  teamTitles*13+quality*16+R(-11,11);
+  teamTitles*20+quality*16+R(-15,15);
 }
 function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"))return;
