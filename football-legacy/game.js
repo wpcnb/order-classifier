@@ -392,11 +392,20 @@ function simBoth(){
 }
 function updateTable(table,home,away,hs,as){const a=table[home],b=table[away];if(!a||!b)return;for(const [t,sc,oc]of [[a,hs,as],[b,as,hs]]){t.p++;t.gf+=sc;t.ga+=oc;t.w+=sc>oc?1:0;t.d+=sc===oc?1:0;t.l+=sc<oc?1:0;t.points+=sc>oc?3:sc===oc?1:0}}
 // Independent Poisson goal counts, inspired by open football goals models (no Python runtime required).
+// Match-environment calibration table. Values are game tuning coefficients, not
+// measured 2026 league figures. The structure accepts audited soccerdata imports
+// in future without requiring its Python scrapers in the browser.
+const LEAGUE_GOAL_ENV={ENG:1.05,ESP:.97,ITA:1.02,GER:1.08,FRA:1.01,CHN:1,NED:1.08,POR:.98,BRA:.93};
+function leagueFromClub(name){
+ for(const [id,league] of Object.entries(DB))if(league.teams.some(t=>t.name===name))return id;
+ return null;
+}
 function poissonGoals(lambda){const threshold=Math.exp(-C(lambda,.08,4.6));let n=0,product=1;do{product*=Math.random();n++}while(product>threshold&&n<12);return Math.min(n-1,7)}
 function simulateScore(a,b,boost=0,reduceHome=0,reduceAway=0){
  const difference=C(power(a)-power(b)+boost,-38,38);
- const homeLambda=C(1.43*Math.exp(difference/48)-reduceHome,.35,3.25);
- const awayLambda=C(1.12*Math.exp(-difference/48)-reduceAway,.25,2.85);
+ const environment=LEAGUE_GOAL_ENV[leagueFromClub(a)]||1;
+ const homeLambda=C(1.43*environment*Math.exp(difference/48)-reduceHome,.35,3.25);
+ const awayLambda=C(1.12*environment*Math.exp(-difference/48)-reduceAway,.25,2.85);
  return [poissonGoals(homeLambda),poissonGoals(awayLambda)]
 }
 function otherLeagueGames(round,except){if(!round)return;for(const f of round.fixtures){if(f.home===except.home&&f.away===except.away)continue;const [hs,as]=simulateScore(f.home,f.away);updateTable(g.season.leagueTable,f.home,f.away,hs,as);simulateNPCGame(f.home,f.away,hs,as)}}
