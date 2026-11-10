@@ -524,7 +524,18 @@ function manualTraining(key){
  p.stamina=C(p.stamina-12,0,100);p.trainingUsed=true;log("进行了"+STATS[key]+"专项训练，体能消耗12点。");save();render()
 }
 function advance(skip=false){if(!g||g.season.stage!=="playing")return;if(g.mode==="coach")coachPreparation();const ev=currentEvent();if(!ev){endSeason();return}if(!skip&&(!g.player.autoPoints&&g.player.points>0||g.player.parentCoach&&!g.player.autoPoints&&g.player.parentCoach.points>0)){if(!confirm("有未分配的能力点，是否先继续比赛？你也可以前往训练页面加点。"))return}automaticPrep();if(skip){playEvent(ev,"balanced",true);return}g.live={index:g.season.index,event:ev};page="match";save();render()}
-function calcRating(outcome,goals,assists,win){return Math.round(C(5.5+(outcome?.7:0)+goals*.82+assists*.48+(win?.5:-.16)+(Math.random()-.5)*1.05,4.4,9.9)*10)/10}
+// Calibrated match rating: goals and assists matter, but even a scoreless good team
+// performance receives a professional-grade rating. This is a lightweight xT-like
+// proxy, NOT a claim to implement event-level VAEP without action event feeds.
+function calcRating(outcome,goals,assists,win,context={}){
+ const opposition=C((context.opponentPower||75)-(context.teamPower||75),-25,25);
+ const resultBonus=win?.38:-.08;
+ const involvement=goals*.62+assists*.40;
+ const strengthBonus=C(opposition*.006,-.15,.15);
+ const competitionBonus=context.leagueId==="CHN"?-.02:0;
+ const rating=6.48+(outcome?.15:0)+resultBonus+involvement+strengthBonus+competitionBonus+(Math.random()-.5)*.95;
+ return Math.round(C(rating,4.6,9.8)*10)/10;
+}
 // Allocate actual team goals to the player and teammates; no invented personal goals.
 // A scorer's probability is a share of the team's actual goals, not extra goals.
 function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced"){
@@ -561,7 +572,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  let hs=baseline[0],as=baseline[1];if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
  const played=appears,contribution=played?playerMatchContribution(p,ev,oppStrength,our,choice):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
- const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their):0;
+ const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId}):0;
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
  if(ev.kind==="europe"){const e=s.uefa;updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev);e.played++;
  if(e.played>=8){const rank=sortedTable(e.table).findIndex(t=>t.name===p.club)+1;e.rank=rank;if(rank>24){e.completed=true;e.stage="eliminated";log(e.type+"联赛阶段第"+rank+"名，未能晋级。")}else{e.stage="knockout";addKnockouts()}}}
@@ -698,12 +709,14 @@ const LEGENDARY_CLUBS=new Set(["皇家马德里","巴塞罗那","巴黎圣日耳
 const FIVE_ELITE_CLUBS=new Set(["阿森纳","切尔西","热刺","马德里竞技","国际米兰","AC米兰","尤文图斯","那不勒斯","多特蒙德","勒沃库森","罗马","马赛","里昂"]);
 const NON_FIVE_ELITE_CLUBS=new Set(["本菲卡","波尔图","葡萄牙体育","阿贾克斯","埃因霍温","费耶诺德"]);
 const TRANSFER_LEVELS=["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"];
+// Tier-aware and position-adjusted criteria: match ratings use calibrated values
+// and target output scales across competition levels. One tier per season maximum.
 const TRANSFER_GOALS={
- europe:{g:7,a:5,sum:10,apps:15,avg:6.8,ov:0},
- nonFiveElite:{g:10,a:7,sum:14,apps:18,avg:7.05,ov:75},
- five:{g:13,a:9,sum:19,apps:20,avg:7.3,ov:80},
- fiveElite:{g:17,a:11,sum:24,apps:20,avg:7.55,ov:84},
- legendary:{g:21,a:13,sum:30,apps:22,avg:7.85,ov:88}
+ europe:{g:4,a:4,sum:7,apps:14,avg:6.70,ov:0},
+ nonFiveElite:{g:5,a:4,sum:9,apps:17,avg:6.83,ov:74},
+ five:{g:6,a:5,sum:11,apps:19,avg:6.94,ov:78},
+ fiveElite:{g:7,a:6,sum:13,apps:20,avg:7.05,ov:83},
+ legendary:{g:8,a:7,sum:15,apps:22,avg:7.16,ov:87}
 };
 const TRANSFER_GATES=[TRANSFER_GOALS.europe,TRANSFER_GOALS.nonFiveElite,TRANSFER_GOALS.five,TRANSFER_GOALS.fiveElite,TRANSFER_GOALS.legendary];
 function transferLevel(id,club){
@@ -720,13 +733,26 @@ function clubSeasonNumbers(s){
  for(const match of played){n.goals+=match.goals||0;n.assists+=match.assists||0;if(match.rating>0)ratings.push(match.rating)}
  n.avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:0;return n;
 }
-function transferQualified(t,n,ov){
- return n.apps>=t.apps&&n.avg>=t.avg&&ov>=t.ov&&(n.goals>=t.g||n.assists>=t.a||n.goals+n.assists>=t.sum);
+function transferQualified(t,n,ov,position="LW"){
+ // xT-inspired role adjustment: creators may progress through assists, not only
+ // finishing. Goalkeepers/defenders require separate metrics and are exempt.
+ const creator=["CAM","CM","CDM"].includes(position);
+ const goalsTarget=creator?Math.max(2,t.g-3):t.g;
+ const assistsTarget=creator?t.a: t.a;
+ const combinedTarget=creator?Math.max(5,t.sum-2):t.sum;
+ return n.apps>=t.apps&&n.avg>=t.avg&&ov>=t.ov&&(
+  n.goals>=goalsTarget||n.assists>=assistsTarget||
+  n.goals+n.assists>=combinedTarget
+ );
 }
 function seasonPerformance(){
  const p=g.player,n=clubSeasonNumbers(g.season),tier=transferLevel(p.leagueId,p.club),ov=overall(p);
  const offense=["ST","LW","RW","CAM"].includes(p.position),exempt=p.youth||!offense||n.apps<15;
- const poor=!exempt&&(n.avg<6.5||n.goals<4&&n.assists<3&&n.goals+n.assists<6&&n.avg<7.15);
+ const expectedOutput=n.goals+n.assists;
+ const poor=!exempt&&(n.avg<6.12||(expectedOutput<4&&n.avg<6.55));
+ // Scoring 15+ goals can never be branded a bad season merely because a
+ // formerly harsh, low-centred match-rating formula gave below 7.15.
+
  p.poorStreak=poor?(p.poorStreak||0)+1:0;
  // Only club team trophies count. Individual awards / national-team trophies do not.
  const teamChampion=(g.honors||[]).some(h=>h.year===g.year&&h.generation===g.generation&&h.type==="team"&&h.name.includes("冠军"));
@@ -734,7 +760,7 @@ function seasonPerformance(){
  // Poor performance takes precedence over an honour-driven lateral transfer.
  p.forcedMove=p.poorStreak>=2&&tier>0;
  p.forcedSameTier=!p.forcedMove&&p.trophylessStreak>=2;
- const gate=TRANSFER_GATES[tier]||null,qualified=!!gate&&transferQualified(gate,n,ov);
+ const gate=TRANSFER_GATES[tier]||null,qualified=!!gate&&transferQualified(gate,n,ov,p.position);
  const maxTier=!poor&&!exempt&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
  const comment=p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":exempt?"出场不足或非进攻位置，不按进球助攻处罚":
   p.forcedMove?"连续两个赛季未达标，必须降至较低一级球队":
