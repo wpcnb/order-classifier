@@ -395,7 +395,7 @@ function updateTable(table,home,away,hs,as){const a=table[home],b=table[away];if
 // Match-environment calibration table. Values are game tuning coefficients, not
 // measured 2026 league figures. The structure accepts audited soccerdata imports
 // in future without requiring its Python scrapers in the browser.
-const LEAGUE_GOAL_ENV={ENG:1.05,ESP:.97,ITA:1.02,GER:1.08,FRA:1.01,CHN:1,NED:1.08,POR:.98,BRA:.93};
+const LEAGUE_GOAL_ENV={ENG:1,ESP:1,ITA:1,GER:1,FRA:1,CHN:1,NED:1,POR:1,BRA:1};
 function leagueFromClub(name){
  for(const [id,league] of Object.entries(DB))if(league.teams.some(t=>t.name===name))return id;
  return null;
