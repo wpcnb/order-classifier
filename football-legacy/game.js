@@ -787,7 +787,7 @@ function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced")
 function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return coachMatch(ev,choice,batch);const p=g.player,s=g.season;let isOut=(ev.kind==="cup"&&!s.cup.active)||((ev.kind==="europe"||ev.kind==="europeKO")&&(!s.uefa||s.uefa.completed))||(ev.kind==="national"&&(p.age<18||s.national&&!s.national.active));let eventResult=null;
  if(isOut){p.trainingUsed=false;s.index++;s.completed++;g.live=null;if(!batch){save();render()}return}
  const sharedMatch=findSharedUefa(ev);
- const finalFixture=sharedMatch?null:sharedEuropeanFinal(ev);
+ const finalFixture=null; // Do not force legacy finalists to face each other.
  if(finalFixture?.winner&&![finalFixture.home,finalFixture.away].includes(p.club)){
   s.uefa.completed=true;s.uefa.stage="eliminated";s.index++;s.completed++;
   log(s.uefa.type+"采用统一决赛，本队不属于已结算决赛的参赛方。");return;
@@ -856,7 +856,7 @@ function addKnockouts(){
  g.season.events.sort((a,b)=>a.date.localeCompare(b.date));
 }
 function award(name,type){
- if(type==="team"&&["欧冠冠军","欧联冠军"].includes(name)&&sharedUniverse&&duoGames){
+ if(type==="team"&&["欧冠冠军","欧联冠军"].includes(name)&&sharedUniverse&&duoGames&&g.season.uefa?.sharedKey){
   const winner=sharedUniverse.europeFinals[europeanFinalKey(g.year,name.replace("冠军",""))]?.winner;
   if(winner!==g.player.club){log(name+"冠军尚未由统一决赛确认，不能颁发重复奖杯。");return}
  }
@@ -925,6 +925,7 @@ function finalizeSharedSeason(){
  const year=duoGames.wang.year;
  if(duoGames.vini.year!==year||sharedUniverse.awards[year])return;
  settleSharedUefaWinners(year);
+ if(reconcileEuropeanHonors())save();
  const original=activeDuo,originalGame=g;
  const roster=duoGames.wang.npcs.filter(n=>n.realPerson&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
