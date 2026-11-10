@@ -3,7 +3,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
@@ -48,11 +48,16 @@ x.click("simBoth");state=x.state;
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
  assert.equal(s.history.length,1);assert(s.season.apps>=0);assert.equal(s.ballonHistory.length,1);
- assert.equal(s.ballonHistory[0].ballots.length,100);assert.equal(s.ballonHistory[0].totalPoints,6700);
+ assert.equal(s.ballonHistory[0].model,6);assert.equal(state.sharedUniverse.awards[2026].ballots.length,100);assert.equal(state.sharedUniverse.awards[2026].totalPoints,6700);
  assert(s.lastReview.performance);
 }
-assert.deepEqual(state.duoGames.wang.ballonHistory[0].rankings,state.duoGames.vini.ballonHistory[0].rankings,"One unified Ballon d'Or ranking");
+assert.equal(state.duoGames.wang.ballonHistory[0].winner.name,state.duoGames.vini.ballonHistory[0].winner.name,"One unified Ballon d'Or winner");
 assert.equal(Object.keys(state.sharedUniverse.awards).length,1);
+assert.equal(state.compact,1,"Compact storage enabled");
+assert(!("npcs" in state.duoGames.wang)&&!("npcs" in state.duoGames.vini),"NPC roster not duplicated");
+assert(!("world" in state.duoGames.wang.season)&&!("world" in state.duoGames.vini.season),"World state not duplicated");
+assert(!("leagueRounds" in state.duoGames.wang.season),"Regenerable fixture schedule not saved");
+assert(x.stored.get(SAVE).length<1000000,"Save should fit comfortably inside mobile localStorage");
 x.page("awards");assert(x.html.includes("同一届金球奖")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 const l1=state.duoGames.wang.season.leagueTable,l2=state.duoGames.vini.season.leagueTable;
@@ -67,9 +72,21 @@ for(const fixture of Object.values(firstYearLedger.rounds).flat()){
  assert(a&&b,"Head-to-head fixture missing in either career");
  assert.equal(a.hs,b.hs);assert.equal(a.as,b.as);
 }
-log("Both careers share a single CSL league table, identical head-to-head scores and one calendar");
+for(const f of Object.values(firstYearLedger.rounds).flat())assert.equal(f.npcAllocated,true,"AI goals must be assigned only once");
+for(const id of ["wang","vini"]){const x=state.duoGames[id],matches=x.season.results.filter(z=>z.kind==="league");
+ assert(matches.every(z=>(z.goals||0)+(z.assists||0)<=(z.home===x.player.club?z.hs:z.as)),"Personal goal and assist figures cannot exceed team goals");
+}
+log("Both careers share one league and attribute player/NPC goals exactly once");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
 assert(!reload.html.includes("切换并操作"));
+assert.equal(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
+assert.equal(reload.api.get().season.leagueRounds.length,30,"Fixture calendar restored after compact reload");
+const skill=reload.api.get().player,high={...skill,leagueId:"CHN",position:"LW",stats:{...skill.stats,pace:95,shoot:95,pass:94,dribble:95,mental:95}},low={...skill,leagueId:"CHN",position:"LW",stats:{...skill.stats,pace:55,shoot:55,pass:55,dribble:55,mental:55}};
+let highG=0,lowG=0,highA=0,lowA=0;
+for(let i=0;i<1500;i++){const h=reload.api.playerMatchContribution(high,{kind:"league"},65,3),l=reload.api.playerMatchContribution(low,{kind:"league"},65,3);highG+=h.goals;lowG+=l.goals;highA+=h.assists;lowA+=l.assists}
+assert(highG>lowG*2,"High-ability attacker should convert materially more CSL goals");
+assert(highA>lowA*1.2,"High-ability attacker should create more CSL assists");
+log("High-skill CSL conversion scales up goals and assists without exceeding team scoring");
 reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2027);assert.equal(state.duoGames[id].history.length,2)}
 assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable);log("Both careers advance synchronously into next season and survive reload");
 const api=reload.api;
