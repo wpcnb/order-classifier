@@ -39,6 +39,11 @@ html{scrollbar-color:#3a6581 #101e2d}body{background-attachment:fixed}
 @media(max-width:640px){.hero::before{opacity:.26;background-size:auto 85%;right:-100px}.hero>div{max-width:100%}}
 details.item{cursor:pointer}details.item>summary{padding:3px 0;list-style-position:inside}details.item[open]{background:#1a3951;border-color:#589c94}
 details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+/* Keep a long career's destinations discoverable on smaller screens. */
+.skip-link{position:absolute;top:-100px;left:12px;z-index:101;background:var(--gold);color:#152419;padding:10px 14px;border-radius:8px;font-weight:800}
+.skip-link:focus{top:10px}.nav-picker{display:none}.nav button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media(max-width:640px){.nav-picker{display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--muted);font-size:13px}.nav-picker select{flex:1;min-width:0;min-height:44px;padding:8px 12px;border:1px solid #496a83;border-radius:10px;background:#122b42;color:var(--txt);font-weight:700}.nav{position:static;margin-top:8px;scrollbar-width:thin}.nav button{min-height:44px}.tablewrap{overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}.button{min-height:44px}}
+
 .save-indicator{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#aaf0c8;background:#133f35;padding:6px 10px;border-radius:40px;border:1px solid #31856b}
 
 /* Procedural non-trademark club shields, consistent for every team */
@@ -47,8 +52,29 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 .clubcrest::first-letter{font-size:18px}.match-club-name{font-size:20px;font-weight:850;max-width:200px}.match-vs{font-size:29px;font-weight:950}
 @media(max-width:730px){.club-match{gap:7px}.clubcrest{width:43px;height:51px;flex-basis:43px;font-size:12px}.match-club-name{font-size:15px;max-width:125px}.match-vs{font-size:20px}}
 </style></head>
-<body><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">全新独立版 v4.6</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./offline.html">尝试单文件备用版</a><a class="button" href="https://github.com/wpcnb/order-classifier/blob/main/football-legacy/offline.html">GitHub下载离线版</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。球场插画为原创本地 SVG，不依赖外部图片网络。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./game.js?v=4.6.0" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">全新独立版 v4.6</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./offline.html">尝试单文件备用版</a><a class="button" href="https://github.com/wpcnb/order-classifier/blob/main/football-legacy/offline.html">GitHub下载离线版</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。球场插画为原创本地 SVG，不依赖外部图片网络。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=4.6.0" defer></script><script>
 (function(){
+ // The game replaces its contents when navigating; rebuild the compact picker
+ // from the actual destinations so it always stays in step with the game.
+ var appNode=document.getElementById('app');
+ function improveNavigation(){
+  var nav=appNode&&appNode.querySelector('.nav');
+  if(!nav)return;
+  var buttons=Array.from(nav.querySelectorAll('button[data-page]'));
+  buttons.forEach(function(button){
+   if(button.classList.contains('active'))button.setAttribute('aria-current','page');
+   else button.removeAttribute('aria-current');
+  });
+  nav.setAttribute('aria-label','游戏页面');
+  if(nav.previousElementSibling&&nav.previousElementSibling.classList.contains('nav-picker'))return;
+  var label=document.createElement('label');label.className='nav-picker';
+  var caption=document.createElement('span');caption.textContent='前往';
+  var select=document.createElement('select');select.setAttribute('aria-label','前往游戏页面');
+  buttons.forEach(function(button){var option=document.createElement('option');option.value=button.dataset.page;option.textContent=button.textContent;option.selected=button.classList.contains('active');select.appendChild(option)});
+  select.addEventListener('change',function(){var target=buttons.find(function(button){return button.dataset.page===select.value});if(target)target.click()});
+  label.appendChild(caption);label.appendChild(select);nav.parentNode.insertBefore(label,nav);
+ }
+ if(appNode){new MutationObserver(improveNavigation).observe(appNode,{childList:true,subtree:true});improveNavigation()}
  function showRecovery(){
   var app=document.getElementById('app');
   if(!app||!app.querySelector('[data-game-loading]'))return;
