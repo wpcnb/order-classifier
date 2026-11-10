@@ -48,11 +48,11 @@ for(let trial=0;trial<runs;trial++){
  for(let season=0;season<years;season++){
   try{
    const oldState=app.state(),oldYear=oldState.wang.year;
-   const beforeClubs=Object.fromEntries(keys.map(id=>[id,{club:oldState[id].player.club,level:app.level(oldState[id].player),transferCount:oldState[id].player.transferHistory?.length||0,draw:oldState[id].player.transferDraw}]));
+   const beforeClubs=Object.fromEntries(keys.map(id=>[id,{club:oldState[id].player.club,level:app.level(oldState[id].player),transferCount:oldState[id].player.transferHistory?.length||0,draw:oldState[id].player.transferDraw,forcedSameTier:!!oldState[id].player.forcedSameTier}]));
    for(const id of keys){
     const d=oldState[id].player.transferDraw;
     if(d?.options?.length&&!d.selected){inc(summary.draws,d.direction==="down"?"down":"up");if(d.options.some(o=>app.level({leagueId:o.id,club:o.club})!==d.level))summary.draws.unexpected++}
-    if((oldState[id].player.forcedMove||oldState[id].player.transferAssessment?.maxTier>beforeClubs[id].level)&&!d?.options?.length&&oldState[id].season.stage==="review")summary.draws.missingOptions++;
+    if((oldState[id].player.forcedMove||(!oldState[id].player.forcedSameTier&&oldState[id].player.transferAssessment?.maxTier>beforeClubs[id].level))&&!d?.options?.length&&oldState[id].season.stage==="review")summary.draws.missingOptions++;
    }
    app.drawPromotions();
    const chosen=Object.fromEntries(keys.map(id=>[id,app.state()[id].player.transferDraw?.selected?.club||null]));
@@ -96,7 +96,7 @@ for(let trial=0;trial<runs;trial++){
       const reason=p.transferHistory?.at(-1)?.reason||"unknown";inc(summary.moves.reasons,reason);
       if(chosen[id]&&p.club!==chosen[id])summary.integrity.wrongDrawDestination++;
     }
-    if(season>0&&prior.club===p.club&&oldState[id].player.forcedSameTier)summary.trophyless.unresolved++;
+    if(season>0&&prior.club===p.club&&prior.forcedSameTier)summary.trophyless.unresolved++;
    }
    if(!anyTeamTitle)summary.trophy.noneBoth++;
    if(state.wang.player.leagueId===state.vini.player.leagueId){
