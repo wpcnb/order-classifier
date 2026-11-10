@@ -301,6 +301,20 @@ assert.equal(["wang","vini"].reduce((n,id)=>n+corrected.state.duoGames[id].honor
  "Both contradictory titles must be removed when true champion is third club");
 assert.equal(corrected.state.sharedUniverse.europeTitleCorrections.length,1);
 log("Historic double champions corrected without replacing a shared final winner");
+const separateCups=harness([[SAVE,x.stored.get(SAVE)]]);
+for(const [id,club,leagueId,rank] of [["wang","巴黎圣日耳曼","FRA",1],["vini","巴塞罗那","ESP",6]]){
+ const xx=separateCups.api.duo()[id];xx.year=2048;
+ xx.player.age=38;xx.player.youth=false;xx.player.club=club;xx.player.leagueId=leagueId;
+ xx.season=separateCups.api.makeSchedule(xx.player,2048,rank);
+}
+separateCups.api.linkSharedWorld();separateCups.api.setupSharedUefaSeason();separateCups.api.save();
+const leagueCups=separateCups.state.sharedUniverse.europeCompetitions;
+assert(leagueCups["2048:欧冠"]&&leagueCups["2048:欧联"],"Both European competitions must be created");
+const aTeams=new Set(leagueCups["2048:欧冠"].clubs),bTeams=new Set(leagueCups["2048:欧联"].clubs);
+assert.equal(aTeams.size,36);assert.equal(bTeams.size,36);
+assert.equal([...aTeams].filter(name=>bTeams.has(name)).length,0,
+ "No club may enter both UEFA competitions in the same simulated season");
+log("UEFA Champions League and Europa League contain separate, non-overlapping 36-club fields");
 // Competition-specific bans and year-spanning injuries. Never consume a league ban in a cup match.
 const medical=harness([[SAVE,x.stored.get(SAVE)]]);
 const m=medical.api.get(),athlete=m.player;
