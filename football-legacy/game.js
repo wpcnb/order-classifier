@@ -221,7 +221,10 @@ function setupSharedUefaSeason(){
  if(!duoGames||!sharedUniverse||duoGames.wang.year!==duoGames.vini.year)return;
  sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
  const year=duoGames.wang.year;
- for(const type of [...new Set(DUO_IDS.map(id=>duoGames[id].season.uefa?.type).filter(Boolean))]){
+ // A club cannot play in the Champions League and Europa League in the same year.
+ const entrants=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa);
+ const types=[...new Set(entrants.map(x=>x.season.uefa.type))].sort((a,b)=>a==="欧冠"?-1:b==="欧冠"?1:a.localeCompare(b));
+ for(const type of types){
   const members=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa?.type===type);
   // A legacy season with UEFA matches already played cannot be rewritten without
   // changing results; it will migrate at the next season boundary.
@@ -229,8 +232,12 @@ function setupSharedUefaSeason(){
   const key=sharedUefaKey(year,type);
   let comp=sharedUniverse.europeCompetitions[key];
   if(!comp){
+   const otherPlayers=new Set(entrants.filter(x=>x.season.uefa.type!==type).map(x=>x.player.club));
+   const otherCompetitions=new Set(Object.values(sharedUniverse.europeCompetitions)
+    .filter(c=>c.year===year&&c.type!==type).flatMap(c=>c.clubs||[]));
    const pool=Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED"].includes(l.id))
-    .flatMap(l=>l.teams.map(t=>t.name));
+    .flatMap(l=>l.teams.map(t=>t.name))
+    .filter(name=>!otherPlayers.has(name)&&!otherCompetitions.has(name));
    comp=window.FOOTBALL_SHARED_UEFA.create({
     year,type,participants:[...new Set(members.map(x=>x.player.club))],pool,officialTeams:UEFA_TEAMS,
     officialRounds:window.FOOTBALL_OFFICIAL_UCL_2026?.fixtures,draw:makeUefaDraw,
