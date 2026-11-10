@@ -31,29 +31,68 @@ assert.equal(state.version,2);assert.equal(state.activeDuo,"wang");
 assert.deepEqual(Object.keys(state.duoGames).sort(),["vini","wang"]);
 const w=state.duoGames.wang.player,v=state.duoGames.vini.player;
 assert.equal(w.name,"王楚淇");assert.equal(v.name,"维尼修斯");
-for(const p of [w,v]){assert.equal(p.country,"中国");assert.equal(p.age,18);assert.equal(p.youth,false);assert(p.potential>p.sourceRating);assert.equal(p.leagueId,"CHN")}
+for(const p of [w,v]){
+ assert.equal(p.country,"中国");assert.equal(p.age,16);assert.equal(p.youth,true);
+ assert(p.potential>p.sourceRating);assert.equal(p.leagueId,"CHN");
+ assert(p.club.endsWith("青训"));assert.equal(p.academyGraduationAge,18);
+ assert.equal(p.career.apps,0);assert.equal(p.academyCareer.apps,0);
+}
 assert.notEqual(w.club,v.club,"Distinct CSL club assignments");
 assert(!["皇家马德里"].includes(v.club));
 assert.equal(w.sourceRating,83);assert.equal(v.sourceRating,77);
 assert.equal(w.heightCm,177);assert.equal(v.heightCm,176);
 assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
 assert(x.html.includes("一键同步模拟两人"));
-log("Two playable 18-year-old China-nationality cards with distinct historical FIFA templates");
+log("Both named stars begin aged 16 at separate real CSL academies with scaled-down historical templates");
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
 x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 x.page("transfer");assert(x.html.includes("双人转会")&&x.html.includes("升降档球队"));
 x.page("honors");assert(x.html.includes("双星荣誉陈列室")&&x.html.includes("金球奖逐年排名"));
 x.page("dashboard");
-log("One-click dual dashboard, unified league rankings and manual promotion lottery");
+log("One-click dual dashboard and academy-first mode");
+for(let youthYear=0;youthYear<2;youthYear++){
+ x.click("simBoth");
+ const academy=x.state;
+ assert.equal(academy.duoGames.wang.year,2026+youthYear);
+ assert.deepEqual(academy.duoGames.wang.season.leagueTable,academy.duoGames.vini.season.leagueTable);
+ assert(academy.sharedUniverse.rounds[(2026+youthYear)+":CHN:ACADEMY"]);
+ for(const id of ["wang","vini"]){
+  const p=academy.duoGames[id].player;
+  assert(p.youth);assert.equal(p.age,16+youthYear);
+  assert(p.academyCareer.apps>0,"Player must feature in youth competitions");
+  assert.equal(p.career.apps,0,"Youth games do not count as adult league games");
+  assert.equal(p.trophylessStreak||0,0,"Youth years cannot trigger senior trophyless departures");
+  assert.equal(academy.duoGames[id].offers.length,0,"Academy player cannot receive professional transfer offers");
+  assert.equal(p.forcedSameTier,false);
+  assert.equal(p.forcedMove,false);
+  assert(!academy.duoGames[id].honors.some(h=>h.name==="中超冠军"),"Youth champions cannot be mistaken for senior CSL champions");
+ }
+ x.click("simBoth");
+ const next=x.state;
+ for(const id of ["wang","vini"]){
+  const p=next.duoGames[id].player;
+  assert.equal(p.age,17+youthYear);
+  assert.equal(p.youth,youthYear===0);
+  assert(p.youth?p.club.endsWith("青训"):!p.club.endsWith("青训"));
+ }
+}
+assert.equal(x.state.duoGames.wang.year,2028);
+assert.equal(x.state.duoGames.vini.year,2028);
+for(const id of ["wang","vini"]){
+ const p=x.state.duoGames[id].player;
+ assert.equal(p.age,18);assert.equal(p.youth,false);assert.equal(p.career.apps,0);
+ assert(p.academyCareer.apps>0);assert.equal(p.club,p.academyParentClub);
+}
+log("16-17 youth seasons finish, both enter senior CSL at 18; academy career remains separate");
 x.click("simBoth");state=x.state;
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
- assert.equal(s.history.length,1);assert(s.season.apps>=0);assert.equal(s.ballonHistory.length,1);
- assert.equal(s.ballonHistory[0].model,6);assert.equal(state.sharedUniverse.awards[2026].ballots.length,100);assert.equal(state.sharedUniverse.awards[2026].totalPoints,6700);
+ assert.equal(s.history.length,3);assert(s.season.apps>=0);assert.equal(s.ballonHistory.length,3);
+ assert.equal(s.ballonHistory[0].model,6);assert.equal(state.sharedUniverse.awards[2028].ballots.length,100);assert.equal(state.sharedUniverse.awards[2028].totalPoints,6700);
  assert(s.lastReview.performance);
 }
 assert.equal(state.duoGames.wang.ballonHistory[0].winner.name,state.duoGames.vini.ballonHistory[0].winner.name,"One unified Ballon d'Or winner");
-assert.equal(Object.keys(state.sharedUniverse.awards).length,1);
+assert.equal(Object.keys(state.sharedUniverse.awards).length,3);
 assert.equal(state.compact,1,"Compact storage enabled");
 assert(!("npcs" in state.duoGames.wang)&&!("npcs" in state.duoGames.vini),"NPC roster not duplicated");
 assert(!("world" in state.duoGames.wang.season)&&!("world" in state.duoGames.vini.season),"World state not duplicated");
@@ -64,7 +103,7 @@ x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王�
 const l1=state.duoGames.wang.season.leagueTable,l2=state.duoGames.vini.season.leagueTable;
 assert.deepEqual(l1,l2,"Both players must see same CSL league table");
 assert.equal(Object.values(l1).reduce((acc,t)=>acc+t.p,0),16*30,"Every CSL round counted once");
-const firstYearLedger=state.sharedUniverse.rounds["2026:CHN"];
+const firstYearLedger=state.sharedUniverse.rounds["2028:CHN"];
 assert.equal(Object.keys(firstYearLedger.rounds).length,30,"Shared score ledger covers exactly one full season");
 for(const fixture of Object.values(firstYearLedger.rounds).flat()){
  if(![w.club,v.club].includes(fixture.home)||![w.club,v.club].includes(fixture.away))continue;
@@ -94,7 +133,7 @@ const forced=harness([[SAVE,JSON.stringify(forcedFixture)]]);
 forced.page("transfer");
 assert(forced.html.includes("promotion-wheel-wang")&&forced.html.includes("候选球队"),"Visible upgrade roulette should include valid next-tier candidates");
 forced.click("simBoth");
-assert.equal(forced.state.duoGames.wang.year,2026,"Cannot skip mandatory upgrade draw");
+assert.equal(forced.state.duoGames.wang.year,2028,"Cannot skip mandatory upgrade draw");
 forced.click("spinPromotion",{id:"wang"});forced.flush();
 const selected=forced.state.duoGames.wang.player.transferDraw.selected;
 assert(selected&&["乌德勒支","格罗宁根","阿尔梅勒城"].includes(selected.club),"Draw must select only offered next-tier teams");
@@ -103,7 +142,7 @@ assert.equal(replay.state.duoGames.wang.player.transferDraw.selected.club,select
 replay.page("honors");
 assert(replay.html.includes("荣誉陈列室")&&replay.html.includes("金球奖逐年排名"),"Trophy cabinet includes Golden Ball records");
 replay.click("simBoth");
-assert.equal(replay.state.duoGames.wang.year,2027,"Ready pair should advance together");
+assert.equal(replay.state.duoGames.wang.year,2029,"Ready pair should advance together");
 assert.equal(replay.state.duoGames.wang.player.club,selected.club,"Actual new club must exactly match manually drawn club");
 assert.equal(replay.state.duoGames.wang.player.leagueId,selected.id,"League must follow drawn destination");
 assert.equal(replay.state.duoGames.wang.player.transferHistory.at(-1).reason,"抽签达标升级","Promotion history should distinguish lottery upgrades");
@@ -117,7 +156,7 @@ down.offers=[{club:"布莱顿",id:"ENG",tier:3,wage:43000,years:3,move:"降档"}
 relegationSave.duoGames.vini.offers=[];delete relegationSave.duoGames.vini.player.transferDraw;
 const downGame=harness([[SAVE,JSON.stringify(relegationSave)]]);
 downGame.page("transfer");assert(downGame.html.includes("降档球队抽签"),"Relegation offers must open manual wheel");
-downGame.click("simBoth");assert.equal(downGame.state.duoGames.wang.year,2026,"Relegation draw must block advancing");
+downGame.click("simBoth");assert.equal(downGame.state.duoGames.wang.year,2028,"Relegation draw must block advancing");
 downGame.click("spinPromotion",{id:"wang"});downGame.flush();
 const downChoice=downGame.state.duoGames.wang.player.transferDraw.selected;
 assert(["布莱顿","富勒姆"].includes(downChoice.club),"Relegation lottery only selects lower-tier eligible teams");
@@ -125,7 +164,7 @@ downGame.click("simBoth");
 assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
 assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
 log("Relegation also requires player lottery; trophyless same-tier moves are automatic");
-const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
+const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,3);
 assert(!reload.html.includes("切换并操作"));
 assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
 assert.equal(reload.api.get().season.leagueRounds.length,30,"Fixture calendar restored after compact reload");
@@ -141,7 +180,7 @@ if(drawsBeforeReload.length){
  assert(reload.html.includes('promotion-wheel-'+target));
  // A pending draw MUST prevent a next-season transition.
  reload.click("simBoth");
- assert.equal(reload.state.duoGames.wang.year,2026);
+ assert.equal(reload.state.duoGames.wang.year,2028);
  reload.click("spinPromotion",{id:target});reload.flush();
  assert(reload.state.duoGames[target].player.transferDraw.selected,"Winning team immediately persisted");
  const previous=reload.state.duoGames[target].player.transferDraw.selected.club;
@@ -149,7 +188,7 @@ if(drawsBeforeReload.length){
  assert.equal(restored.state.duoGames[target].player.transferDraw.selected.club,previous,"Lottery result survives page reload");
 }
 for(const id of ["wang","vini"])if(reload.state.duoGames[id].player.transferDraw?.options?.length&&!reload.state.duoGames[id].player.transferDraw.selected){reload.click("spinPromotion",{id});reload.flush()}
-reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2027);assert.equal(state.duoGames[id].history.length,2)}
+reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2029);assert.equal(state.duoGames[id].history.length,4)}
 if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable,"Players in same league must share table");log("Both careers advance synchronously into next season and survive reload");
 const api=reload.api;
 assert.deepEqual(Array.from(api.levels),["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"]);
