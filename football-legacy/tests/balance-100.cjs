@@ -32,11 +32,11 @@ for(let trial=0;trial<sessions;trial++){
  reports.push({trial,final:[stateMini(app.state().wang,app),stateMini(app.state().vini,app)]});
 }
 function stateMini(x,app){return {club:x.player.club,level:app.level(x.player),age:x.player.age,streak:x.player.trophylessStreak};}
-const avg=key=>Number((seasons.reduce((a,s)=>a+(s[key]||0),0)/seasons.length).toFixed(2));
+const avg=key=>Number((seasons.reduce((a,s)=>a+(Number(s[key])||0),0)/seasons.length).toFixed(2));
 const levels=Object.fromEntries([0,1,2,3,4,5].map(t=>[t,seasons.filter(s=>s.level===t).length]));
 const moved=Object.fromEntries(["up","same","down"].map(k=>[k,moves.filter(m=>m.kind===k).length]));
 const sorted=[...seasons].sort((a,b)=>b.goals-a.goals).slice(0,10);
 const rank=Object.fromEntries(["wang","vini"].map(id=>[id,seasons.filter(s=>s.id===id&&s.awardRank===1).length]));
 const promotion=(id)=>seasons.filter(s=>s.id===id&&s.qualified).length;
-const result={version:process.env.BALANCE_VARIANT||"baseline",sharedSeasons:seasons.length/2,playerSeasons:seasons.length,averageGoals:avg("goals"),averageLeagueGoals:avg("leagueGoals"),averageAssists:avg("assists"),averageApps:avg("apps"),averageRating:avg("avg"),maxGoals:sorted[0].goals,over40:seasons.filter(s=>s.goals>40).length,over60:seasons.filter(s=>s.goals>60).length,over91:seasons.filter(s=>s.goals>91).length,tiers:levels,moves:moved,qualifications:{wang:promotion("wang"),vini:promotion("vini")},awardWins:rank,ballonWinners:Object.entries(winners).sort((a,b)=>b[1]-a[1]).slice(0,9),topScorers:sorted,finals:reports};
+const result={version:process.env.BALANCE_VARIANT||"calibrated",sharedSeasons:seasons.length/2,playerSeasons:seasons.length,averageGoals:avg("goals"),averageLeagueGoals:avg("leagueGoals"),averageAssists:avg("assists"),averageApps:avg("apps"),averageRating:avg("avg"),maxGoals:sorted[0].goals,over40:seasons.filter(s=>s.goals>40).length,over60:seasons.filter(s=>s.goals>60).length,over91:seasons.filter(s=>s.goals>91).length,tiers:levels,moves:moved,qualifications:{wang:promotion("wang"),vini:promotion("vini")},awardWins:rank,ballonWinners:Object.entries(winners).sort((a,b)=>b[1]-a[1]).slice(0,9),topScorers:sorted,finals:reports};
 console.log("BALANCE_RESULT_JSON="+JSON.stringify(result));
