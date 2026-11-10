@@ -422,12 +422,16 @@ function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0,mode="leagu
  for(const [club,goals,excluded,assisted] of [[home,hs,excludeHome,assistHome],[away,as,excludeAway,assistAway]]){
   const roster=g.npcs.filter(n=>n.club===club);if(!roster.length)continue;
   const active=roster.filter(n=>Math.random()<.86);if(!active.length)active.push(P(roster));
-  active.forEach(n=>{n[appKey]=(n[appKey]||0)+1;if(n.pos==="GK"&&(club===home?as:hs)===0)n[cleanKey]=(n[cleanKey]||0)+1;if(!euro){const next=6.1+(Math.random()-.5)*1.3+(goals>0?.25:0);n.rating=Number(((n.rating*(n.apps-1)+C(next,5,9.5))/n.apps).toFixed(2))}n.form=C(n.form+R(-3,4),0,100)});
+  active.forEach(n=>{n[appKey]=(n[appKey]||0)+1;if(n.pos==="GK"&&(club===home?as:hs)===0)n[cleanKey]=(n[cleanKey]||0)+1;if(!euro){const next=6.14+(Math.random()-.5)*1.3+(goals>0?.25:0)+C(((n.ov||76)-76)*.019,-.18,.38);n.rating=Number(((n.rating*(n.apps-1)+C(next,5,9.5))/n.apps).toFixed(2))}n.form=C(n.form+R(-3,4),0,100)});
   const pool=active.filter(n=>n.pos!=="GK");if(!pool.length)pool.push(...active);
   let left=C(goals-excluded,0,goals);
-  while(left-->0){const weights=pool.map(n=>n.pos==="ST"?6:["LW","RW","CAM"].includes(n.pos)?4:n.pos==="CM"?2:1);
+  while(left-->0){const weights=pool.map(n=>(n.pos==="ST"?6:["LW","RW","CAM"].includes(n.pos)?4:n.pos==="CM"?2:1)*C(Math.exp(((n.ov||76)-76)/16),.55,3.9));
    let v=Math.random()*weights.reduce((x,y)=>x+y,0),scorer=pool[0];for(let j=0;j<pool.length;j++){v-=weights[j];if(v<=0){scorer=pool[j];break}}scorer[goalKey]=(scorer[goalKey]||0)+1}
-  for(let i=0;i<Math.max(0,goals-excluded-assisted);i++)if(Math.random()<.68){const creators=pool.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)),passer=P(creators.length?creators:pool);passer[assistKey]=(passer[assistKey]||0)+1}
+  for(let i=0;i<Math.max(0,goals-excluded-assisted);i++)if(Math.random()<.68){const creators=pool.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)),choices=creators.length?creators:pool;
+   const weights=choices.map(n=>C(Math.exp(((n.ov||76)-76)/16),.55,3.9)*(n.pos==="CAM"?1.35:1));
+   let roll=Math.random()*weights.reduce((a,b)=>a+b,0),passer=choices[0];
+   for(let j=0;j<choices.length;j++){roll-=weights[j];if(roll<=0){passer=choices[j];break}}
+   passer[assistKey]=(passer[assistKey]||0)+1}
  }
 }
 
@@ -665,10 +669,12 @@ function awardTeamHonours(club,year){
 }
 function awardCandidateScore(x,year,teamTitles=0){
  const quality=awardLeagueTier(x.club),goals=x.goals||0,assists=x.assists||0,apps=Math.min(x.apps||0,58);
- // League context, output per match, role-agnostic quality and collective trophies all matter.
- const productivity=(goals*1.02+assists*.78)*quality;
- return (x.ov||76)*.62+productivity+(x.rating||6.7)*4.7+apps*.18+
-  teamTitles*11+quality*15+R(-10,10);
+ // Diminishing returns beyond elite seasons prevent inflated assists alone from
+ // dominating votes. One player still can win back-to-back if genuinely best.
+ const output=(Math.min(goals,24)*.88+Math.max(0,goals-24)*.38+
+  Math.min(assists,15)*.63+Math.max(0,assists-15)*.25)*quality;
+ return (x.ov||76)*.68+output+(x.rating||6.7)*5+apps*.12+
+  teamTitles*13+quality*16+R(-11,11);
 }
 function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"))return;
