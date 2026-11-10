@@ -992,6 +992,8 @@ function duoHonorsPage(){
  const years=Object.values(sharedUniverse?.awards||{}).sort((a,b)=>b.year-a.year);
  return '<section class="hero"><div><div class="cap">TROPHY CABINET · ONE SHARED WORLD</div><h1>双星荣誉陈列室</h1><p>联赛、杯赛、欧战、国家队冠军和金球奖集中记录，按赛季回顾两人的全部荣誉。</p></div></section>'+
  renderHonorsSummary()+
+ (sharedUniverse?.europeTitleCorrections?.length?'<section class="card gap"><h3>旧档欧战记录校正</h3><p class="muted">旧版曾为同一届欧战生成多场独立决赛。已保留存档，并按历史赛季资料校正为一个冠军；无法从旧数据还原真正的统一决赛。</p>'+
+ '<div class="list">'+sharedUniverse.europeTitleCorrections.slice(-8).reverse().map(c=>'<div class="item">'+(c.year+1)+'年 · '+E(c.competition)+'：'+E(c.conflictingClubs.join(" / "))+' → 保留 '+E(c.winner)+'</div>').join("")+'</div></section>':'')+
  '<section class="card gap"><h2>历届世界金球奖得主</h2><div class="list">'+(years.length?years.map(v=>'<div class="item row"><span>'+E(String(v.year+1))+'年 · '+E(v.winner.name)+' · '+E(v.winner.club)+'</span><strong class="gold">'+v.winner.points+'分</strong></div>').join(""):'<p class="muted">首次赛季结束后开始记录。</p>')+'</div><button class="button gap" data-page="awards">查看历届金球奖完整30人榜</button></section>';
 }
 function endSeason(){
