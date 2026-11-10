@@ -67,24 +67,18 @@ for(let youthYear=0;youthYear<2;youthYear++){
   assert.equal(p.forcedMove,false);
   assert(!academy.duoGames[id].honors.some(h=>h.name==="中超冠军"),"Youth champions cannot be mistaken for senior CSL champions");
  }
- x.click("simBoth");
- const next=x.state;
- for(const id of ["wang","vini"]){
-  const p=next.duoGames[id].player;
-  assert.equal(p.age,17+youthYear);
-  assert.equal(p.youth,youthYear===0);
-  assert(p.youth?p.club.endsWith("青训"):!p.club.endsWith("青训"));
- }
 }
-assert.equal(x.state.duoGames.wang.year,2028);
-assert.equal(x.state.duoGames.vini.year,2028);
-for(const id of ["wang","vini"]){
- const p=x.state.duoGames[id].player;
- assert.equal(p.age,18);assert.equal(p.youth,false);assert.equal(p.career.apps,0);
- assert(p.academyCareer.apps>0);assert.equal(p.club,p.academyParentClub);
-}
-log("16-17 youth seasons finish, both enter senior CSL at 18; academy career remains separate");
+assert.equal(x.state.duoGames.wang.year,2027);
+assert.equal(x.state.duoGames.vini.year,2027);
+log("16-17 youth seasons finish with separate academy history and no senior transfers");
 x.click("simBoth");state=x.state;
+for(const id of ["wang","vini"]){
+ const p=state.duoGames[id].player;
+ assert.equal(p.age,18);assert.equal(p.youth,false);assert(p.academyCareer.apps>0);
+ assert.equal(p.club,p.academyParentClub);
+ assert(p.career.apps>0,"Senior stats begin only from adult 2028 season");
+}
+log("Both enter their parent CSL clubs' first teams at age 18, preserving youth records");
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
  assert.equal(s.history.length,3);assert(s.season.apps>=0);assert.equal(s.ballonHistory.length,3);
