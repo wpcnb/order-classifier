@@ -28,3 +28,6 @@ jobs:
         run: node football-legacy/tests/smoke.cjs
       - name: Match-strategy regression tests
         run: node football-legacy/tests/match-strategy.cjs
+
+      - name: Baseline 100-season simulation
+        run: node football-legacy/tests/balance-100.cjs
