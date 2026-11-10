@@ -286,6 +286,21 @@ const fixtureReload=harness([[SAVE,fixture.stored.get(SAVE)]]);
 assert.equal(fixtureReload.state.sharedUniverse.europeFinals["2048:欧冠"].winner,champ.winner);
 assert.equal(fixtureReload.state.sharedUniverse.europeCompetitions["2048:欧冠"].ko.filter(x=>x.stage==="决赛").length,1);
 log("2048 Paris/Barcelona: one shared 36-team calendar, standings, knockout and champion");
+const oldTwoWinner=JSON.parse(fixture.stored.get(SAVE));
+oldTwoWinner.sharedUniverse.europeFinals["2048:欧冠"].winner="曼城";
+for(const [id,club] of [["wang","巴黎圣日耳曼"],["vini","巴塞罗那"]]){
+ const x=oldTwoWinner.duoGames[id];
+ x.honors=x.honors.filter(h=>h.name!=="欧冠冠军"||h.year!==2048);
+ x.honors.push({name:"欧冠冠军",year:2048,generation:x.generation,type:"team"});
+ x.history.push({year:2048,generation:x.generation,club,average:"7.8",goals:11});
+}
+const corrected=harness([[SAVE,JSON.stringify(oldTwoWinner)]]);
+assert.equal(corrected.state.sharedUniverse.europeFinals["2048:欧冠"].winner,"曼城",
+ "Historic double claims must not overwrite a real recorded UEFA winner");
+assert.equal(["wang","vini"].reduce((n,id)=>n+corrected.state.duoGames[id].honors.filter(h=>h.name==="欧冠冠军"&&h.year===2048).length,0),0,
+ "Both contradictory titles must be removed when true champion is third club");
+assert.equal(corrected.state.sharedUniverse.europeTitleCorrections.length,1);
+log("Historic double champions corrected without replacing a shared final winner");
 // Competition-specific bans and year-spanning injuries. Never consume a league ban in a cup match.
 const medical=harness([[SAVE,x.stored.get(SAVE)]]);
 const m=medical.api.get(),athlete=m.player;
