@@ -41,7 +41,7 @@ assert(x.html.includes("一键同步模拟两人"));
 log("Two playable 18-year-old China-nationality cards with distinct historical FIFA templates");
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
 x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
-x.page("transfer");assert(x.html.includes("双人转会")&&x.html.includes("升级球队"));
+x.page("transfer");assert(x.html.includes("双人转会")&&x.html.includes("升降档球队"));
 x.page("honors");assert(x.html.includes("双星荣誉陈列室")&&x.html.includes("金球奖逐年排名"));
 x.page("dashboard");
 log("One-click dual dashboard, unified league rankings and manual promotion lottery");
