@@ -256,7 +256,7 @@ function makeDuoCareer(id){
  const t=DUO_TEMPLATES[id],player=initialPlayer(false);
  Object.assign(player,{name:String(duoDraft[id]||t.name).trim().slice(0,22)||t.name,country:"中国",actualCountry:t.actualCountry,born:t.born,heightCm:t.height,age:18,
   position:t.position,club:drawnClubs[id],leagueId:"CHN",number:t.number,stats:{...t.stats},potential:t.potential,
-  sourceRating:t.historicalOverall,sourceReference:t.reference,contract:4,poorStreak:0,forcedMove:false,youth:false,stamina:95,points:0});
+  sourceRating:t.historicalOverall,sourceReference:t.reference,contract:4,poorStreak:0,forcedMove:false,youth:false,stamina:95,points:0,seasonForm:R(-90,90)/100,seasonPeak:0,injuryHistory:0});
  g={version:4,duoId:id,createdAt:"2026-11-10",year:2026,generation:1,player,ancestors:[],honors:[],logs:[],history:[],offers:[],npcs:initNPC().filter(n=>n.name!==player.name),ballonHistory:[],settings:{difficulty:"standard"},season:null,live:null,lastReview:null};
  g.season=makeSchedule(player,g.year,10);createWorld(g.season);
  log(player.name+"开始18岁平行世界职业生涯；游戏国籍中国。初始属性来源："+t.reference+"；与真实年龄/转会现状无关。");
@@ -502,7 +502,7 @@ function simulateNPCOffseason(){
 
 function currentEvent(){return g.season.events[g.season.index]||null}
 function sortedTable(table){return Object.values(table).sort((a,b)=>b.points-a.points||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
-function playerFit(){let p=g.player;return C(.25+overall(p)/145+(p.coachTrust-55)/400+(p.parentCoach?.skills?.motivation||0)/650-(p.stamina<40?.16:0),.32,.96)}
+function playerFit(){let p=g.player;return C(.20+overall(p)/155+(p.coachTrust-55)/450+(p.parentCoach?.skills?.motivation||0)/650-(p.stamina<40?.16:0)+(p.seasonForm||0)*.10,.26,.91)}
 function allocateAvailable(points,values,keys,limit){
  let n=0;while(points>0){const available=keys.filter(k=>values[k]<limit);if(!available.length)break;const key=available[n%available.length];values[key]++;points--;n++}return points
 }
@@ -515,7 +515,7 @@ function automaticPrep(){
   const weights=WEIGHTS[p.position],keys=Object.keys(STATS);
   const eligible=keys.filter(k=>p.stats[k]<p.potential);if(!eligible.length){p.stamina=C(p.stamina+10,0,100);p.trainingUsed=true;return}const focus=eligible.map(k=>({key:k,score:weights[keys.indexOf(k)]*(p.potential-p.stats[k])})).sort((a,b)=>b.score-a.score)[0].key;
   p.trainingProgress=p.trainingProgress||{};p.trainingProgress[focus]=(p.trainingProgress[focus]||0)+1;
-  const threshold=p.age<22?3:p.age<30?5:8;const coachBonus=(p.parentCoach?.skills?.training||0)>=55?1:0;
+  const threshold=p.age<22?7:p.age<28?12:18;const coachBonus=(p.parentCoach?.skills?.training||0)>=55?1:0;
   if(p.trainingProgress[focus]>=(threshold-coachBonus)&&p.stats[focus]<p.potential){p.stats[focus]++;p.trainingProgress[focus]=0}
   p.stamina=C(p.stamina-3,0,100)
  }
@@ -532,7 +532,7 @@ function manualTraining(key){
  const p=g?.player;if(!p||g.season.stage!=="playing"||p.trainingUsed||!STATS[key]){notify("本轮无法继续训练");return}
  if(p.stamina<23){notify("体能不足，请优先休息恢复");return}
  p.trainingProgress=p.trainingProgress||{};p.trainingProgress[key]=(p.trainingProgress[key]||0)+2;
- const threshold=p.age<22?3:p.age<30?5:8;
+ const threshold=p.age<22?7:p.age<28?12:18;
  if(p.trainingProgress[key]>=threshold&&p.stats[key]<p.potential){p.stats[key]++;p.trainingProgress[key]=0;notify(STATS[key]+"能力提升1点")}
  p.stamina=C(p.stamina-12,0,100);p.trainingUsed=true;log("进行了"+STATS[key]+"专项训练，体能消耗12点。");save();render()
 }
@@ -546,7 +546,7 @@ function calcRating(outcome,goals,assists,win,context={}){
  const involvement=goals*.62+assists*.40;
  const strengthBonus=C(opposition*.006,-.15,.15);
  const competitionBonus=context.leagueId==="CHN"?-.02:0;
- const rating=6.48+(outcome?.15:0)+resultBonus+involvement+strengthBonus+competitionBonus+(Math.random()-.5)*.95;
+ const rating=6.47+(outcome?.15:0)+resultBonus+involvement+strengthBonus+competitionBonus+C(context.seasonForm||0,-1,1)*.58+(Math.random()-.5)*1.10;
  return Math.round(C(rating,4.6,9.8)*10)/10;
 }
 // Allocate actual team goals to the player and teammates; no invented personal goals.
@@ -556,8 +556,8 @@ function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced")
  const attacker=["ST","LW","RW"].includes(p.position),creator=["CAM","CM","LW","RW"].includes(p.position);
  const shotBase=p.position==="ST"?.16:attacker?.125:p.position==="CAM"?.065:.018;
  const assistBase=p.position==="CAM"?.19:creator?.14:p.position==="ST"?.065:.035;
- const shoot=C(shotBase+advantage*.095+(p.stats.shoot-70)*.0016+(choice==="attack"?.018:0),.01,.30);
- const assist=C(assistBase+advantage*.055+(p.stats.pass-70)*.0017+(choice==="creative"?.02:0),.01,.28);
+ const shoot=C(shotBase+advantage*.095+(p.stats.shoot-70)*.0016+(choice==="attack"?.018:0)+(p.seasonForm||0)*.055,.005,.30);
+ const assist=C(assistBase+advantage*.055+(p.stats.pass-70)*.0017+(choice==="creative"?.02:0)+(p.seasonForm||0)*.042,.008,.28);
  // Soft upper tail: historic 50+ goal club seasons should be very rare, not routine.
  const already=g?.season?.goals||0,created=g?.season?.assists||0;
  const finishingDiminish=already>45?.30:already>35?.50:already>25?.72:1;
@@ -585,7 +585,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  let hs=baseline[0],as=baseline[1];if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
  const played=appears,contribution=played?playerMatchContribution(p,ev,oppStrength,our,choice):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
- const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId}):0;
+ const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}):0;
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
  if(ev.kind==="europe"){const e=s.uefa;updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev);e.played++;
  if(e.played>=8){const rank=sortedTable(e.table).findIndex(t=>t.name===p.club)+1;e.rank=rank;if(rank>24){e.completed=true;e.stage="eliminated";log(e.type+"联赛阶段第"+rank+"名，未能晋级。")}else{e.stage="knockout";addKnockouts()}}}
@@ -598,7 +598,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  if(ev.kind==="europeKO"){simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");const e=s.uefa;if(!e.koAggregate)e.koAggregate={};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
  if(ev.stage==="决赛"||ev.leg===2){let win=agg.for>agg.against||(agg.for===agg.against&&Math.random()<.5);if(agg.for===agg.against)log(e.type+ev.stage+"总比分打平，进行加时与点球决胜。");e.knockoutResults.push({stage:ev.stage,win,score:agg.for+"-"+agg.against,legs:agg.legs});if(!win){e.completed=true;e.stage="eliminated";log(e.type+ev.stage+"两回合总比分"+agg.for+"-"+agg.against+"，出局。")}else if(ev.stage==="决赛"){e.completed=true;e.stage="champion";award(e.type+"冠军","team")}else log(e.type+ev.stage+"两回合晋级。")}
 }
- if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="europe"||ev.kind==="europeKO"){s.europeApps=(s.europeApps||0)+1;s.europeGoals=(s.europeGoals||0)+goals;s.europeAssists=(s.europeAssists||0)+assists}if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}p.career.apps++;p.career.goals+=goals;p.career.assists+=assists;p.points+=p.career.apps%(p.age<22?3:p.age<30?5:9)===0?1:0;if(rating>=8.7&&Math.random()<.35)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
+ if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="europe"||ev.kind==="europeKO"){s.europeApps=(s.europeApps||0)+1;s.europeGoals=(s.europeGoals||0)+goals;s.europeAssists=(s.europeAssists||0)+assists}if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}p.career.apps++;p.career.goals+=goals;p.career.assists+=assists;p.points+=p.career.apps%(p.age<22?9:p.age<28?15:24)===0?1:0;if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
  if(p.injuryMatches>0){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
  if(p.suspension>0){p.suspension--;if(p.suspension===0)log(p.name+"停赛期满。")}
  if(played){
@@ -606,8 +606,8 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
   if(Math.random()<.007){p.redCards=(p.redCards||0)+1;p.suspension=Math.max(p.suspension,2);log(p.name+"被红牌罚下，停赛2场。")}
   const loss=R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30);
   p.stamina=percent(p.stamina-loss+(ev.kind==="league"?5:3));
-  const injuryRisk=.003+Math.max(0,44-p.stamina)*.0025;
-  if(Math.random()<injuryRisk){p.injuryMatches=R(1,5);log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
+  const injuryRisk=.008+Math.max(0,44-p.stamina)*.0020+(p.age>=30?.006:0);
+  if(Math.random()<injuryRisk){p.injuryMatches=R(1,p.age>=30?7:5);p.injuryHistory=(p.injuryHistory||0)+1;log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
  }else{p.stamina=percent(p.stamina+R(4,9))}p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
  eventResult={...ev,home,away,hs,as,played,goals,assists,rating,real:false,injury:p.injuryMatches||0,suspension:p.suspension||0};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  s.index++;s.completed++;g.live=null;
@@ -764,7 +764,10 @@ function seasonPerformance(){
  const p=g.player,n=clubSeasonNumbers(g.season),tier=transferLevel(p.leagueId,p.club),ov=overall(p);
  const offense=["ST","LW","RW","CAM"].includes(p.position),exempt=p.youth||!offense||n.apps<15;
  const expectedOutput=n.goals+n.assists;
- const poor=!exempt&&(n.avg<6.12||(expectedOutput<4&&n.avg<6.55));
+ const roleFactor=p.position==="ST"?1.12:p.position==="CAM"?.88:1;
+ const expectedByTier=[12,14,17,19,22,25][tier]*roleFactor;
+ const performanceRatio=expectedOutput/Math.max(1,expectedByTier);
+ const poor=!exempt&&(n.apps<23||n.avg<6.38||performanceRatio<.67&&n.avg<7.12||performanceRatio<.40);
  // Scoring 15+ goals can never be branded a bad season merely because a
  // formerly harsh, low-centred match-rating formula gave below 7.15.
 
@@ -775,7 +778,12 @@ function seasonPerformance(){
  // Poor performance takes precedence over an honour-driven lateral transfer.
  p.forcedMove=p.poorStreak>=2&&tier>0;
  p.forcedSameTier=!p.forcedMove&&p.trophylessStreak>=2;
- const gate=TRANSFER_GATES[tier]||null,qualified=!!gate&&transferQualified(gate,n,ov,p.position);
+ const gate=TRANSFER_GATES[tier]||null;
+ const ratingStandard=[6.98,7.00,7.04,7.10,7.18][tier]??7.2;
+ const performanceStandard=[16,18,20,23,25][tier]??25;
+ const roleAdjustedOutput=expectedOutput/(p.position==="CAM"?.90:p.position==="ST"?1.12:1);
+ const scoutingChance=[.69,.62,.58,.50,.44][tier]??0;
+ const qualified=!!gate&&transferQualified(gate,n,ov,p.position)&&n.avg>=ratingStandard&&roleAdjustedOutput>=performanceStandard&&Math.random()<scoutingChance;
  const maxTier=!poor&&!exempt&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
  const comment=p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":exempt?"出场不足或非进攻位置，不按进球助攻处罚":
   p.forcedMove?"连续两个赛季未达标，必须降至较低一级球队":
@@ -784,7 +792,7 @@ function seasonPerformance(){
   tier===TRANSFER_LEVELS.length-1?"已达到最高的世界传奇豪门档次":
   maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"尚未达到下一档转会门槛";
  const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:gate?.g??null,assistsTarget:gate?.a??null,
-  tier,maxTier,poor,exempt,offense,poorStreak:p.poorStreak,forcedMove:p.forcedMove,forcedSameTier:p.forcedSameTier,trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment};
+  tier,maxTier,poor,exempt,offense,expectedByTier:Number(expectedByTier.toFixed(1)),performanceRatio:Number(performanceRatio.toFixed(2)),scoutingChance,poorStreak:p.poorStreak,forcedMove:p.forcedMove,forcedSameTier:p.forcedSameTier,trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment};
  p.transferAssessment={...assessment,year:g.year};
  if(!exempt&&!poor&&maxTier>tier)p.points=Math.min(15,(p.points||0)+2);
  return assessment;
@@ -802,7 +810,7 @@ function generateOffers(){
   if(o.tier>current&&o.power>ov+23)return false;
   return true;
  });
- if(p.forcedMove&&pool.length===0)pool=all.filter(o=>o.club!==p.club&&o.tier<current);
+ if(p.forcedMove&&pool.length===0)pool=all.filter(o=>o.club!==p.club&&o.tier===current-1);
  const shuffle=v=>v.slice().sort(()=>Math.random()-.5),out=[];
  const add=o=>{if(o&&!out.some(x=>x.club===o.club))out.push(o)};
  if(p.forcedMove)add(shuffle(pool.filter(o=>o.tier===current-1))[0]);
@@ -957,7 +965,7 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
  }
  if(!movedByDraw&&!p.forcedMove&&!p.forcedSameTier&&!p.youth&&p.transferDraw?.selected){if(!applyPlayerTransfer(p.transferDraw.selected,true))return}
  delete p.transferDraw;
- if(p.youth){p.club=p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);log("青训毕业，自动晋升 "+p.club+" 一线队。")}g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=0;p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=33){for(const k of ["pace","physical","dribble"])p.stats[k]=Math.max(30,p.stats[k]-R(0,2))}else if(p.age<25){p.points+=R(2,5)}if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
+ if(p.youth){p.club=p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);log("青训毕业，自动晋升 "+p.club+" 一线队。")}g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=Math.max(0,(p.injuryMatches||0)-3);p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=30){for(const k of ["pace","physical",...(p.age>=34?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=34?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=32?.12:0)-(p.injuryHistory||0)*.008,-1,1);if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
 function retire(withCoach){const p=g.player;if(p.age<32){notify("球员至少32岁才能主动退役并开启下一代");return}const archive={generation:g.generation,name:p.name,country:p.country,club:p.club,position:p.position,age:p.age,career:{...p.career},honors:g.honors.filter(h=>h.generation===g.generation),headCoach:!!withCoach,year:g.year};g.ancestors.push(archive);const lastClub=p.club.replace(/青训$/,"");let t=mkTalent(),name=p.name.replace(/(·\d+世)+$/,"")+"·"+(g.generation+1)+"世";const child={...initialPlayer(false),name,country:p.country,age:16,position:P(["LW","RW","ST","CAM","CM","CB"]),club:lastClub+"青训",leagueId:p.leagueId,youth:true,number:R(11,40),stats:t.stats,potential:t.potential,trait:t.specialty,cash:12000,wage:1600,contract:2,fame:5,career:{apps:0,goals:0,assists:0,national:0},parentCoach:withCoach?{name:p.name,club:lastClub,points:5,skills:{tactics:20,training:25,motivation:20,scouting:20}}:null};g.generation++;g.player=child;g.year++;g.offers=[];g.live=null;g.season=makeSchedule(child,g.year,10);simulateNPCOffseason();createWorld(g.season);log("家族第"+g.generation+"代正式开启："+child.name+"，父亲"+(withCoach?"担任 "+lastClub+" 主教练":"选择退役生活")+"。");page="family";save();render()}
 function createCoachSchedule(){
  const p={...g.player,club:g.coach.club,leagueId:g.coach.leagueId,age:g.coach.age,youth:false};
