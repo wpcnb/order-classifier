@@ -6,6 +6,7 @@ const STATS={pace:"速度",shoot:"射门",pass:"传球",dribble:"盘带",defense
 const POS={LW:"左边锋",RW:"右边锋",ST:"中锋",CAM:"前腰",CM:"中场",CDM:"后腰",CB:"中后卫",GK:"门将"};
 const WEIGHTS={LW:[.25,.22,.13,.23,.02,.05,.10],RW:[.25,.22,.13,.23,.02,.05,.10],ST:[.12,.40,.08,.18,.02,.10,.10],CAM:[.12,.16,.28,.20,.04,.04,.16],CM:[.11,.11,.30,.14,.10,.10,.14],CDM:[.09,.05,.24,.07,.29,.12,.14],CB:[.10,.01,.11,.03,.43,.20,.12],GK:[.06,.02,.10,.04,.48,.20,.10]};
 const DUO_IDS=["wang","vini"],FIVE_LEAGUES=["ENG","ESP","ITA","GER","FRA"];
+const ACADEMY_START_AGE=16,ACADEMY_GRADUATION_AGE=18;
 const DUO_TEMPLATES={
  wang:{id:"wang",name:"王楚淇",born:"1999-02-06",height:177,actualCountry:"中国",age:18,leagueId:"CHN",club:null,position:"LW",number:7,
   historicalOverall:83,potential:94,reference:"FIFA 18：18岁姆巴佩基础卡（能力模板，非王楚淇真实评分）",
@@ -252,14 +253,20 @@ function makeSchedule(player,year,prevRank=10){
 }
 function initialPlayer(custom=false){const talent=custom?draft.talent:mkTalent();const id=custom?draft.leagueId:"CHN",team=custom?draft.club:"成都蓉城",age=custom?16:18,position=custom?draft.position:"LW";const stats={...talent.stats};if(!custom){Object.assign(stats,{pace:81,shoot:74,pass:72,dribble:80,defense:43,physical:72,mental:74})}
  return {name:custom?draft.name:"新球员",country:custom?draft.country:"中国",age,position,club:team,leagueId:id,youth:custom,number:custom?R(14,39):9,stats,potential:Math.max(talent.potential,...Object.values(stats)),trait:talent.specialty,stamina:95,morale:82,form:69,coachTrust:66,points:0,autoPoints:true,autoTraining:true,injuryMatches:0,suspension:0,yellowCards:0,redCards:0,trainingUsed:false,trainingProgress:{},wage:custom?1200:68000,cash:custom?3000:350000,contract:custom?2:4,fame:custom?5:33,career:{apps:0,goals:0,assists:0,national:0},parentCoach:null};}
+function academyStats(t){
+ // Each profile descends from the EXISTING Wang (Mbappé 18) and Vini (FIFA 19)
+ // historical templates; 16-year-old skills are fictional and deliberately lower.
+ const drop={pace:11,shoot:13,pass:11,dribble:12,defense:7,physical:12,mental:11};
+ return Object.fromEntries(Object.entries(t.stats).map(([key,v])=>[key,Math.max(30,v-(drop[key]||9))]));
+}
 function makeDuoCareer(id){
  const t=DUO_TEMPLATES[id],player=initialPlayer(false);
- Object.assign(player,{name:String(duoDraft[id]||t.name).trim().slice(0,22)||t.name,country:"中国",actualCountry:t.actualCountry,born:t.born,heightCm:t.height,age:18,
-  position:t.position,club:drawnClubs[id],leagueId:"CHN",number:t.number,stats:{...t.stats},potential:t.potential,
-  sourceRating:t.historicalOverall,sourceReference:t.reference,contract:4,poorStreak:0,forcedMove:false,youth:false,stamina:95,points:0,seasonForm:R(-90,90)/100,scoutingRoll:Math.random(),seasonPeak:0,injuryHistory:0});
+ Object.assign(player,{name:String(duoDraft[id]||t.name).trim().slice(0,22)||t.name,country:"中国",actualCountry:t.actualCountry,born:t.born,heightCm:t.height,age:ACADEMY_START_AGE,
+  position:t.position,club:drawnClubs[id]+"青训",academyParentClub:drawnClubs[id],academyStartYear:2026,academyGraduationAge:ACADEMY_GRADUATION_AGE,leagueId:"CHN",number:t.number,stats:academyStats(t),potential:t.potential,
+  sourceRating:t.historicalOverall,sourceReference:t.reference,contract:2,poorStreak:0,forcedMove:false,youth:true,stamina:95,points:0,wage:1500,cash:3000,fame:6,academyCareer:{apps:0,goals:0,assists:0},academyHonors:[],seasonForm:R(-90,90)/100,scoutingRoll:Math.random(),seasonPeak:0,injuryHistory:0});
  g={version:4,duoId:id,createdAt:"2026-11-10",year:2026,generation:1,player,ancestors:[],honors:[],logs:[],history:[],offers:[],npcs:initNPC().filter(n=>n.name!==player.name),ballonHistory:[],settings:{difficulty:"standard"},season:null,live:null,lastReview:null};
  g.season=makeSchedule(player,g.year,10);createWorld(g.season);
- log(player.name+"开始18岁平行世界职业生涯；游戏国籍中国。初始属性来源："+t.reference+"；与真实年龄/转会现状无关。");
+ log(player.name+"以16岁进入 "+drawnClubs[id]+" 青训（架空生涯）；中国游戏国籍。16岁属性根据 "+t.reference+" 进行青年化推算，非真实能力评分。");
  return g;
 }
 function buildDuoGame(){
@@ -288,14 +295,14 @@ function linkSharedWorld(){
  }
  if(a.year===b.year&&a.player.leagueId===b.player.leagueId){
   // Both players see one table; never calculate a league's fixtures twice.
-  const key=a.year+":"+a.player.leagueId,data=sharedUniverse.rounds[key];
+  const key=a.year+":"+a.player.leagueId+(a.player.youth?":ACADEMY":""),data=sharedUniverse.rounds[key];
   if(data?.table){a.season.leagueTable=b.season.leagueTable=data.table}
   else{a.season.leagueTable=b.season.leagueTable=a.season.leagueTable}
  }
 }
 function sharedLeagueRound(ev){
  if(!sharedUniverse||ev.kind!=="league")return null;
- const s=g.season,key=g.year+":"+g.player.leagueId;
+ const s=g.season,key=g.year+":"+g.player.leagueId+(g.player.youth?":ACADEMY":"");
  let data=sharedUniverse.rounds[key];
  if(!data){data={table:s.leagueTable,rounds:{}};sharedUniverse.rounds[key]=data}
  if(!data.rounds[ev.round]){
@@ -335,7 +342,7 @@ function allocateSharedNpcForDay(date){
   if(Number(key.split(":")[0])!==duoGames.wang.year)continue;
   for(const fixtures of Object.values(data.rounds||{}))for(const fixture of fixtures){
    if(fixture.npcAllocated)continue;
-   const users=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.player.leagueId===key.split(":")[1]&&[fixture.home,fixture.away].includes(x.player.club));
+   const users=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.player.leagueId===key.split(":")[1]&&!!x.player.youth===(key.endsWith(":ACADEMY"))&&[fixture.home,fixture.away].includes(x.player.club));
    const recent=users.map(x=>x.season.results.findLast(z=>z.date===date&&z.kind==="league"&&z.home===fixture.home&&z.away===fixture.away));
    if(recent.some(x=>!x))continue;
    let gh=0,ga=0,ah=0,aa=0;
@@ -598,7 +605,11 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  if(ev.kind==="europeKO"){simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");const e=s.uefa;if(!e.koAggregate)e.koAggregate={};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
  if(ev.stage==="决赛"||ev.leg===2){let win=agg.for>agg.against||(agg.for===agg.against&&Math.random()<.5);if(agg.for===agg.against)log(e.type+ev.stage+"总比分打平，进行加时与点球决胜。");e.knockoutResults.push({stage:ev.stage,win,score:agg.for+"-"+agg.against,legs:agg.legs});if(!win){e.completed=true;e.stage="eliminated";log(e.type+ev.stage+"两回合总比分"+agg.for+"-"+agg.against+"，出局。")}else if(ev.stage==="决赛"){e.completed=true;e.stage="champion";award(e.type+"冠军","team")}else log(e.type+ev.stage+"两回合晋级。")}
 }
- if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="europe"||ev.kind==="europeKO"){s.europeApps=(s.europeApps||0)+1;s.europeGoals=(s.europeGoals||0)+goals;s.europeAssists=(s.europeAssists||0)+assists}if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}p.career.apps++;p.career.goals+=goals;p.career.assists+=assists;p.points+=p.career.apps%(p.age<22?9:p.age<28?15:24)===0?1:0;if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
+ if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="europe"||ev.kind==="europeKO"){s.europeApps=(s.europeApps||0)+1;s.europeGoals=(s.europeGoals||0)+goals;s.europeAssists=(s.europeAssists||0)+assists}if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}{
+ const record=p.youth?(p.academyCareer||(p.academyCareer={apps:0,goals:0,assists:0})):p.career;
+ record.apps++;record.goals+=goals;record.assists+=assists;
+ p.points+=(record.apps%(p.age<22?9:p.age<28?15:24)===0?1:0);
+ }if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
  if(p.injuryMatches>0){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
  if(p.suspension>0){p.suspension--;if(p.suspension===0)log(p.name+"停赛期满。")}
  if(played){
@@ -694,6 +705,7 @@ function finalizeSharedSeason(){
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
  return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating||6.3},year,awardTeamHonours(n.club,year))}});
  for(const id of DUO_IDS){const x=duoGames[id],p=x.player,s=x.season,r=s.ratings,avg=r.length?r.reduce((a,b)=>a+b,0)/r.length:6.2,honors=x.honors.filter(h=>h.year===year).length;
+ if(p.youth)continue;
  nominees.push({id:"DUO_"+id,name:p.name,club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),
  score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},year,x.honors.filter(h=>h.year===year&&h.type==="team").length)})}
  nominees.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
@@ -706,9 +718,9 @@ function finalizeSharedSeason(){
  const leagues=new Set(DUO_IDS.map(id=>duoGames[id].player.leagueId));
  for(const id of leagues){
  const entries=duoGames.wang.npcs.filter(n=>DB[id].teams.some(t=>t.name===n.club)&&n.pos!=="GK").map(n=>({id:n.id,goals:n.goals||0,assists:n.assists||0,apps:n.apps||0}));
- for(const who of DUO_IDS){const x=duoGames[who];if(x.player.leagueId===id&&x.season.leagueApps>=12)entries.push({id:who,goals:x.season.leagueGoals||0,assists:x.season.leagueAssists||0,apps:x.season.leagueApps})}
+ for(const who of DUO_IDS){const x=duoGames[who];if(!x.player.youth&&x.player.leagueId===id&&x.season.leagueApps>=12)entries.push({id:who,goals:x.season.leagueGoals||0,assists:x.season.leagueAssists||0,apps:x.season.leagueApps})}
  const goals=entries.slice().sort((a,b)=>b.goals-a.goals||b.assists-a.assists||a.apps-b.apps),assists=entries.slice().sort((a,b)=>b.assists-a.assists||b.goals-a.goals||a.apps-b.apps);
- for(const who of DUO_IDS){const x=duoGames[who];if(x.player.leagueId!==id)continue;
+ for(const who of DUO_IDS){const x=duoGames[who];if(x.player.youth||x.player.leagueId!==id)continue;
  activeDuo=who;g=x;
  if(goals[0]?.id===who&&goals[0].goals>=9)award(DB[id].name+"金靴奖","individual");
  if(assists[0]?.id===who&&assists[0].assists>=7)award(DB[id].name+"助攻王","individual");
@@ -774,18 +786,18 @@ function seasonPerformance(){
  p.poorStreak=poor?(p.poorStreak||0)+1:0;
  // Only club team trophies count. Individual awards / national-team trophies do not.
  const teamChampion=(g.honors||[]).some(h=>h.year===g.year&&h.generation===g.generation&&h.type==="team"&&h.name.includes("冠军"));
- p.trophylessStreak=teamChampion?0:(p.trophylessStreak||0)+1;
+ p.trophylessStreak=p.youth?0:teamChampion?0:(p.trophylessStreak||0)+1;
  // Poor performance takes precedence over an honour-driven lateral transfer.
- p.forcedMove=p.poorStreak>=2&&tier>0;
- p.forcedSameTier=!p.forcedMove&&p.trophylessStreak>=2;
+ p.forcedMove=!p.youth&&p.poorStreak>=2&&tier>0;
+ p.forcedSameTier=!p.youth&&!p.forcedMove&&p.trophylessStreak>=2;
  const gate=TRANSFER_GATES[tier]||null;
  const ratingStandard=[6.98,7.00,7.04,7.10,7.18][tier]??7.2;
  const performanceStandard=[16,18,20,23,25][tier]??25;
  const roleAdjustedOutput=expectedOutput/(p.position==="CAM"?.90:p.position==="ST"?1.12:1);
  const scoutingChance=[.69,.62,.58,.50,.44][tier]??0;
  const qualified=!!gate&&transferQualified(gate,n,ov,p.position)&&n.avg>=ratingStandard&&roleAdjustedOutput>=performanceStandard&&(p.scoutingRoll??(p.scoutingRoll=Math.random()))<scoutingChance;
- const maxTier=!poor&&!exempt&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
- const comment=p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":exempt?"出场不足或非进攻位置，不按进球助攻处罚":
+ const maxTier=!p.youth&&!poor&&!exempt&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
+ const comment=p.youth?"中超青训阶段：16—17岁参加青年联赛，18岁自动进入本俱乐部一线队；青年数据不计入成年赛季。":p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":exempt?"出场不足或非进攻位置，不按进球助攻处罚":
   p.forcedMove?"连续两个赛季未达标，必须降至较低一级球队":
   tier===0&&poor&&p.poorStreak>=2?"中超已是起步最低档，留队或同级转会，不会假装降档":
   poor?"本赛季低于留队标准，累计不达标"+p.poorStreak+"季":
@@ -903,7 +915,7 @@ function endSeason(){
  const keeperKing=rivals.filter(n=>n.pos==="GK").sort((a,b)=>(b.clean||0)-(a.clean||0))[0];
  const avg=s.ratings.length?s.ratings.reduce((a,b)=>a+b,0)/s.ratings.length:0;
  const leagueAvg=s.leagueRatings?.length?s.leagueRatings.reduce((a,b)=>a+b,0)/s.leagueRatings.length:0;
- if(rank===1)award((p.youth?"青训 · ":"")+league.name+"冠军","team");
+ if(rank===1){if(p.youth){p.academyHonors=p.academyHonors||[];p.academyHonors.push({year:g.year,name:league.name+"青训联赛冠军"});log("青年赛事冠军："+league.name+"青训联赛");}else award(league.name+"冠军","team")}
  if(!p.youth&&s.leagueApps>=12){
   if(!duoGames&&p.position!=="GK"&&(s.leagueGoals||0)>=Math.max(9,goalKing?.goals||0))award(league.name+"金靴奖","individual");
   if(!duoGames&&(s.leagueAssists||0)>=Math.max(7,assistKing?.assists||0))award(league.name+"助攻王","individual");
@@ -920,7 +932,7 @@ function endSeason(){
  }
  if(!p.youth&&avg>=8.1&&s.apps>=24)award("世界年度最佳阵容","individual");
  if(s.uefa&&!s.uefa.completed){s.uefa.completed=true;s.uefa.stage="season-end";log("赛季结束，未完成的欧战结算为终止。")}
- if(!duoGames)finishVote();
+ if(!duoGames&&!p.youth)finishVote();
  const champions={};for(const [id,w]of Object.entries(s.world||{}))champions[id]=sortedTable(w.table)[0]?.name;
  for(const [key,data]of Object.entries(sharedUniverse?.rounds||{})){const [year,league]=key.split(":");if(Number(year)===g.year)champions[league]=sortedTable(data.table)[0]?.name}
  champions[p.leagueId]=sortedTable(s.leagueTable)[0]?.name;
@@ -928,7 +940,7 @@ function endSeason(){
  const performance=seasonPerformance();
   g.history.push({year:g.year,generation:g.generation,club:p.club,league:league.name,age:p.age,rank,apps:s.apps,goals:s.goals,assists:s.assists,leagueGoals:s.leagueGoals||0,leagueAssists:s.leagueAssists||0,average:avg.toFixed(2),points:sortedTable(s.leagueTable).find(t=>t.name===p.club)?.points||0,europa:s.uefa?.type||null});
  g.lastReview={rank,avg:avg.toFixed(2),goals:s.goals,assists:s.assists,performance,leagueGoalLeader:goalKing?{name:goalKing.name,goals:goalKing.goals}:null};
- g.offers=p.youth?[{club:p.club.replace(/青训$/,""),id:p.leagueId,power:power(p.club.replace(/青训$/,"")),wage:7000,years:4,promotion:true}]:generateOffers();
+ g.offers=p.youth?[]:generateOffers();
  s.stage="review";ensurePromotionDraw(g);page="review";log("完成 "+g.year+"/"+(g.year+1)+" 赛季，联赛第"+rank+"名。"+(performance.poor?"进球助攻未达标，连续"+performance.poorStreak+"季；"+(performance.forcedMove?"下赛季必须降档转会。":"将影响球队信任。"):"表现考核："+performance.comment));save();render()
 }
 
@@ -965,7 +977,11 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
  }
  if(!movedByDraw&&!p.forcedMove&&!p.forcedSameTier&&!p.youth&&p.transferDraw?.selected){if(!applyPlayerTransfer(p.transferDraw.selected,true))return}
  delete p.transferDraw;
- if(p.youth){p.club=p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);log("青训毕业，自动晋升 "+p.club+" 一线队。")}g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=Math.max(0,(p.injuryMatches||0)-3);p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=30){for(const k of ["pace","physical",...(p.age>=34?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=34?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=32?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
+ const graduating=p.youth&&p.age+1>=ACADEMY_GRADUATION_AGE;
+ if(graduating){p.club=p.academyParentClub||p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);p.contract=4;
+  p.poorStreak=0;p.trophylessStreak=0;p.forcedMove=false;p.forcedSameTier=false;
+  log("青训毕业：18岁升入 "+p.club+" 一线队。青训进球助攻单独保存在青年履历中。")}
+ g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=Math.max(0,(p.injuryMatches||0)-3);p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=30){for(const k of ["pace","physical",...(p.age>=34?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=34?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=32?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
 function retire(withCoach){const p=g.player;if(p.age<32){notify("球员至少32岁才能主动退役并开启下一代");return}const archive={generation:g.generation,name:p.name,country:p.country,club:p.club,position:p.position,age:p.age,career:{...p.career},honors:g.honors.filter(h=>h.generation===g.generation),headCoach:!!withCoach,year:g.year};g.ancestors.push(archive);const lastClub=p.club.replace(/青训$/,"");let t=mkTalent(),name=p.name.replace(/(·\d+世)+$/,"")+"·"+(g.generation+1)+"世";const child={...initialPlayer(false),name,country:p.country,age:16,position:P(["LW","RW","ST","CAM","CM","CB"]),club:lastClub+"青训",leagueId:p.leagueId,youth:true,number:R(11,40),stats:t.stats,potential:t.potential,trait:t.specialty,cash:12000,wage:1600,contract:2,fame:5,career:{apps:0,goals:0,assists:0,national:0},parentCoach:withCoach?{name:p.name,club:lastClub,points:5,skills:{tactics:20,training:25,motivation:20,scouting:20}}:null};g.generation++;g.player=child;g.year++;g.offers=[];g.live=null;g.season=makeSchedule(child,g.year,10);simulateNPCOffseason();createWorld(g.season);log("家族第"+g.generation+"代正式开启："+child.name+"，父亲"+(withCoach?"担任 "+lastClub+" 主教练":"选择退役生活")+"。");page="family";save();render()}
 function createCoachSchedule(){
  const p={...g.player,club:g.coach.club,leagueId:g.coach.leagueId,age:g.coach.age,youth:false};
@@ -1252,8 +1268,8 @@ function reportPage(){
 function matchPage(){let ev=g.live?.event||currentEvent();if(!ev)return dashboard();let opp=ev.home&&ev.away?ev.home+" vs "+ev.away:g.player.club+" vs "+(ev.kind==="national"?"国家队对手":"杯赛对手");return '<div class="card"><div class="row"><div><div class="cap">MATCH CENTER · '+E(ev.date)+'</div><h2>'+E(ev.competition||(ev.kind==="league"?DB[g.player.leagueId].name:"正式比赛"))+'</h2></div><span class="chip">'+E(ev.stage||"对决")+'</span></div><div class="scoreboard"><div class="inside"><div class="vs">'+E(opp)+'</div><div class="muted">策略影响进球机会与个人表现；球员未出场时按均衡策略推演。</div></div></div><h3 class="gap">选择比赛策略</h3><div class="grid2"><button class="button" data-action="play" data-choice="balanced">均衡比赛 · 稳健发挥</button><button class="button primary" data-action="play" data-choice="attack">积极进攻 · 增加进球机会，也增加失球风险</button><button class="button" data-action="play" data-choice="creative">创造机会 · 提高进攻优势，争取助攻</button><button class="button" data-action="play" data-choice="defend">稳守反击 · 减少对手机会，己方进球也更难</button></div><div class="flex gap"><button class="button goldbtn" data-action="simSeason">从这里一键完成剩余赛季</button></div></div>'}
 function startPage(){
  const teams=CSL_DRAW_TEAMS(),colors=["#48e0ad","#e9bb64","#6e9bf7","#e37d95"];
- const wheel=id=>{const t=DUO_TEMPLATES[id],picked=drawnClubs[id];return '<section class="card"><div class="row"><h2>'+E(t.name)+'</h2><span class="chip">18岁 · 中国籍 · 中超</span></div><div class="grid3">'+metric("历史能力模板",t.historicalOverall)+metric("潜力",t.potential)+metric("身高",t.height+" cm")+'</div><div class="wheel-box"><div class="wheel-pointer">▼</div><div id="wheel-'+id+'" class="club-wheel" style="background:conic-gradient('+teams.map((name,i)=>colors[i%colors.length]+' '+(i*100/teams.length)+'% '+((i+1)*100/teams.length)+'%').join(",")+')"><span>中超<br>随机抽签</span>'+teams.map((name,i)=>'<em class="wheel-label" style="transform:rotate('+(i*360/teams.length+180/teams.length)+'deg) translateY(-120px) rotate(90deg)">'+E(name.slice(0,4))+'</em>').join('')+'</div></div><p class="muted small">随机范围：'+teams.length+'支预设中超球队 · 两人不会抽到同一队</p><p class="gold"><strong>'+(picked?"已抽中："+E(picked):"尚未抽签")+'</strong></p><button class="button '+(picked?"outline":"goldbtn")+'" data-action="spinClub" data-id="'+id+'" '+(picked||wheelBusy?"disabled":"")+'>'+(picked?"抽签已锁定":"点击旋转转盘")+'</button><p class="muted small gap">'+E(t.reference)+'</p></section>'};
- return '<div class="hero"><div><div class="cap">ONE SHARED FOOTBALL WORLD</div><h1>双星同场 · 中超起航</h1><p>王楚淇与维尼修斯均以18岁、中国籍进入同一个2026赛季。分别旋转转盘决定中超起始俱乐部。</p></div></div><div class="grid2 gap">'+DUO_IDS.map(wheel).join("")+'</div><section class="card gap"><p>两张球员卡独立成长，联赛可以成为对手。</p><button class="button primary" data-action="preset" '+(DUO_IDS.every(id=>drawnClubs[id])?"":"disabled")+' >确认两队 · 开始共同赛季</button></section>';
+ const wheel=id=>{const t=DUO_TEMPLATES[id],picked=drawnClubs[id];return '<section class="card"><div class="row"><h2>'+E(t.name)+'</h2><span class="chip">16岁 · 中国籍 · 中超青训</span></div><div class="grid3">'+metric("18岁模板参考",t.historicalOverall)+metric("16岁青年能力",Math.round(Object.values(academyStats(t)).reduce((a,b)=>a+b,0)/7))+metric("潜力",t.potential)+metric("身高",t.height+" cm")+'</div><div class="wheel-box"><div class="wheel-pointer">▼</div><div id="wheel-'+id+'" class="club-wheel" style="background:conic-gradient('+teams.map((name,i)=>colors[i%colors.length]+' '+(i*100/teams.length)+'% '+((i+1)*100/teams.length)+'%').join(",")+')"><span>中超<br>随机抽签</span>'+teams.map((name,i)=>'<em class="wheel-label" style="transform:rotate('+(i*360/teams.length+180/teams.length)+'deg) translateY(-120px) rotate(90deg)">'+E(name.slice(0,4))+'</em>').join('')+'</div></div><p class="muted small">随机范围：'+teams.length+'支预设中超球队 · 两人不会抽到同一队</p><p class="gold"><strong>'+(picked?"已抽中："+E(picked):"尚未抽签")+'</strong></p><button class="button '+(picked?"outline":"goldbtn")+'" data-action="spinClub" data-id="'+id+'" '+(picked||wheelBusy?"disabled":"")+'>'+(picked?"抽签已锁定":"点击旋转转盘")+'</button><p class="muted small gap">'+E(t.reference)+'</p></section>'};
+ return '<div class="hero"><div><div class="cap">ONE SHARED FOOTBALL WORLD</div><h1>双星同场 · 中超起航</h1><p>王楚淇与维尼修斯均以16岁、中国籍进入2026赛季。随机抽取真实中超俱乐部青训，青年联赛独立统计，18岁升入本队一线队。</p></div></div><div class="grid2 gap">'+DUO_IDS.map(wheel).join("")+'</div><section class="card gap"><p>两张球员卡独立成长，联赛可以成为对手。</p><button class="button primary" data-action="preset" '+(DUO_IDS.every(id=>drawnClubs[id])?"":"disabled")+' >确认两队 · 开始双人青训赛季</button></section>';
 }
 const SAFETY_STORE=STORE+"-safety";
 function createSafetyBackup(){try{if(!duoGames)return;localStorage.setItem(SAFETY_STORE,JSON.stringify(duoPayload()));notify("已保存精简版双人生涯保险备份");render()}catch(e){notify("本机空间不足，建议直接导出 JSON 存档")}}
