@@ -78,6 +78,35 @@ for(const id of ["wang","vini"]){const x=state.duoGames[id],matches=x.season.res
  assert(matches.every(z=>(z.goals||0)+(z.assists||0)<=(z.home===x.player.club?z.hs:z.as)),"Personal goal and assist figures cannot exceed team goals");
 }
 log("Both careers share one league and attribute player/NPC goals exactly once");
+// Deterministic interactive draw test: even if a random baseline season had no offer.
+const forcedFixture=JSON.parse(x.stored.get(SAVE));
+const fixturePlayer=forcedFixture.duoGames.wang;
+fixturePlayer.player.leagueId="CHN";fixturePlayer.player.forcedMove=false;fixturePlayer.player.forcedSameTier=false;
+delete fixturePlayer.player.transferDraw;
+fixturePlayer.offers=[{club:"乌德勒支",id:"NED",tier:1,wage:42000,years:3,move:"升级"},
+ {club:"格罗宁根",id:"NED",tier:1,wage:40000,years:4,move:"升级"},
+ {club:"阿尔梅勒城",id:"NED",tier:1,wage:37000,years:3,move:"升级"}];
+forcedFixture.duoGames.vini.offers=[];forcedFixture.duoGames.vini.player.forcedMove=false;
+forcedFixture.duoGames.vini.player.forcedSameTier=false;
+delete forcedFixture.duoGames.vini.player.transferDraw;
+const forced=harness([[SAVE,JSON.stringify(forcedFixture)]]);
+forced.page("transfer");
+assert(forced.html.includes("promotion-wheel-wang")&&forced.html.includes("候选球队"),"Visible upgrade roulette should include valid next-tier candidates");
+forced.click("simBoth");
+assert.equal(forced.state.duoGames.wang.year,2026,"Cannot skip mandatory upgrade draw");
+forced.click("spinPromotion",{id:"wang"});forced.flush();
+const selected=forced.state.duoGames.wang.player.transferDraw.selected;
+assert(selected&&["乌德勒支","格罗宁根","阿尔梅勒城"].includes(selected.club),"Draw must select only offered next-tier teams");
+const replay=harness([[SAVE,forced.stored.get(SAVE)]]);
+assert.equal(replay.state.duoGames.wang.player.transferDraw.selected.club,selected.club,"Lottery choice is restored from storage");
+replay.page("honors");
+assert(replay.html.includes("荣誉陈列室")&&replay.html.includes("金球奖逐年排名"),"Trophy cabinet includes Golden Ball records");
+replay.click("simBoth");
+assert.equal(replay.state.duoGames.wang.year,2027,"Ready pair should advance together");
+assert.equal(replay.state.duoGames.wang.player.club,selected.club,"Actual new club must exactly match manually drawn club");
+assert.equal(replay.state.duoGames.wang.player.leagueId,selected.id,"League must follow drawn destination");
+assert.equal(replay.state.duoGames.wang.player.transferHistory.at(-1).reason,"抽签达标升级","Promotion history should distinguish lottery upgrades");
+log("Promotion roulette blocks auto-advance; selected destination survives reload and is applied exactly");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
 assert(!reload.html.includes("切换并操作"));
 assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
