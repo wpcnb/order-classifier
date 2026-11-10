@@ -545,8 +545,8 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  const defending=choice==="defend";
  const baseline=simulateScore(home,away,targetDiff-(power(home)-power(away)),defending?(ownHome?.2:.55):choice==="attack"?(ownHome?-.35:-.2):0,defending?(ownHome?.55:.2):choice==="attack"?(ownHome?-.2:-.35):0);
  let hs=baseline[0],as=baseline[1];if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
- const contribution=played?playerMatchContribution(p,ev,oppStrength,our,choice):{goals:0,assists:0};
- let goals=contribution.goals,assists=contribution.assists,played=appears;
+ const played=appears,contribution=played?playerMatchContribution(p,ev,oppStrength,our,choice):{goals:0,assists:0};
+ let goals=contribution.goals,assists=contribution.assists;
  const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their):0;
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
  if(ev.kind==="europe"){const e=s.uefa;updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev);e.played++;
