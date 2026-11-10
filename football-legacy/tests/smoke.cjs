@@ -88,7 +88,7 @@ assert(highG>lowG*2,"High-ability attacker should convert materially more CSL go
 assert(highA>lowA*1.2,"High-ability attacker should create more CSL assists");
 log("High-skill CSL conversion scales up goals and assists without exceeding team scoring");
 reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2027);assert.equal(state.duoGames[id].history.length,2)}
-assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable);log("Both careers advance synchronously into next season and survive reload");
+if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable,"Players in same league must share table");log("Both careers advance synchronously into next season and survive reload");
 const api=reload.api;
 const active=api.get();const p=active.player,s=active.season;
 p.leagueId="ESP";p.club="皇家马德里";p.position="LW";p.poorStreak=0;p.forcedMove=false;
