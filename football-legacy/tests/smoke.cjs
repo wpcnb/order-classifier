@@ -82,6 +82,7 @@ log("Both careers share one league and attribute player/NPC goals exactly once")
 const forcedFixture=JSON.parse(x.stored.get(SAVE));
 const fixturePlayer=forcedFixture.duoGames.wang;
 fixturePlayer.player.leagueId="CHN";fixturePlayer.player.forcedMove=false;fixturePlayer.player.forcedSameTier=false;
+fixturePlayer.player.transferAssessment={...fixturePlayer.player.transferAssessment,maxTier:1,qualified:true};
 delete fixturePlayer.player.transferDraw;
 fixturePlayer.offers=[{club:"乌德勒支",id:"NED",tier:1,wage:42000,years:3,move:"升级"},
  {club:"格罗宁根",id:"NED",tier:1,wage:40000,years:4,move:"升级"},
@@ -174,7 +175,7 @@ const cslOffers=api.generateOffers();
 assert(cslOffers.every(o=>o.tier===0&&o.move==="同级转会"),"CSL moves must never be marked as relegation");
 log("Poor CSL seasons retain player or offer same-tier moves, never false relegation");
 // Promotions are limited to one step, even for an exceptionally productive attacker.
-p.poorStreak=0;p.forcedMove=false;p.trophylessStreak=0;p.forcedSameTier=false;
+p.poorStreak=0;p.forcedMove=false;p.trophylessStreak=0;p.forcedSameTier=false;p.scoutingRoll=0;
 s.results=Array.from({length:28},(_,i)=>({kind:"league",played:true,goals:2,assists:1,rating:9.1,home:"上海海港",away:"对手",hs:4,as:0,date:"2027-04-"+String(i+1).padStart(2,"0")}));
 const good=api.seasonPerformance();assert.equal(good.maxTier,1);
 const stepOffers=api.generateOffers();assert(stepOffers.some(o=>o.tier===1));

@@ -1,0 +1,74 @@
+name: Football Dynasty 1000-game stress audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "football-legacy/**"
+      - ".github/workflows/football-stress-1000.yml"
+  pull_request:
+    paths:
+      - "football-legacy/**"
+      - ".github/workflows/football-stress-1000.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  post-release-100:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: "Released main / 100 independent games / shard ${{ matrix.shard }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run 50 independent games for 10 seasons on released main
+        env:
+          STRESS_SHARD: ${{ matrix.shard }}
+          STRESS_RUNS: "50"
+          STRESS_YEARS: "10"
+        run: |
+          set -o pipefail
+          node football-legacy/tests/stress-1000.cjs | tee postrelease-100-shard-${{ matrix.shard }}.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postrelease-100-shard-${{ matrix.shard }}
+          path: postrelease-100-shard-${{ matrix.shard }}.log
+          retention-days: 30
+
+  stress:
+    if: github.event_name != 'push'
+    name: "1000-game shard ${{ matrix.shard }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Simulate 50 independent games, 10 seasons per game
+        env:
+          STRESS_SHARD: ${{ matrix.shard }}
+          STRESS_RUNS: "50"
+          STRESS_YEARS: "10"
+        run: |
+          set -o pipefail
+          node football-legacy/tests/stress-1000.cjs | tee stress-shard-${{ matrix.shard }}.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stress-results-${{ matrix.shard }}
+          path: stress-shard-${{ matrix.shard }}.log
+          retention-days: 7
