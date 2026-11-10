@@ -37,7 +37,7 @@ assert(!["皇家马德里"].includes(v.club));
 assert.equal(w.sourceRating,83);assert.equal(v.sourceRating,77);
 assert.equal(w.heightCm,177);assert.equal(v.heightCm,176);
 assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
-assert(x.html.includes("同一世界同步推进完整赛季"));
+assert(x.html.includes("一键同步模拟两人"));
 log("Two playable 18-year-old China-nationality cards with distinct historical FIFA templates");
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
 x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
