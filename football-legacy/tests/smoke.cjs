@@ -76,6 +76,8 @@ for(const id of ["wang","vini"]){
  const p=state.duoGames[id].player;
  assert.equal(p.age,18);assert.equal(p.youth,false);assert(p.academyCareer.apps>0);
  assert.equal(p.club,p.academyParentClub);
+ assert(p.stats.pace>=(id==="wang"?90:93),"Age-18 pace must match the original player's template");
+ assert(p.stats.shoot>=(id==="wang"?80:72),"Age-18 shooting must match the original player's template");
  assert(p.career.apps>0,"Senior stats begin only from adult 2028 season");
 }
 log("Both enter their parent CSL clubs' first teams at age 18, preserving youth records");
