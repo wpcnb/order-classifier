@@ -983,7 +983,7 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
   // reference template; subsequent growth remains governed by training.
   const reference=DUO_TEMPLATES[g.duoId]?.stats;
   if(reference)for(const [key,value]of Object.entries(reference))
-   p.stats[key]=Math.min(p.potential,Math.max(p.stats[key]||0,value));
+   p.stats[key]=Math.max(p.stats[key]||0,value);
   p.club=p.academyParentClub||p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);p.contract=4;
   p.poorStreak=0;p.trophylessStreak=0;p.forcedMove=false;p.forcedSameTier=false;
   log("青训毕业：18岁升入 "+p.club+" 一线队。青训进球助攻单独保存在青年履历中。")}
