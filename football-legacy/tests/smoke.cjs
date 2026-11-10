@@ -82,6 +82,7 @@ log("Both careers share one league and attribute player/NPC goals exactly once")
 const forcedFixture=JSON.parse(x.stored.get(SAVE));
 const fixturePlayer=forcedFixture.duoGames.wang;
 fixturePlayer.player.leagueId="CHN";fixturePlayer.player.forcedMove=false;fixturePlayer.player.forcedSameTier=false;
+fixturePlayer.player.transferAssessment={...fixturePlayer.player.transferAssessment,maxTier:1,qualified:true};
 delete fixturePlayer.player.transferDraw;
 fixturePlayer.offers=[{club:"乌德勒支",id:"NED",tier:1,wage:42000,years:3,move:"升级"},
  {club:"格罗宁根",id:"NED",tier:1,wage:40000,years:4,move:"升级"},
