@@ -154,6 +154,7 @@ function hydratePayload(data){
  activeDuo="wang";g=duoGames.wang;
  linkSharedWorld();
  if(reconcileEuropeanHonors())save();
+ if(DUO_IDS.every(id=>duoGames[id].season.index===0))setupSharedUefaSeason();
 }
 let storageWarningShown=false;
 function save(){
@@ -303,12 +304,23 @@ function allocateSharedUefaNPC(date){
 function settleSharedUefaWinners(year){
  if(!duoGames||!sharedUniverse?.europeCompetitions)return;
  sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+ const original=g;
  for(const comp of Object.values(sharedUniverse.europeCompetitions)){
-  if(comp.year!==year||sharedUniverse.europeFinals[comp.key])continue;
+  if(comp.year!==year)continue;
+  // Finalize non-player knockout fixtures exactly once.
+  for(const m of comp.ko){
+   if(m.npcAllocated)continue;
+   const involving=DUO_IDS.some(id=>duoGames[id].season.uefa?.sharedKey===comp.key&&
+    [m.home,m.away].includes(duoGames[id].player.club));
+   if(involving)continue;
+   g=duoGames.wang;simulateNPCGame(m.home,m.away,m.hs,m.as,0,0,"europe");m.npcAllocated=true;
+  }
+  if(sharedUniverse.europeFinals[comp.key])continue;
   const m=comp.ko.find(e=>e.stage==="决赛");
   if(m)sharedUniverse.europeFinals[comp.key]={key:comp.key,year:comp.year,type:comp.type,
    date:m.date,home:m.home,away:m.away,hs:m.hs,as:m.as,winner:comp.champion};
  }
+ g=original;
 }
 function addSharedKnockouts(){
  const e=g.season.uefa,comp=sharedUniverse?.europeCompetitions?.[e?.sharedKey];
@@ -1146,6 +1158,7 @@ function endSeason(){
  if(!p.youth&&avg>=8.1&&s.apps>=24)award("世界年度最佳阵容","individual");
  if(s.uefa&&!s.uefa.completed){s.uefa.completed=true;s.uefa.stage="season-end";log("赛季结束，未完成的欧战结算为终止。")}
  if(!duoGames)finishVote();
+ if(duoGames&&DUO_IDS.every(id=>duoGames[id].season.stage==="review"))settleSharedUefaWinners(g.year);
  const champions={};for(const [id,w]of Object.entries(s.world||{}))champions[id]=sortedTable(w.table)[0]?.name;
  for(const [key,data]of Object.entries(sharedUniverse?.rounds||{})){const [year,league]=key.split(":");if(Number(year)===g.year)champions[league]=sortedTable(data.table)[0]?.name}
  champions[p.leagueId]=sortedTable(s.leagueTable)[0]?.name;
