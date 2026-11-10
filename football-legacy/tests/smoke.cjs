@@ -292,7 +292,7 @@ const m=medical.api.get(),athlete=m.player;
 athlete.injuryMatches=0;athlete.stamina=95;athlete.discipline={
  league:{yellow:4,ban:2},cup:{yellow:0,ban:0},europe:{yellow:1,ban:1},national:{yellow:0,ban:0}
 };
-m.season.stage="playing";m.season.index=0;
+m.season.stage="playing";m.season.index=0;m.season.world={}; // isolated unit fixture: skip unrelated world catch-up
 const firstLeague=m.season.events.find(e=>e.kind==="league");
 assert(firstLeague);
 medical.api.playEvent(firstLeague,"balanced",true);
