@@ -1582,7 +1582,7 @@ function duoTop(){
  if(!duoGames)return "";
  return '<section class="card"><div class="row"><div><div class="cap">双人职业生涯 · 单一足球世界</div><h2>王楚淇 × 维尼修斯</h2></div><button class="button goldbtn" data-action="simBoth">一键同步模拟两人</button></div><div class="grid2">'+DUO_IDS.map(id=>{
  const x=duoGames[id],p=x.player,v=x.season,r=x.lastReview;
- return '<div class="item"><div class="row"><strong>'+E(p.name)+' · 综合 '+overall(p)+'</strong><span class="chip">'+p.age+'岁 · '+E(DB[p.leagueId].name)+'</span></div><p class="muted small">'+E(p.club)+' · '+x.year+'赛季 · 出场'+v.apps+' / 进球'+v.goals+' / 助攻'+v.assists+' · 伤停'+(p.injuryMatches||0)+'场</p><p class="muted small">潜力'+p.potential+' · 连续不达标'+(p.poorStreak||0)+'季 · 连续无俱乐部冠军'+(p.trophylessStreak||0)+'季 · '+(r?.performance?.comment||"赛季进行中")+'</p></div>'
+ return '<div class="item"><div class="row"><strong>'+E(p.name)+' · 综合 '+overall(p)+'</strong><span class="chip">'+p.age+'岁 · '+E(DB[p.leagueId].name)+'</span></div><p class="muted small">'+E(p.club)+' · '+x.year+'赛季 · 出场'+v.apps+' / 进球'+v.goals+' / 助攻'+v.assists+' · 伤停'+(p.injuryMatches||0)+'场</p><p class="muted small">本赛季纪律：联赛黄牌'+(p.discipline?.league?.yellow??p.yellowCards??0)+' · 生涯红牌'+(p.redCards||0)+' · 联赛停赛'+(p.discipline?.league?.ban??p.suspension??0)+'场 · 欧战停赛'+(p.discipline?.europe?.ban||0)+'场 · 杯赛停赛'+(p.discipline?.cup?.ban||0)+'场 · 国家队停赛'+(p.discipline?.national?.ban||0)+'场</p><p class="muted small">潜力'+p.potential+' · 连续不达标'+(p.poorStreak||0)+'季 · 连续无俱乐部冠军'+(p.trophylessStreak||0)+'季 · '+(r?.performance?.comment||"赛季进行中")+'</p></div>'
  }).join("")+'</div><p class="muted small gap">两人同时参赛、同步成长和转会；统一联赛积分榜、射手榜及年度金球奖。无需切换或单独操作球员。</p></section>'
 }
 function duoDashboard(){
