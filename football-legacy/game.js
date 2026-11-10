@@ -924,6 +924,7 @@ function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"))return;
  const year=duoGames.wang.year;
  if(duoGames.vini.year!==year||sharedUniverse.awards[year])return;
+ settleSharedUefaWinners(year);
  const original=activeDuo,originalGame=g;
  const roster=duoGames.wang.npcs.filter(n=>n.realPerson&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
