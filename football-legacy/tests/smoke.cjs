@@ -175,7 +175,7 @@ const cslOffers=api.generateOffers();
 assert(cslOffers.every(o=>o.tier===0&&o.move==="同级转会"),"CSL moves must never be marked as relegation");
 log("Poor CSL seasons retain player or offer same-tier moves, never false relegation");
 // Promotions are limited to one step, even for an exceptionally productive attacker.
-p.poorStreak=0;p.forcedMove=false;p.trophylessStreak=0;p.forcedSameTier=false;
+p.poorStreak=0;p.forcedMove=false;p.trophylessStreak=0;p.forcedSameTier=false;p.scoutingRoll=0;
 s.results=Array.from({length:28},(_,i)=>({kind:"league",played:true,goals:2,assists:1,rating:9.1,home:"上海海港",away:"对手",hs:4,as:0,date:"2027-04-"+String(i+1).padStart(2,"0")}));
 const good=api.seasonPerformance();assert.equal(good.maxTier,1);
 const stepOffers=api.generateOffers();assert(stepOffers.some(o=>o.tier===1));
