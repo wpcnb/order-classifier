@@ -947,7 +947,9 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
  }
  if(p.forcedSameTier&&!p.forcedMove&&!p.youth){
   const options=(g.offers.length?g.offers:generateOffers()).filter(o=>o.tier===transferLevel(p.leagueId,p.club)&&o.club!==p.club);
-  const choice=options.sort((a,b)=>Math.abs(a.power-power(p.club))-Math.abs(b.power-power(p.club)))[0];
+  // Two trophyless seasons: automatically draw uniformly among eligible same-tier clubs.
+  // A lateral transfer is never classified as promotion or relegation.
+  const choice=options.length?options[R(0,options.length-1)]:null;
   if(!choice){notify("连续两季无冠，当前没有同档球队报价，转会申请保留");return}
   if(!applyPlayerTransfer(choice,true))return;
  }
