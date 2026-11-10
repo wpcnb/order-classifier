@@ -133,6 +133,7 @@ assert(starWins>300,"Strong European stars with trophies should remain serious B
 log("Golden Ball awards compare league strength and team trophies, not goals alone");
 // Two trophyless seasons force a lateral transfer, not a demotion or upgrade.
 p.leagueId="ENG";p.club="布莱顿";p.trophylessStreak=0;p.poorStreak=0;p.forcedMove=false;p.forcedSameTier=false;
+active.honors=active.honors.filter(h=>h.year!==active.year||h.type!=="team");
 s.results=Array.from({length:30},(_,i)=>({kind:"league",played:true,goals:1,assists:0,rating:8.0,home:p.club,away:"对手",hs:2,as:0}));
 const noCup1=api.seasonPerformance(),noCup2=api.seasonPerformance();
 assert.equal(noCup1.trophylessStreak,1);assert.equal(noCup1.forcedSameTier,false);
