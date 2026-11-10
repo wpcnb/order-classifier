@@ -302,6 +302,7 @@ assert.equal(athlete.discipline.europe.ban,1);
 assert.equal(m.season.results.at(-1).played,false);
 const cupEvent=m.season.events.find(e=>e.kind==="cup");
 assert(cupEvent,"Cup fixture required for separate competition ban regression");
+m.season.cup.active=true; // a previous completed season may have eliminated this cup team
 medical.api.playEvent(cupEvent,"balanced",true);
 assert.notEqual(m.season.results.at(-1).missedReason,"suspension","Domestic cup should not consume league suspension");
 assert.equal(athlete.discipline.league.ban,1);
