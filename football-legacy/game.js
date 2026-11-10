@@ -117,6 +117,9 @@ function duoPayload(){
  const shared=sharedUniverse||{};
  const now=a.year;
  const packedShared={
+  europeCompetitions:Object.fromEntries(Object.entries(shared.europeCompetitions||{}).filter(([key])=>Number(key.split(":")[0])===now)),
+  europeFinals:shared.europeFinals||{},
+  europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
   awards:shared.awards||{},national:shared.national||{},
   offseasonYears:(shared.offseasonYears||[]).slice(-3),
@@ -128,6 +131,7 @@ function duoPayload(){
   const x=duoGames[id],season={...x.season};
   delete season.world;
   delete season.leagueRounds;
+  if(season.uefa?.sharedKey)season.uefa={...season.uefa,table:undefined,drawRounds:undefined};
   const earlier=(x.ballonHistory||[]).map(entry=>entry.model>=6?{
     year:entry.year,model:entry.model,rank:entry.rank,playerNominated:entry.playerNominated,
     playerPoints:entry.playerPoints,winner:entry.winner,generation:entry.generation
@@ -147,11 +151,18 @@ function hydratePayload(data){
    const x=duoGames[id];x.npcs=npc;
    x.season.world=world;
    x.season.leagueRounds=leagueCalendar(x.player.leagueId,x.player.club,x.year);
+   if(x.season.uefa?.sharedKey){
+    const comp=sharedUniverse.europeCompetitions?.[x.season.uefa.sharedKey];
+    if(comp){x.season.uefa.table=comp.table;x.season.uefa.drawRounds=comp.rounds;}
+   }
   }
   delete sharedUniverse.npcs;delete sharedUniverse.world;
  }
  activeDuo="wang";g=duoGames.wang;
  linkSharedWorld();
+ if(reconcileEuropeanHonors())save();
+ if(DUO_IDS.every(id=>duoGames[id].season.stage==="playing"&&duoGames[id].season.index===0))
+  setupSharedUefaSeason();
 }
 let storageWarningShown=false;
 function save(){
@@ -205,6 +216,137 @@ function makeUefaDraw(clubs,preset=[]){
  return matches.map(r=>r.map(f=>({home:f.home,away:f.away})))
 }
 
+function sharedUefaKey(year,type){return year+":"+type}
+function setupSharedUefaSeason(){
+ if(!duoGames||!sharedUniverse||duoGames.wang.year!==duoGames.vini.year)return;
+ sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
+ const year=duoGames.wang.year;
+ // A club cannot play in the Champions League and Europa League in the same year.
+ const entrants=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa);
+ const types=[...new Set(entrants.map(x=>x.season.uefa.type))].sort((a,b)=>a==="欧冠"?-1:b==="欧冠"?1:a.localeCompare(b));
+ for(const type of types){
+  const members=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa?.type===type);
+  // A legacy season with UEFA matches already played cannot be rewritten without
+  // changing results; it will migrate at the next season boundary.
+  if(members.some(x=>!x.season.uefa.sharedKey&&x.season.results.some(m=>m.kind==="europe"||m.kind==="europeKO")))continue;
+  const key=sharedUefaKey(year,type);
+  let comp=sharedUniverse.europeCompetitions[key];
+  if(!comp){
+   const otherPlayers=new Set(entrants.filter(x=>x.season.uefa.type!==type).map(x=>x.player.club));
+   const otherCompetitions=new Set(Object.values(sharedUniverse.europeCompetitions)
+    .filter(c=>c.year===year&&c.type!==type).flatMap(c=>c.clubs||[]));
+   const pool=Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED"].includes(l.id))
+    .flatMap(l=>l.teams.map(t=>t.name))
+    .filter(name=>!otherPlayers.has(name)&&!otherCompetitions.has(name));
+   comp=window.FOOTBALL_SHARED_UEFA.create({
+    year,type,participants:[...new Set(members.map(x=>x.player.club))],pool,officialTeams:UEFA_TEAMS,
+    officialRounds:window.FOOTBALL_OFFICIAL_UCL_2026?.fixtures,draw:makeUefaDraw,
+    score:simulateScore,updateTable,ranked:sortedTable
+   });
+   sharedUniverse.europeCompetitions[key]=comp;
+  }
+  for(const x of members){
+   const club=x.player.club,old=x.season.uefa;
+   if(old.sharedKey===key){old.table=comp.table;old.drawRounds=comp.rounds;continue}
+   const matches=comp.rounds.map((round,i)=>{
+    const m=round.find(x=>x.home===club||x.away===club);
+    if(!m)throw Error("统一欧战赛程缺少"+club+"第"+(i+1)+"轮");
+    return {id:"u"+i,kind:"europe",date:m.date,competition:type,home:m.home,away:m.away,
+     stage:"联赛阶段 · 第"+(i+1)+"轮",round:i,sharedUefa:key,fixtureId:m.id,
+     verified:m.real?{gf:m.home===club?m.hs:m.as,ga:m.home===club?m.as:m.hs}:null};
+   });
+   x.season.uefa={...old,sharedKey:key,table:comp.table,drawRounds:comp.rounds,
+    matches,verifiedHistory:comp.verifiedHistory,source:comp.source};
+   x.season.events=x.season.events.filter(e=>e.kind!=="europe"&&e.kind!=="europeKO").concat(matches)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+   x.season.index=0;
+  }
+ }
+}
+function findSharedUefa(ev){
+ if(!ev.sharedUefa||!sharedUniverse?.europeCompetitions)return null;
+ const comp=sharedUniverse.europeCompetitions[ev.sharedUefa];
+ if(!comp)throw Error("共享欧战数据遗失："+ev.sharedUefa);
+ const fixture=ev.kind==="europe"?comp.rounds[ev.round]?.find(m=>m.id===ev.fixtureId):
+  comp.ko.find(m=>m.id===ev.fixtureId);
+ if(!fixture)throw Error("共享欧战赛程遗失："+ev.fixtureId);
+ return {comp,fixture};
+}
+function processSharedUefaRound(ev){
+ const data=findSharedUefa(ev);if(!data)return;
+ const comp=data.comp;
+ if(comp.processedRounds[ev.round])return;
+ comp.processedRounds[ev.round]=true;
+ for(const m of comp.rounds[ev.round]){
+  updateTable(comp.table,m.home,m.away,m.hs,m.as);m.processed=true;
+  const involving=DUO_IDS.some(id=>duoGames[id].season.uefa?.sharedKey===comp.key&&
+   [m.home,m.away].includes(duoGames[id].player.club));
+  if(!involving){simulateNPCGame(m.home,m.away,m.hs,m.as,0,0,"europe");m.npcAllocated=true}
+ }
+}
+function processSharedUefaKO(ev){
+ const data=findSharedUefa(ev);if(!data)return;
+ const {comp,fixture:m}=data;
+ if(comp.processedKO[m.id])return;
+ comp.processedKO[m.id]=true;
+ if(ev.stage==="决赛"){
+  sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+  sharedUniverse.europeFinals[comp.key]={key:comp.key,year:comp.year,type:comp.type,
+   date:m.date,home:m.home,away:m.away,hs:m.hs,as:m.as,winner:comp.champion};
+ }
+}
+function allocateSharedUefaNPC(date){
+ if(!duoGames||!sharedUniverse?.europeCompetitions)return;
+ const previous=g;
+ for(const comp of Object.values(sharedUniverse.europeCompetitions)){
+  if(comp.year!==duoGames.wang.year)continue;
+  for(const m of [...comp.rounds.flat(),...comp.ko]){
+   if(m.npcAllocated||m.date!==date||!m.processed&&!comp.processedKO[m.id])continue;
+   const users=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa?.sharedKey===comp.key&&
+    [m.home,m.away].includes(x.player.club));
+   if(!users.length){m.npcAllocated=true;continue}
+   const played=users.map(x=>({club:x.player.club,match:x.season.results.findLast(z=>
+    z.sharedUefa===comp.key&&z.fixtureId===m.id&&z.date===date)}));
+   if(played.some(x=>!x.match))continue;
+   let gh=0,ga=0,ah=0,aa=0;
+   for(const x of played)if(x.club===m.home){gh+=x.match.goals||0;ah+=x.match.assists||0}
+   else{ga+=x.match.goals||0;aa+=x.match.assists||0}
+   g=duoGames.wang;simulateNPCGame(m.home,m.away,m.hs,m.as,gh,ga,"europe",ah,aa);m.npcAllocated=true;
+  }
+ }
+ g=previous;
+}
+function settleSharedUefaWinners(year){
+ if(!duoGames||!sharedUniverse?.europeCompetitions)return;
+ sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+ const original=g;
+ for(const comp of Object.values(sharedUniverse.europeCompetitions)){
+  if(comp.year!==year)continue;
+  // Finalize non-player knockout fixtures exactly once.
+  for(const m of comp.ko){
+   if(m.npcAllocated)continue;
+   const involving=DUO_IDS.some(id=>duoGames[id].season.uefa?.sharedKey===comp.key&&
+    [m.home,m.away].includes(duoGames[id].player.club));
+   if(involving)continue;
+   g=duoGames.wang;simulateNPCGame(m.home,m.away,m.hs,m.as,0,0,"europe");m.npcAllocated=true;
+  }
+  if(sharedUniverse.europeFinals[comp.key])continue;
+  const m=comp.ko.find(e=>e.stage==="决赛");
+  if(m)sharedUniverse.europeFinals[comp.key]={key:comp.key,year:comp.year,type:comp.type,
+   date:m.date,home:m.home,away:m.away,hs:m.hs,as:m.as,winner:comp.champion};
+ }
+ g=original;
+}
+function addSharedKnockouts(){
+ const e=g.season.uefa,comp=sharedUniverse?.europeCompetitions?.[e?.sharedKey];
+ if(!comp||e.knockoutsScheduled)return;
+ const club=g.player.club;
+ const events=comp.ko.filter(m=>m.home===club||m.away===club).map(m=>({
+  id:m.id,kind:"europeKO",date:m.date,competition:e.type,stage:m.stage,leg:m.leg,
+  home:m.home,away:m.away,sharedUefa:comp.key,fixtureId:m.id}));
+ e.koAggregate={};e.knockoutsScheduled=true;
+ g.season.events.push(...events);g.season.events.sort((a,b)=>a.date.localeCompare(b.date));
+}
 function createUefa(club,id,year,rank){
  if(!["ENG","ESP","ITA","GER","FRA","POR","NED"].includes(id))return null;
  const isManu=year===2026&&club==="曼联",type=isManu?"欧冠":rank<=4?"欧冠":rank<=7?"欧联":null;
@@ -273,7 +415,7 @@ function makeDuoCareer(id){
 function buildDuoGame(){
  if(!DUO_IDS.every(id=>CSL_DRAW_TEAMS().includes(drawnClubs[id]))){notify("请先为两名球员分别转动中超球队转盘");return}
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
- duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();activeDuo="wang";g=wang;page="dashboard";save();render();
+ duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
 }
 function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
@@ -282,6 +424,9 @@ function linkSharedWorld(){
  sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{},national:{}};
  sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};sharedUniverse.awards=sharedUniverse.awards||{};
  sharedUniverse.offseasonYears=sharedUniverse.offseasonYears||[];
+ sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+ sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
+ sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
  sharedUniverse.clubRatings=sharedUniverse.clubRatings||{};
  a.npcs=b.npcs=a.npcs.filter(n=>!DUO_IDS.some(id=>n.name===duoGames[id].player.name)); // One AI roster without duplicated protagonists
  a.clubRatings=b.clubRatings=sharedUniverse.clubRatings;
@@ -358,6 +503,91 @@ function allocateSharedNpcForDay(date){
  }
  g=duoGames[original];
 }
+function europeanFinalKey(year,type){return String(year)+":"+type}
+function eligibleSharedFinalist(x,date,type){
+ return x&&x.season.stage==="playing"&&x.season.uefa?.type===type&&!x.season.uefa.completed&&
+  x.season.events.slice(x.season.index).some(e=>e.kind==="europeKO"&&e.stage==="决赛"&&e.date===date);
+}
+function sharedEuropeanFinal(ev){
+ if(!duoGames||!sharedUniverse||ev.kind!=="europeKO"||ev.stage!=="决赛"||!g.season.uefa)return null;
+ const type=g.season.uefa.type,key=europeanFinalKey(g.year,type);
+ const existing=sharedUniverse.europeFinals[key];if(existing)return existing;
+ const other=DUO_IDS.map(id=>duoGames[id]).find(x=>x!==g);
+ const shared=eligibleSharedFinalist(other,ev.date,type);
+ let home=ev.home,away=ev.away;
+ if(shared&&other.player.club!==g.player.club){
+  [home,away]=Math.random()<.5?[g.player.club,other.player.club]:[other.player.club,g.player.club];
+ }
+ return {key,year:g.year,type,date:ev.date,home,away,sharedDuo:!!shared};
+}
+function assignEuropeanFinal(fixture,hs,as){
+ const winner=hs>as?fixture.home:as>hs?fixture.away:(Math.random()<.5?fixture.home:fixture.away);
+ const data={...fixture,hs,as,winner,npcAllocated:false};
+ sharedUniverse.europeFinals[fixture.key]=data;
+ return data;
+}
+function allocateSharedEuropeFinalNPC(date){
+ if(!duoGames||!sharedUniverse)return;
+ const before=g;
+ for(const entry of Object.values(sharedUniverse.europeFinals||{})){
+  if(!entry.sharedDuo||entry.npcAllocated||entry.date!==date||entry.hs===undefined)continue;
+  const matches=DUO_IDS.map(id=>({player:duoGames[id].player,match:duoGames[id].season.results.findLast(m=>m.kind==="europeKO"&&m.stage==="决赛"&&m.date===date&&m.home===entry.home&&m.away===entry.away)}));
+  if(matches.some(x=>!x.match))continue;
+  let gh=0,ga=0,ah=0,aa=0;
+  for(const x of matches){
+   if(x.player.club===entry.home){gh+=x.match.goals||0;ah+=x.match.assists||0}
+   else if(x.player.club===entry.away){ga+=x.match.goals||0;aa+=x.match.assists||0}
+  }
+  g=duoGames.wang;
+  simulateNPCGame(entry.home,entry.away,entry.hs,entry.as,gh,ga,"europe",ah,aa);
+  entry.npcAllocated=true;
+ }
+ g=before;
+}
+// Historic careers had independent European finals. No actual shared result
+// exists to reconstruct, so choose deterministically using saved season data
+// and leave a visible audit trail instead of deleting the old save.
+function reconcileEuropeanHonors(){
+ if(!duoGames||!sharedUniverse)return false;
+ const claimsBySeason={};
+ for(const id of DUO_IDS){
+  const x=duoGames[id];
+  for(const h of x.honors||[]){
+   if(h.type!=="team"||!["欧冠冠军","欧联冠军"].includes(h.name))continue;
+   const history=x.history?.findLast(m=>m.year===h.year&&m.generation===h.generation);
+   const club=history?.club||x.player.club,type=h.name.replace("冠军",""),key=europeanFinalKey(h.year,type);
+   (claimsBySeason[key]||(claimsBySeason[key]=[])).push({id,x,h,club,history});
+  }
+ }
+ let changed=false;
+ for(const [key,claims] of Object.entries(claimsBySeason)){
+  if(claims.length<2||new Set(claims.map(c=>c.club)).size<2)continue;
+  const recorded=sharedUniverse.europeFinals?.[key];
+  const score=c=>Number(c.history?.average||0)*10+Math.min(c.history?.goals||0,60)/5;
+  const retained=recorded?.winner?claims.find(c=>c.club===recorded.winner)||null:
+   claims.slice().sort((a,b)=>score(b)-score(a)||a.club.localeCompare(b.club))[0];
+  const winnerClub=recorded?.winner||retained.club;
+  // A genuine unified result takes priority even when neither legacy claim
+  // matches it. Never overwrite the real shared winner with a heuristic.
+  if(!recorded?.winner){
+   sharedUniverse.europeFinals[key]={key,year:retained.h.year,type:retained.h.name.replace("冠军",""),
+    winner:winnerClub,legacy:true,claimClubs:claims.map(c=>c.club)};
+  }
+  for(const c of claims){
+   if(c===retained)continue;
+   c.x.honors=c.x.honors.filter(h=>h!==c.h);
+   c.x.logs=c.x.logs||[];
+   c.x.logs.unshift({year:c.h.year,week:0,description:"旧版欧冠/欧联冠军重复记录已校正："+(c.h.year+1)+"年"+c.h.name+
+    "统一登记为"+winnerClub+"。旧版独立决赛无法还原。"});
+   changed=true;
+  }
+  sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
+  if(!sharedUniverse.europeTitleCorrections.some(c=>c.key===key))sharedUniverse.europeTitleCorrections.push({
+   key,year:claims[0].h.year,competition:claims[0].h.name,winner:winnerClub,
+   conflictingClubs:claims.map(c=>c.club),reason:recorded?.winner?"保留同届统一赛程冠军，清除矛盾旧奖杯":"旧版独立欧战决赛重复；按历史赛季数据确定单一归属"});
+ }
+ return changed;
+}
 function runSharedDay(date,focusId=null,focusChoice="balanced"){
  const original=activeDuo;
  let total=0;
@@ -370,7 +600,7 @@ function runSharedDay(date,focusId=null,focusChoice="balanced"){
   }
   if(g.season.stage==="playing"&&g.season.index>=g.season.events.length)endSeason();
  }
- activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);linkSharedWorld();return total;
+ activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);allocateSharedUefaNPC(date);linkSharedWorld();return total;
 }
 function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
  if(!duoGames)return;
@@ -577,51 +807,95 @@ function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced")
  }
  return {goals,assists}
 }
+// Discipline is competition-specific; injuries cover the player's team fixtures.
+function disciplinaryScope(ev){return ev.kind==="europeKO"||ev.kind==="europe"?"europe":ev.kind==="national"?"national":ev.kind==="cup"?"cup":"league"}
+function disciplinaryRecord(p,ev){
+ const scope=disciplinaryScope(ev);
+ if(!p.discipline){
+  p.discipline={league:{yellow:Math.max(0,p.yellowCards||0),ban:Math.max(0,p.suspension||0)},europe:{yellow:0,ban:0},cup:{yellow:0,ban:0},national:{yellow:0,ban:0}};
+ }
+ if(!p.discipline[scope])p.discipline[scope]={yellow:0,ban:0};
+ return p.discipline[scope];
+}
+function refreshSuspensionSummary(p){
+ p.suspension=Math.max(0,...Object.values(p.discipline||{}).map(x=>x.ban||0));
+ p.yellowCards=p.discipline?.league?.yellow||0;
+}
+function offseasonRecovery(p){
+ const before={injury:Math.max(0,p.injuryMatches||0),fitness:p.stamina||0};
+ // Summer rest heals most fatigue and a portion of injury, but serious injuries persist.
+ const healed=C(R(1,2),0,3);
+ p.injuryMatches=Math.max(0,before.injury-healed);
+ p.stamina=C(before.fitness+R(20,38),0,95);
+ p.trainingUsed=false;
+ if(p.discipline)for(const record of Object.values(p.discipline)){
+  record.yellow=0; // accumulated bookings reset; bans carry through.
+ }
+ refreshSuspensionSummary(p);
+ return {injuryBefore:before.injury,injuryAfter:p.injuryMatches,fitnessBefore:before.fitness,fitnessAfter:p.stamina};
+}
 function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return coachMatch(ev,choice,batch);const p=g.player,s=g.season;let isOut=(ev.kind==="cup"&&!s.cup.active)||((ev.kind==="europe"||ev.kind==="europeKO")&&(!s.uefa||s.uefa.completed))||(ev.kind==="national"&&(p.age<18||s.national&&!s.national.active));let eventResult=null;
  if(isOut){p.trainingUsed=false;s.index++;s.completed++;g.live=null;if(!batch){save();render()}return}
+ const sharedMatch=findSharedUefa(ev);
  const home=ev.home|| (ev.kind==="national"?p.country:ev.kind==="cup"?(s.cup.stage%2?p.club:"对手") :p.club),away=ev.away|| (ev.kind==="national"?"国家队对手":ev.kind==="cup"?(s.cup.stage%2?"对手":p.club):"对手");
  const ownHome=home===p.club||ev.kind==="national"&&home===p.country;
  const opponent=ownHome?away:home,oppStrength=ev.kind==="national"?C(75+R(-12,12),50,94):ev.kind==="cup"?R(62,94):power(opponent);
  const formationBonus={"4-3-3":1,"4-2-3-1":2,"3-5-2":1,"4-4-2":0,"5-3-2":-1}[p.parentCoach?.formation||"4-3-3"]||0;const ourPower=C(power(p.club)+(overall(p)-75)*.23+(p.parentCoach?p.parentCoach.skills.tactics*.1+formationBonus:0),45,99);
- const unable=(p.injuryMatches||0)>0||(p.suspension||0)>0;
+ const disciplinary=disciplinaryRecord(p,ev);
+ const injuredBefore=(p.injuryMatches||0)>0,suspendedBefore=(disciplinary.ban||0)>0;
+ const unable=injuredBefore||suspendedBefore;
  const appears=!unable&&p.stamina>20&&Math.random()<playerFit();
  if(!appears)choice="balanced";
  const bias=choice==="creative"?4:0;
  const targetDiff=(ownHome?1:-1)*(ourPower-oppStrength+bias);
  const defending=choice==="defend";
  const baseline=simulateScore(home,away,targetDiff-(power(home)-power(away)),defending?(ownHome?.2:.55):choice==="attack"?(ownHome?-.35:-.2):0,defending?(ownHome?.55:.2):choice==="attack"?(ownHome?-.2:-.35):0);
- let hs=baseline[0],as=baseline[1];if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
+ let hs=baseline[0],as=baseline[1];
+ if(sharedMatch){hs=sharedMatch.fixture.hs;as=sharedMatch.fixture.as;}
+ if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
  const played=appears,contribution=played?playerMatchContribution(p,ev,oppStrength,our,choice):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
  const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}):0;
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
- if(ev.kind==="europe"){const e=s.uefa;updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev);e.played++;
- if(e.played>=8){const rank=sortedTable(e.table).findIndex(t=>t.name===p.club)+1;e.rank=rank;if(rank>24){e.completed=true;e.stage="eliminated";log(e.type+"联赛阶段第"+rank+"名，未能晋级。")}else{e.stage="knockout";addKnockouts()}}}
+ if(ev.kind==="europe"){const e=s.uefa;
+ if(sharedMatch)processSharedUefaRound(ev);
+ else{updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev)}
+ e.played++;
+ if(e.played>=8){const rank=sharedMatch?sharedMatch.comp.standings.indexOf(p.club)+1:sortedTable(e.table).findIndex(t=>t.name===p.club)+1;e.rank=rank;if(rank>24){e.completed=true;e.stage="eliminated";log(e.type+"联赛阶段第"+rank+"名，未能晋级。")}else{e.stage="knockout";if(sharedMatch)addSharedKnockouts();else addKnockouts()}}}
  if(ev.kind==="cup"){const penalties=our===their,win=our>their||(penalties&&Math.random()<C(.5+(overall(p)-75)/250,.35,.68));s.cup.results.push({stage:ev.stage,hs,as,win,penalties});if(penalties)log(s.cup.name+ev.stage+"90分钟战平，"+(win?"点球晋级。":"点球出局。"));if(!win){s.cup.active=false;log(s.cup.name+" "+ev.stage+"止步。")}else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军","team")}}}
  if(ev.kind==="national"){s.nationalApps++;if(played)p.career.national++;const n=s.national;
  if(n){n.results.push({stage:ev.stage,home,away,hs,as});if(n.knockout){
   if(ev.nationalIndex<=2){n.groupPlayed++;n.groupPoints+=our>their?3:our===their?1:0;if(n.groupPlayed===3){if(n.groupPoints>=4){n.stage="knockout";log(p.country+" "+n.name+"小组赛出线！")}else{n.active=false;n.stage="eliminated";log(p.country+" "+n.name+"小组赛出局。")}}}
   else{const pen=our===their,win=our>their||(pen&&Math.random()<.5);if(pen)log(p.country+n.name+ev.stage+(win?"通过点球大战晋级。":"点球大战遗憾出局。"));if(!win){n.active=false;n.stage="eliminated";log(p.country+" "+n.name+ev.stage+"出局。")}else if(ev.stage==="决赛"){n.active=false;n.stage="champion";award(ev.competition+"冠军","national")}}}
  }}
- if(ev.kind==="europeKO"){simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");const e=s.uefa;if(!e.koAggregate)e.koAggregate={};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
- if(ev.stage==="决赛"||ev.leg===2){let win=agg.for>agg.against||(agg.for===agg.against&&Math.random()<.5);if(agg.for===agg.against)log(e.type+ev.stage+"总比分打平，进行加时与点球决胜。");e.knockoutResults.push({stage:ev.stage,win,score:agg.for+"-"+agg.against,legs:agg.legs});if(!win){e.completed=true;e.stage="eliminated";log(e.type+ev.stage+"两回合总比分"+agg.for+"-"+agg.against+"，出局。")}else if(ev.stage==="决赛"){e.completed=true;e.stage="champion";award(e.type+"冠军","team")}else log(e.type+ev.stage+"两回合晋级。")}
+ if(ev.kind==="europeKO"){if(sharedMatch)processSharedUefaKO(ev);
+ else simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");
+ const e=s.uefa;if(!e.koAggregate)e.koAggregate={};let agg=e.koAggregate[ev.stage]||{for:0,against:0,legs:0};agg.for+=our;agg.against+=their;agg.legs++;e.koAggregate[ev.stage]=agg;
+ if(ev.stage==="决赛"||ev.leg===2){let win=sharedMatch?sharedMatch.fixture.winner===p.club:(agg.for>agg.against||(agg.for===agg.against&&Math.random()<.5));if(agg.for===agg.against)log(e.type+ev.stage+"总比分打平，进行加时与点球决胜。");e.knockoutResults.push({stage:ev.stage,win,score:agg.for+"-"+agg.against,legs:agg.legs});if(!win){e.completed=true;e.stage="eliminated";log(e.type+ev.stage+"两回合总比分"+agg.for+"-"+agg.against+"，出局。")}else if(ev.stage==="决赛"){e.completed=true;e.stage="champion";award(e.type+"冠军","team")}else log(e.type+ev.stage+"两回合晋级。")}
 }
  if(played){s.apps++;s.goals+=goals;s.assists+=assists;s.ratings.push(rating);if(their===0)s.clean++;if(ev.kind==="europe"||ev.kind==="europeKO"){s.europeApps=(s.europeApps||0)+1;s.europeGoals=(s.europeGoals||0)+goals;s.europeAssists=(s.europeAssists||0)+assists}if(ev.kind==="league"){s.leagueApps=(s.leagueApps||0)+1;s.leagueGoals=(s.leagueGoals||0)+goals;s.leagueAssists=(s.leagueAssists||0)+assists;(s.leagueRatings||(s.leagueRatings=[])).push(rating);if(their===0)s.leagueClean=(s.leagueClean||0)+1}{
  const record=p.youth?(p.academyCareer||(p.academyCareer={apps:0,goals:0,assists:0})):p.career;
  record.apps++;record.goals+=goals;record.assists+=assists;
  p.points+=(record.apps%(p.age<22?9:p.age<28?15:24)===0?1:0);
  }if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
- if(p.injuryMatches>0){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
- if(p.suspension>0){p.suspension--;if(p.suspension===0)log(p.name+"停赛期满。")}
+ if(injuredBefore){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
+ if(suspendedBefore){disciplinary.ban--;if(disciplinary.ban===0)log(p.name+"在本项赛事停赛期满。")}
  if(played){
-  if(Math.random()<.095){p.yellowCards=(p.yellowCards||0)+1;if(p.yellowCards>=5){p.suspension=Math.max(p.suspension,1);p.yellowCards=0;log(p.name+"累计5张黄牌，下轮停赛。")}}
-  if(Math.random()<.007){p.redCards=(p.redCards||0)+1;p.suspension=Math.max(p.suspension,2);log(p.name+"被红牌罚下，停赛2场。")}
+  const roll=Math.random();
+  if(roll<.007){p.redCards=(p.redCards||0)+1;disciplinary.ban=Math.max(disciplinary.ban,2);log(p.name+"在"+disciplinaryScope(ev)+"被红牌罚下，该赛事停赛2场。")}
+  else if(roll<.102){
+   disciplinary.yellow++;
+   if(disciplinary.yellow>=5){disciplinary.ban=Math.max(disciplinary.ban,1);disciplinary.yellow=0;log(p.name+"在"+disciplinaryScope(ev)+"累计5张黄牌，该赛事下轮停赛。")}
+  }
   const loss=R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30);
   p.stamina=percent(p.stamina-loss+(ev.kind==="league"?5:3));
   const injuryRisk=.008+Math.max(0,44-p.stamina)*.0020+(p.age>=30?.006:0);
   if(Math.random()<injuryRisk){p.injuryMatches=R(1,p.age>=30?7:5);p.injuryHistory=(p.injuryHistory||0)+1;log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
- }else{p.stamina=percent(p.stamina+R(4,9))}p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
- eventResult={...ev,home,away,hs,as,played,goals,assists,rating,real:false,injury:p.injuryMatches||0,suspension:p.suspension||0};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
+ }else{p.stamina=percent(p.stamina+R(4,9))}
+ refreshSuspensionSummary(p);p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
+ eventResult={...ev,home,away,hs,as,played,goals,assists,rating,real:false,
+  injury:p.injuryMatches||0,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),
+  missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  s.index++;s.completed++;g.live=null;
  if(!batch){if(s.index>=s.events.length)endSeason();else{save();page="report";render()}}
 }
@@ -637,7 +911,12 @@ function addKnockouts(){
  g.season.events.push(...additional);
  g.season.events.sort((a,b)=>a.date.localeCompare(b.date));
 }
-function award(name,type){if(!g.honors.some(h=>h.name===name&&h.year===g.year&&h.generation===g.generation)){g.honors.push({year:g.year,name,type,generation:g.generation});log("赢得荣誉："+name)}}
+function award(name,type){
+ if(type==="team"&&["欧冠冠军","欧联冠军"].includes(name)&&g.season.uefa?.sharedKey){
+  const winner=sharedUniverse?.europeCompetitions?.[g.season.uefa.sharedKey]?.champion;
+  if(winner!==g.player.club){log(name+"冠军与统一赛程不符，拒绝重复颁奖");return}
+ }
+ if(!g.honors.some(h=>h.name===name&&h.year===g.year&&h.generation===g.generation)){g.honors.push({year:g.year,name,type,generation:g.generation});log("赢得荣誉："+name)}}
 function finishVote(){
  ensureRealAwardPlayers();
  const s=g.season,p=g.player,avg=s.ratings.length?s.ratings.reduce((a,b)=>a+b,0)/s.ratings.length:6.2;
@@ -701,6 +980,8 @@ function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"))return;
  const year=duoGames.wang.year;
  if(duoGames.vini.year!==year||sharedUniverse.awards[year])return;
+ settleSharedUefaWinners(year);
+ if(reconcileEuropeanHonors())save();
  const original=activeDuo,originalGame=g;
  const roster=duoGames.wang.npcs.filter(n=>n.realPerson&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
@@ -905,6 +1186,7 @@ function duoHonorsPage(){
  const years=Object.values(sharedUniverse?.awards||{}).sort((a,b)=>b.year-a.year);
  return '<section class="hero"><div><div class="cap">TROPHY CABINET · ONE SHARED WORLD</div><h1>双星荣誉陈列室</h1><p>联赛、杯赛、欧战、国家队冠军和金球奖集中记录，按赛季回顾两人的全部荣誉。</p></div></section>'+
  renderHonorsSummary()+
+ (sharedUniverse?.europeTitleCorrections?.length?'<section class="card gap"><h3>旧档重复欧战冠军校正</h3><p class="muted">旧档曾独立模拟同届欧战；仅保留一份冠军声明，无法根据旧赛果推断真实统一决赛。</p><div class="list">'+sharedUniverse.europeTitleCorrections.slice(-8).reverse().map(c=>'<div class="item">'+(c.year+1)+'年 '+E(c.competition)+' · '+E(c.conflictingClubs.join(" / "))+' → 保留：'+E(c.winner)+'</div>').join("")+'</div></section>':'')+
  '<section class="card gap"><h2>历届世界金球奖得主</h2><div class="list">'+(years.length?years.map(v=>'<div class="item row"><span>'+E(String(v.year+1))+'年 · '+E(v.winner.name)+' · '+E(v.winner.club)+'</span><strong class="gold">'+v.winner.points+'分</strong></div>').join(""):'<p class="muted">首次赛季结束后开始记录。</p>')+'</div><button class="button gap" data-page="awards">查看历届金球奖完整30人榜</button></section>';
 }
 function endSeason(){
@@ -963,7 +1245,7 @@ function applyPlayerTransfer(o,automatic=false){
 }
 function transfer(i){if(!g?.offers?.[i])return;applyPlayerTransfer(g.offers[i])}
 function nextSeason(){if(!g||g.season.stage!=="review")return;
- if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(promotionWheelBusy||missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();save();render();return}
+ if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(promotionWheelBusy||missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}let movedByDraw=false;
  if(p.forcedMove&&p.transferDraw?.selected){
   if(!applyPlayerTransfer(p.transferDraw.selected,true))return;
@@ -989,7 +1271,10 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
   p.club=p.academyParentClub||p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);p.contract=4;
   p.poorStreak=0;p.trophylessStreak=0;p.forcedMove=false;p.forcedSameTier=false;
   log("青训毕业：18岁升入 "+p.club+" 一线队。青训进球助攻单独保存在青年履历中。")}
- g.year++;p.age++;p.contract=Math.max(0,p.contract-1);p.stamina=95;p.injuryMatches=Math.max(0,(p.injuryMatches||0)-3);p.suspension=0;p.yellowCards=0;p.trainingUsed=false;p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=30){for(const k of ["pace","physical",...(p.age>=34?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=34?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=32?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
+ g.year++;p.age++;p.contract=Math.max(0,p.contract-1);
+ const recovery=offseasonRecovery(p);
+ if(recovery.injuryBefore)log("休赛期伤病恢复："+recovery.injuryBefore+"→"+recovery.injuryAfter+"场，严重伤病不会自动清零。");
+ if(p.suspension>0)log("新赛季仍需执行剩余"+p.suspension+"场赛事停赛。");p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=30){for(const k of ["pace","physical",...(p.age>=34?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=34?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=32?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
 function retire(withCoach){const p=g.player;if(p.age<32){notify("球员至少32岁才能主动退役并开启下一代");return}const archive={generation:g.generation,name:p.name,country:p.country,club:p.club,position:p.position,age:p.age,career:{...p.career},honors:g.honors.filter(h=>h.generation===g.generation),headCoach:!!withCoach,year:g.year};g.ancestors.push(archive);const lastClub=p.club.replace(/青训$/,"");let t=mkTalent(),name=p.name.replace(/(·\d+世)+$/,"")+"·"+(g.generation+1)+"世";const child={...initialPlayer(false),name,country:p.country,age:16,position:P(["LW","RW","ST","CAM","CM","CB"]),club:lastClub+"青训",leagueId:p.leagueId,youth:true,number:R(11,40),stats:t.stats,potential:t.potential,trait:t.specialty,cash:12000,wage:1600,contract:2,fame:5,career:{apps:0,goals:0,assists:0,national:0},parentCoach:withCoach?{name:p.name,club:lastClub,points:5,skills:{tactics:20,training:25,motivation:20,scouting:20}}:null};g.generation++;g.player=child;g.year++;g.offers=[];g.live=null;g.season=makeSchedule(child,g.year,10);simulateNPCOffseason();createWorld(g.season);log("家族第"+g.generation+"代正式开启："+child.name+"，父亲"+(withCoach?"担任 "+lastClub+" 主教练":"选择退役生活")+"。");page="family";save();render()}
 function createCoachSchedule(){
  const p={...g.player,club:g.coach.club,leagueId:g.coach.leagueId,age:g.coach.age,youth:false};
@@ -1307,7 +1592,7 @@ function duoTop(){
  if(!duoGames)return "";
  return '<section class="card"><div class="row"><div><div class="cap">双人职业生涯 · 单一足球世界</div><h2>王楚淇 × 维尼修斯</h2></div><button class="button goldbtn" data-action="simBoth">一键同步模拟两人</button></div><div class="grid2">'+DUO_IDS.map(id=>{
  const x=duoGames[id],p=x.player,v=x.season,r=x.lastReview;
- return '<div class="item"><div class="row"><strong>'+E(p.name)+' · 综合 '+overall(p)+'</strong><span class="chip">'+p.age+'岁 · '+E(DB[p.leagueId].name)+'</span></div><p class="muted small">'+E(p.club)+' · '+x.year+'赛季 · 出场'+v.apps+' / 进球'+v.goals+' / 助攻'+v.assists+' · 伤停'+(p.injuryMatches||0)+'场</p><p class="muted small">潜力'+p.potential+' · 连续不达标'+(p.poorStreak||0)+'季 · 连续无俱乐部冠军'+(p.trophylessStreak||0)+'季 · '+(r?.performance?.comment||"赛季进行中")+'</p></div>'
+ return '<div class="item"><div class="row"><strong>'+E(p.name)+' · 综合 '+overall(p)+'</strong><span class="chip">'+p.age+'岁 · '+E(DB[p.leagueId].name)+'</span></div><p class="muted small">'+E(p.club)+' · '+x.year+'赛季 · 出场'+v.apps+' / 进球'+v.goals+' / 助攻'+v.assists+' · 伤停'+(p.injuryMatches||0)+'场</p><p class="muted small">本赛季纪律：联赛黄牌'+(p.discipline?.league?.yellow??p.yellowCards??0)+' · 生涯红牌'+(p.redCards||0)+' · 联赛停赛'+(p.discipline?.league?.ban??p.suspension??0)+'场 · 欧战停赛'+(p.discipline?.europe?.ban||0)+'场 · 杯赛停赛'+(p.discipline?.cup?.ban||0)+'场 · 国家队停赛'+(p.discipline?.national?.ban||0)+'场</p><p class="muted small">潜力'+p.potential+' · 连续不达标'+(p.poorStreak||0)+'季 · 连续无俱乐部冠军'+(p.trophylessStreak||0)+'季 · '+(r?.performance?.comment||"赛季进行中")+'</p></div>'
  }).join("")+'</div><p class="muted small gap">两人同时参赛、同步成长和转会；统一联赛积分榜、射手榜及年度金球奖。无需切换或单独操作球员。</p></section>'
 }
 function duoDashboard(){
