@@ -39,11 +39,11 @@ assert.equal(w.heightCm,177);assert.equal(v.heightCm,176);
 assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
 assert(x.html.includes("同一世界同步推进完整赛季"));
 log("Two playable 18-year-old China-nationality cards with distinct historical FIFA templates");
-x.click("switchDuo",{id:"vini"});state=x.state;assert.equal(state.activeDuo,"vini");
-assert.equal(state.duoGames.wang.player.name,"王楚淇");
-x.page("training");assert(x.html.includes("维尼修斯"));
-x.click("switchDuo",{id:"wang"});state=x.state;assert.equal(state.activeDuo,"wang");
-log("Switching preserves both careers");
+assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
+x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
+x.page("transfer");assert(x.html.includes("双人自动转会"));
+x.page("dashboard");
+log("One-click dual dashboard, unified league rankings and automatic transfer page");
 x.click("simBoth");state=x.state;
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
@@ -51,6 +51,10 @@ for(const id of ["wang","vini"]){
  assert.equal(s.ballonHistory[0].ballots.length,100);assert.equal(s.ballonHistory[0].totalPoints,6700);
  assert(s.lastReview.performance);
 }
+assert.deepEqual(state.duoGames.wang.ballonHistory[0].rankings,state.duoGames.vini.ballonHistory[0].rankings,"One unified Ballon d'Or ranking");
+assert.equal(Object.keys(state.sharedUniverse.awards).length,1);
+x.page("awards");assert(x.html.includes("同一届金球奖")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
+x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 const l1=state.duoGames.wang.season.leagueTable,l2=state.duoGames.vini.season.leagueTable;
 assert.deepEqual(l1,l2,"Both players must see same CSL league table");
 assert.equal(Object.values(l1).reduce((acc,t)=>acc+t.p,0),16*30,"Every CSL round counted once");
@@ -65,7 +69,7 @@ for(const fixture of Object.values(firstYearLedger.rounds).flat()){
 }
 log("Both careers share a single CSL league table, identical head-to-head scores and one calendar");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
-reload.click("switchDuo",{id:"vini"});assert.equal(reload.state.activeDuo,"vini");
+assert(!reload.html.includes("切换并操作"));
 reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2027);assert.equal(state.duoGames[id].history.length,2)}
 assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable);log("Both careers advance synchronously into next season and survive reload");
 const api=reload.api;
