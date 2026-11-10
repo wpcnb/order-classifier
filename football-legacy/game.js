@@ -557,24 +557,27 @@ function reconcileEuropeanHonors(){
   if(claims.length<2||new Set(claims.map(c=>c.club)).size<2)continue;
   const recorded=sharedUniverse.europeFinals?.[key];
   const score=c=>Number(c.history?.average||0)*10+Math.min(c.history?.goals||0,60)/5;
-  const winner=claims.find(c=>c.club===recorded?.winner)||
+  const retained=recorded?.winner?claims.find(c=>c.club===recorded.winner)||null:
    claims.slice().sort((a,b)=>score(b)-score(a)||a.club.localeCompare(b.club))[0];
-  if(!recorded?.winner||!claims.some(c=>c.club===recorded.winner)){
-   sharedUniverse.europeFinals[key]={key,year:winner.h.year,type:winner.h.name.replace("冠军",""),
-    winner:winner.club,legacy:true,claimClubs:claims.map(c=>c.club)};
+  const winnerClub=recorded?.winner||retained.club;
+  // A genuine unified result takes priority even when neither legacy claim
+  // matches it. Never overwrite the real shared winner with a heuristic.
+  if(!recorded?.winner){
+   sharedUniverse.europeFinals[key]={key,year:retained.h.year,type:retained.h.name.replace("冠军",""),
+    winner:winnerClub,legacy:true,claimClubs:claims.map(c=>c.club)};
   }
   for(const c of claims){
-   if(c===winner)continue;
+   if(c===retained)continue;
    c.x.honors=c.x.honors.filter(h=>h!==c.h);
    c.x.logs=c.x.logs||[];
    c.x.logs.unshift({year:c.h.year,week:0,description:"旧版欧冠/欧联冠军重复记录已校正："+(c.h.year+1)+"年"+c.h.name+
-    "统一登记为"+winner.club+"。旧版独立决赛无法还原。"});
+    "统一登记为"+winnerClub+"。旧版独立决赛无法还原。"});
    changed=true;
   }
   sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
   if(!sharedUniverse.europeTitleCorrections.some(c=>c.key===key))sharedUniverse.europeTitleCorrections.push({
-   key,year:winner.h.year,competition:winner.h.name,winner:winner.club,
-   conflictingClubs:claims.map(c=>c.club),reason:"旧版独立欧战决赛重复；按历史赛季数据确定单一归属"});
+   key,year:claims[0].h.year,competition:claims[0].h.name,winner:winnerClub,
+   conflictingClubs:claims.map(c=>c.club),reason:recorded?.winner?"保留同届统一赛程冠军，清除矛盾旧奖杯":"旧版独立欧战决赛重复；按历史赛季数据确定单一归属"});
  }
  return changed;
 }
