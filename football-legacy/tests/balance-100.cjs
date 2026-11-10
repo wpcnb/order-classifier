@@ -39,4 +39,14 @@ const sorted=[...seasons].sort((a,b)=>b.goals-a.goals).slice(0,10);
 const rank=Object.fromEntries(["wang","vini"].map(id=>[id,seasons.filter(s=>s.id===id&&s.awardRank===1).length]));
 const promotion=(id)=>seasons.filter(s=>s.id===id&&s.qualified).length;
 const result={version:process.env.BALANCE_VARIANT||"calibrated",sharedSeasons:seasons.length/2,playerSeasons:seasons.length,averageGoals:avg("goals"),averageLeagueGoals:avg("leagueGoals"),averageAssists:avg("assists"),averageApps:avg("apps"),averageRating:avg("avg"),maxGoals:sorted[0].goals,over40:seasons.filter(s=>s.goals>40).length,over60:seasons.filter(s=>s.goals>60).length,over91:seasons.filter(s=>s.goals>91).length,tiers:levels,moves:moved,qualifications:{wang:promotion("wang"),vini:promotion("vini")},awardWins:rank,ballonWinners:Object.entries(winners).sort((a,b)=>b[1]-a[1]).slice(0,9),topScorers:sorted,finals:reports};
+// Long-run balance guardrails: no fabricated promotion for lateral CSL moves,
+// no automatic rocket launch to legendary clubs, and no routine superhuman scoring.
+assert.equal(seasons.length,200,"Ten trials × ten shared seasons × two players");
+assert(moves.every(m=>m.new-m.old<=1),"Promotion must never skip a tier");
+assert(moves.every(m=>m.new!==m.old||m.kind==="same"),"Same-tier club changes are not upgrades");
+assert(seasons.filter(p=>p.level>0).length>=70,"Career progression must not be stuck in CSL");
+assert(seasons.filter(p=>p.level===5).length<=70,"Legendary club should not be an automatic destination");
+assert(seasons.filter(p=>p.goals>60).length===0,"60+ club-season goals must not be routine");
+assert(seasons.filter(p=>p.avg<5.9||p.avg>8.2).length===0,"Calibrated season ratings should remain credible");
+assert((rank.wang||0)+(rank.vini||0)<80,"Two user-controlled cards must not monopolize annual awards");
 console.log("BALANCE_RESULT_JSON="+JSON.stringify(result));
