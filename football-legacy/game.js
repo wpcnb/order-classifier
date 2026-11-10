@@ -205,6 +205,119 @@ function makeUefaDraw(clubs,preset=[]){
  return matches.map(r=>r.map(f=>({home:f.home,away:f.away})))
 }
 
+function sharedUefaKey(year,type){return year+":"+type}
+function setupSharedUefaSeason(){
+ if(!duoGames||!sharedUniverse||duoGames.wang.year!==duoGames.vini.year)return;
+ sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
+ const year=duoGames.wang.year;
+ for(const type of [...new Set(DUO_IDS.map(id=>duoGames[id].season.uefa?.type).filter(Boolean))]){
+  const members=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa?.type===type);
+  // A legacy season with UEFA matches already played cannot be rewritten without
+  // changing results; it will migrate at the next season boundary.
+  if(members.some(x=>!x.season.uefa.sharedKey&&x.season.results.some(m=>m.kind==="europe"||m.kind==="europeKO")))continue;
+  const key=sharedUefaKey(year,type);
+  let comp=sharedUniverse.europeCompetitions[key];
+  if(!comp){
+   const pool=Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED"].includes(l.id))
+    .flatMap(l=>l.teams.map(t=>t.name));
+   comp=window.FOOTBALL_SHARED_UEFA.create({
+    year,type,participants:[...new Set(members.map(x=>x.player.club))],pool,officialTeams:UEFA_TEAMS,
+    officialRounds:window.FOOTBALL_OFFICIAL_UCL_2026?.fixtures,draw:makeUefaDraw,
+    score:simulateScore,updateTable,ranked:sortedTable
+   });
+   sharedUniverse.europeCompetitions[key]=comp;
+  }
+  for(const x of members){
+   const club=x.player.club,old=x.season.uefa;
+   if(old.sharedKey===key){old.table=comp.table;old.drawRounds=comp.rounds;continue}
+   const matches=comp.rounds.map((round,i)=>{
+    const m=round.find(x=>x.home===club||x.away===club);
+    if(!m)throw Error("统一欧战赛程缺少"+club+"第"+(i+1)+"轮");
+    return {id:"u"+i,kind:"europe",date:m.date,competition:type,home:m.home,away:m.away,
+     stage:"联赛阶段 · 第"+(i+1)+"轮",round:i,sharedUefa:key,fixtureId:m.id,
+     verified:m.real?{gf:m.home===club?m.hs:m.as,ga:m.home===club?m.as:m.hs}:null};
+   });
+   x.season.uefa={...old,sharedKey:key,table:comp.table,drawRounds:comp.rounds,
+    matches,verifiedHistory:comp.verifiedHistory,source:comp.source};
+   x.season.events=x.season.events.filter(e=>e.kind!=="europe"&&e.kind!=="europeKO").concat(matches)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+   x.season.index=0;
+  }
+ }
+}
+function findSharedUefa(ev){
+ if(!ev.sharedUefa||!sharedUniverse?.europeCompetitions)return null;
+ const comp=sharedUniverse.europeCompetitions[ev.sharedUefa];
+ if(!comp)throw Error("共享欧战数据遗失："+ev.sharedUefa);
+ const fixture=ev.kind==="europe"?comp.rounds[ev.round]?.find(m=>m.id===ev.fixtureId):
+  comp.ko.find(m=>m.id===ev.fixtureId);
+ if(!fixture)throw Error("共享欧战赛程遗失："+ev.fixtureId);
+ return {comp,fixture};
+}
+function processSharedUefaRound(ev){
+ const data=findSharedUefa(ev);if(!data)return;
+ const comp=data.comp;
+ if(comp.processedRounds[ev.round])return;
+ comp.processedRounds[ev.round]=true;
+ for(const m of comp.rounds[ev.round]){
+  updateTable(comp.table,m.home,m.away,m.hs,m.as);m.processed=true;
+  const involving=DUO_IDS.some(id=>duoGames[id].season.uefa?.sharedKey===comp.key&&
+   [m.home,m.away].includes(duoGames[id].player.club));
+  if(!involving){simulateNPCGame(m.home,m.away,m.hs,m.as,0,0,"europe");m.npcAllocated=true}
+ }
+}
+function processSharedUefaKO(ev){
+ const data=findSharedUefa(ev);if(!data)return;
+ const {comp,fixture:m}=data;
+ if(comp.processedKO[m.id])return;
+ comp.processedKO[m.id]=true;
+ if(ev.stage==="决赛"){
+  sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+  sharedUniverse.europeFinals[comp.key]={key:comp.key,year:comp.year,type:comp.type,
+   date:m.date,home:m.home,away:m.away,hs:m.hs,as:m.as,winner:comp.champion};
+ }
+}
+function allocateSharedUefaNPC(date){
+ if(!duoGames||!sharedUniverse?.europeCompetitions)return;
+ const previous=g;
+ for(const comp of Object.values(sharedUniverse.europeCompetitions)){
+  if(comp.year!==duoGames.wang.year)continue;
+  for(const m of [...comp.rounds.flat(),...comp.ko]){
+   if(m.npcAllocated||m.date!==date||!m.processed&&!comp.processedKO[m.id])continue;
+   const users=DUO_IDS.map(id=>duoGames[id]).filter(x=>x.season.uefa?.sharedKey===comp.key&&
+    [m.home,m.away].includes(x.player.club));
+   if(!users.length){m.npcAllocated=true;continue}
+   const played=users.map(x=>({club:x.player.club,match:x.season.results.findLast(z=>
+    z.sharedUefa===comp.key&&z.fixtureId===m.id&&z.date===date)}));
+   if(played.some(x=>!x.match))continue;
+   let gh=0,ga=0,ah=0,aa=0;
+   for(const x of played)if(x.club===m.home){gh+=x.match.goals||0;ah+=x.match.assists||0}
+   else{ga+=x.match.goals||0;aa+=x.match.assists||0}
+   g=duoGames.wang;simulateNPCGame(m.home,m.away,m.hs,m.as,gh,ga,"europe",ah,aa);m.npcAllocated=true;
+  }
+ }
+ g=previous;
+}
+function settleSharedUefaWinners(year){
+ if(!duoGames||!sharedUniverse?.europeCompetitions)return;
+ sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
+ for(const comp of Object.values(sharedUniverse.europeCompetitions)){
+  if(comp.year!==year||sharedUniverse.europeFinals[comp.key])continue;
+  const m=comp.ko.find(e=>e.stage==="决赛");
+  if(m)sharedUniverse.europeFinals[comp.key]={key:comp.key,year:comp.year,type:comp.type,
+   date:m.date,home:m.home,away:m.away,hs:m.hs,as:m.as,winner:comp.champion};
+ }
+}
+function addSharedKnockouts(){
+ const e=g.season.uefa,comp=sharedUniverse?.europeCompetitions?.[e?.sharedKey];
+ if(!comp||e.knockoutsScheduled)return;
+ const club=g.player.club;
+ const events=comp.ko.filter(m=>m.home===club||m.away===club).map(m=>({
+  id:m.id,kind:"europeKO",date:m.date,competition:e.type,stage:m.stage,leg:m.leg,
+  home:m.home,away:m.away,sharedUefa:comp.key,fixtureId:m.id}));
+ e.koAggregate={};e.knockoutsScheduled=true;
+ g.season.events.push(...events);g.season.events.sort((a,b)=>a.date.localeCompare(b.date));
+}
 function createUefa(club,id,year,rank){
  if(!["ENG","ESP","ITA","GER","FRA","POR","NED"].includes(id))return null;
  const isManu=year===2026&&club==="曼联",type=isManu?"欧冠":rank<=4?"欧冠":rank<=7?"欧联":null;
@@ -267,7 +380,7 @@ function makeDuoCareer(id){
 function buildDuoGame(){
  if(!DUO_IDS.every(id=>CSL_DRAW_TEAMS().includes(drawnClubs[id]))){notify("请先为两名球员分别转动中超球队转盘");return}
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
- duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();activeDuo="wang";g=wang;page="dashboard";save();render();
+ duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
 }
 function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
@@ -449,7 +562,7 @@ function runSharedDay(date,focusId=null,focusChoice="balanced"){
   }
   if(g.season.stage==="playing"&&g.season.index>=g.season.events.length)endSeason();
  }
- activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);allocateSharedEuropeFinalNPC(date);linkSharedWorld();return total;
+ activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);allocateSharedUefaNPC(date);allocateSharedEuropeFinalNPC(date);linkSharedWorld();return total;
 }
 function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
  if(!duoGames)return;
@@ -1051,7 +1164,7 @@ function applyPlayerTransfer(o,automatic=false){
 }
 function transfer(i){if(!g?.offers?.[i])return;applyPlayerTransfer(g.offers[i])}
 function nextSeason(){if(!g||g.season.stage!=="review")return;
- if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(promotionWheelBusy||missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();save();render();return}
+ if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(promotionWheelBusy||missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}let movedByDraw=false;
  if(p.forcedMove&&p.transferDraw?.selected){
   if(!applyPlayerTransfer(p.transferDraw.selected,true))return;
