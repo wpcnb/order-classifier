@@ -205,18 +205,26 @@ function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
  if(!duoGames)return;
  const a=duoGames.wang,b=duoGames.vini;
- sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{}};
- sharedUniverse.rounds=sharedUniverse.rounds||{};
+ sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{},national:{}};
+ sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};
  sharedUniverse.offseasonYears=sharedUniverse.offseasonYears||[];
  sharedUniverse.clubRatings=sharedUniverse.clubRatings||{};
  a.npcs=b.npcs=a.npcs; // A single pool of AI players and transfers
  a.clubRatings=b.clubRatings=sharedUniverse.clubRatings;
+ if(a.year===b.year){
+  const occupied=new Set([a.player.leagueId,b.player.leagueId]);
+  const common=a.season.world||b.season.world||{};
+  for(const id of occupied)delete common[id];
+  for(const [id,db] of Object.entries(DB))if(!occupied.has(id)&&!common[id]){const names=db.teams.map(t=>t.name),rounds=makeRR(names);common[id]={played:0,total:rounds.length,rounds,table:Object.fromEntries(names.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]))}}
+  a.season.world=b.season.world=common;
+  // Both Chinese internationals play the same national team fixture list.
+  if(a.player.country===b.player.country){const na=a.season.events.filter(ev=>ev.kind==="national"),nb=b.season.events.filter(ev=>ev.kind==="national");if(na.length===nb.length)for(let i=0;i<na.length;i++){nb[i].home=na[i].home;nb[i].away=na[i].away;nb[i].date=na[i].date}}
+ }
  if(a.year===b.year&&a.player.leagueId===b.player.leagueId){
   // Both players see one table; never calculate a league's fixtures twice.
   const key=a.year+":"+a.player.leagueId,data=sharedUniverse.rounds[key];
   if(data?.table){a.season.leagueTable=b.season.leagueTable=data.table}
   else{a.season.leagueTable=b.season.leagueTable=a.season.leagueTable}
-  a.season.world=b.season.world=a.season.world;
  }
 }
 function sharedLeagueRound(ev){
@@ -321,8 +329,8 @@ function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0,mode="leagu
 }
 
 function createWorld(season){
- const leagues={};for(const [id,db]of Object.entries(DB)){
-  if(id===g.player.leagueId)continue;
+ const leagues={};const occupied=new Set(duoGames?DUO_IDS.map(id=>duoGames[id].player.leagueId):[g.player.leagueId]);for(const [id,db]of Object.entries(DB)){
+  if(occupied.has(id))continue;
   const names=db.teams.map(t=>t.name),rounds=makeRR(names);
   leagues[id]={played:0,total:rounds.length,rounds,table:Object.fromEntries(names.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]))};
  }
@@ -344,7 +352,7 @@ function offseasonClubUpdate(){
  if(!g?.season)return;
  g.clubRatings=g.clubRatings||{};
  for(const [id,db]of Object.entries(DB)){
-  const table=id===g.player.leagueId?g.season.leagueTable:g.season.world?.[id]?.table;
+  const table=id===g.player.leagueId?g.season.leagueTable:sharedUniverse?.rounds?.[g.year+":"+id]?.table||g.season.world?.[id]?.table;
   if(!table)continue;
   const sorted=sortedTable(table),total=sorted.length;
   sorted.forEach((t,idx)=>{const baseline=db.teams.find(x=>x.name===t.name.replace(/青训$/,""))?.power;
@@ -427,7 +435,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  const targetDiff=(ownHome?1:-1)*(ourPower-oppStrength+bias);
  const defending=choice==="defend";
  const baseline=simulateScore(home,away,targetDiff-(power(home)-power(away)),defending?(ownHome?.2:.55):choice==="attack"?(ownHome?-.35:-.2):0,defending?(ownHome?.55:.2):choice==="attack"?(ownHome?-.2:-.35):0);
- let hs=baseline[0],as=baseline[1];if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}let our=ownHome?hs:as,their=ownHome?as:hs;
+ let hs=baseline[0],as=baseline[1];if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
  const chance=C(.05+overall(p)/300+(p.form-60)/700+(choice==="attack"?.05:choice==="creative"?.03:0),.10,.62);
  let goals=0,assists=0,played=appears;if(played){let goalChance=chance*(["ST","LW","RW"].includes(p.position)?1.1:p.position==="CAM"?.6:.17);if(Math.random()<goalChance&&our>0)goals++;if(our>goals+1&&Math.random()<goalChance*.3)goals++;if(our-goals>0&&Math.random()<chance*(["CM","CAM","LW","RW"].includes(p.position)?1:.43))assists++}
  const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their):0;
@@ -566,6 +574,7 @@ function endSeason(){
  if(s.uefa&&!s.uefa.completed){s.uefa.completed=true;s.uefa.stage="season-end";log("赛季结束，未完成的欧战结算为终止。")}
  finishVote();
  const champions={};for(const [id,w]of Object.entries(s.world||{}))champions[id]=sortedTable(w.table)[0]?.name;
+ for(const [key,data]of Object.entries(sharedUniverse?.rounds||{})){const [year,league]=key.split(":");if(Number(year)===g.year)champions[league]=sortedTable(data.table)[0]?.name}
  champions[p.leagueId]=sortedTable(s.leagueTable)[0]?.name;
  g.worldHistory=g.worldHistory||[];g.worldHistory.push({year:g.year,champions});g.worldHistory=g.worldHistory.slice(-50);
  const performance=seasonPerformance();
@@ -755,7 +764,7 @@ function leaguePage(){const s=g.season,p=g.player;return '<div class="card"><div
 function calendarPage(){const s=g.season;return '<div class="card"><div class="row"><h2>全年赛事日历</h2><span class="chip">联赛 '+s.leagueRounds.length+' 场 · 国内杯赛 · 欧战 · 国家队</span></div><p class="muted">已确认的曼联英超和欧冠比赛不会重新赛季推演；杯赛淘汰后对应后续轮次自动跳过。多代生涯每年重新生成赛程。</p><div class="list">'+[...s.results.slice().reverse(),...s.events.slice(s.index)].map(ev=>'<div class="item '+(ev.real?"locked":"")+'"><div class="row"><span class="cap">'+E(ev.date||"")+' · '+E(ev.competition||(ev.kind==="league"?DB[g.player.leagueId].name:"赛事"))+'</span><span class="chip">'+(ev.real?"已核实结果":Number.isFinite(ev.hs)?"赛季推演完成":"待赛季推演")+'</span></div><div class="title">'+E(ev.home||"待定")+' '+(Number.isFinite(ev.hs)?ev.hs:"—")+' : '+(Number.isFinite(ev.as)?ev.as:"—")+' '+E(ev.away||"待定")+'</div><span class="muted small">'+E(ev.stage||"")+'</span></div>').join('')+'</div></div>'}
 function uefaPage(){const x=g.season.uefa;return '<div class="card"><div class="row"><h2>欧冠 / 欧联 · 2026/27 新赛制</h2><span class="chip">36队 · 8场联赛阶段 · 4主4客</span></div><p class="muted">第1—8名直通16强，第9—24名进入淘汰赛附加赛，第25—36名出局；赛季推演其他球队，依据36队统一积分排行。附加赛、16强、8强、半决赛均采用主客场两回合，决赛为单场。</p>'+(x?'<div class="grid4">'+metric("参赛赛事",x.type)+metric("欧战已赛",x.played+"/8")+metric("目前排名","#"+(sortedTable(x.table).findIndex(z=>z.name===g.player.club)+1))+metric("淘汰赛",x.stage==="league"?"未开始":x.stage)+'</div><h3 class="gap">36队欧战积分榜</h3>'+tablePanel(x.table,36):'<p class="muted">当前赛季未获得欧战资格，获得联赛前列名次可争取下赛季参加欧冠或欧联。</p>')+'</div>'}
 function worldPage(){
- const s=g.season,p=g.player,id=DB[g.worldFocus]?g.worldFocus:p.leagueId,league=DB[id],stand=id===p.leagueId?s.leagueTable:s.world?.[id]?.table;
+ const s=g.season,p=g.player,id=DB[g.worldFocus]?g.worldFocus:p.leagueId,league=DB[id],peer=duoGames&&Object.values(duoGames).find(x=>x.year===g.year&&x.player.leagueId===id),stand=id===p.leagueId?s.leagueTable:peer?.season.leagueTable||s.world?.[id]?.table;
  const npc=g.npcs.filter(n=>league.teams.some(t=>t.name===n.club)&&n.pos!=="GK");
  const top=npc.map(n=>({name:n.name,club:n.club,goals:n.goals,assists:n.assists,isUser:false}));
  if(id===p.leagueId&&!p.youth)top.push({name:p.name,club:p.club,goals:s.leagueGoals||0,assists:s.leagueAssists||0,isUser:true});
