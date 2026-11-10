@@ -3,7 +3,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
@@ -119,6 +119,29 @@ const good=api.seasonPerformance();assert.equal(good.maxTier,1);
 const stepOffers=api.generateOffers();assert(stepOffers.some(o=>o.tier===1));
 assert(stepOffers.every(o=>o.tier<=1));
 log("Outstanding CSL performance unlocks exactly one European tier, not instant transfer to a giant");
+
+let totalGoals=0,extreme=0;
+for(let i=0;i<20000;i++){const [home,away]=api.simulateScore("曼联","曼城");totalGoals+=home+away;if(home+away>=8)extreme++}
+const averageGoals=totalGoals/20000;
+assert(averageGoals>2&&averageGoals<3.5,"Total match goals should resemble football, not arcade scores");
+assert(extreme/20000<.035,"Eight-goal games must be exceptional");
+log("Poisson model averages realistic match totals and rarely produces 8+ goal games");
+const topStar={club:"皇家马德里",ov:94,goals:27,assists:15,apps:49,rating:7.7};
+const playerStar={club:"上海海港",ov:91,goals:38,assists:17,apps:48,rating:8.0};
+let starWins=0;for(let i=0;i<1500;i++)if(api.awardCandidateScore(topStar,2027,2)>api.awardCandidateScore(playerStar,2027,0))starWins++;
+assert(starWins>300,"Strong European stars with trophies should remain serious Ballon d'Or contenders");
+log("Golden Ball awards compare league strength and team trophies, not goals alone");
+// Two trophyless seasons force a lateral transfer, not a demotion or upgrade.
+p.leagueId="ENG";p.club="布莱顿";p.trophylessStreak=0;p.poorStreak=0;p.forcedMove=false;p.forcedSameTier=false;
+s.results=Array.from({length:30},(_,i)=>({kind:"league",played:true,goals:1,assists:0,rating:8.0,home:p.club,away:"对手",hs:2,as:0}));
+const noCup1=api.seasonPerformance(),noCup2=api.seasonPerformance();
+assert.equal(noCup1.trophylessStreak,1);assert.equal(noCup1.forcedSameTier,false);
+assert.equal(noCup2.trophylessStreak,2);assert.equal(noCup2.forcedSameTier,true);
+assert.equal(noCup2.forcedMove,false);
+const sameOffers=api.generateOffers();assert(sameOffers.length>0);
+assert(sameOffers.every(o=>o.tier===3&&o.move==="同级转会"),"No-title transfer must stay within club tier");
+log("Two trophyless seasons trigger same-tier transfers, independent of goal totals");
+
 reload.click("newGame");assert(!reload.stored.has(SAVE));assert(reload.html.includes("双星同场"));
 log("New game removes the old pair and starts another dual-card scenario");
 console.log("All dual-player Football Dynasty tests passed.");
