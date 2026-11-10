@@ -79,7 +79,7 @@ for(const id of ["wang","vini"]){const x=state.duoGames[id],matches=x.season.res
 log("Both careers share one league and attribute player/NPC goals exactly once");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
 assert(!reload.html.includes("切换并操作"));
-assert.equal(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
+assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
 assert.equal(reload.api.get().season.leagueRounds.length,30,"Fixture calendar restored after compact reload");
 const skill=reload.api.get().player,high={...skill,leagueId:"CHN",position:"LW",stats:{...skill.stats,pace:95,shoot:95,pass:94,dribble:95,mental:95}},low={...skill,leagueId:"CHN",position:"LW",stats:{...skill.stats,pace:55,shoot:55,pass:55,dribble:55,mental:55}};
 let highG=0,lowG=0,highA=0,lowA=0;
