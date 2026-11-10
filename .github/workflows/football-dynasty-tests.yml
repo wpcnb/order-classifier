@@ -1,4 +1,4 @@
-name: Football Dynasty regression tests
+name: Football Dynasty dual-career tests
 
 on:
   push:
@@ -16,15 +16,15 @@ permissions:
   contents: read
 
 jobs:
-  node-smoke:
+  football-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout game
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - name: Verify football game simulations
+          node-version: "22"
+      - name: Dual-career regression tests
         run: node football-legacy/tests/smoke.cjs
+      - name: Match-strategy regression tests
+        run: node football-legacy/tests/match-strategy.cjs
