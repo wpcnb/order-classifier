@@ -107,6 +107,23 @@ assert.equal(replay.state.duoGames.wang.player.club,selected.club,"Actual new cl
 assert.equal(replay.state.duoGames.wang.player.leagueId,selected.id,"League must follow drawn destination");
 assert.equal(replay.state.duoGames.wang.player.transferHistory.at(-1).reason,"抽签达标升级","Promotion history should distinguish lottery upgrades");
 log("Promotion roulette blocks auto-advance; selected destination survives reload and is applied exactly");
+const relegationSave=JSON.parse(x.stored.get(SAVE));
+const down=relegationSave.duoGames.wang;
+down.player.leagueId="ENG";down.player.club="阿森纳";down.player.forcedMove=true;down.player.forcedSameTier=false;
+delete down.player.transferDraw;
+down.offers=[{club:"布莱顿",id:"ENG",tier:3,wage:43000,years:3,move:"降档"},
+{club:"富勒姆",id:"ENG",tier:3,wage:41000,years:3,move:"降档"}];
+relegationSave.duoGames.vini.offers=[];delete relegationSave.duoGames.vini.player.transferDraw;
+const downGame=harness([[SAVE,JSON.stringify(relegationSave)]]);
+downGame.page("transfer");assert(downGame.html.includes("降档球队抽签"),"Relegation offers must open manual wheel");
+downGame.click("simBoth");assert.equal(downGame.state.duoGames.wang.year,2026,"Relegation draw must block advancing");
+downGame.click("spinPromotion",{id:"wang"});downGame.flush();
+const downChoice=downGame.state.duoGames.wang.player.transferDraw.selected;
+assert(["布莱顿","富勒姆"].includes(downChoice.club),"Relegation lottery only selects lower-tier eligible teams");
+downGame.click("simBoth");
+assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
+assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
+log("Relegation also requires player lottery; trophyless same-tier moves are automatic");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved]]);assert.equal(reload.state.duoGames.wang.history.length,1);
 assert(!reload.html.includes("切换并操作"));
 assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
