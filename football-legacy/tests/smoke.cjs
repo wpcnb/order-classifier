@@ -3,7 +3,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
 let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
-core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,duo:()=>duoGames,makeSchedule,setupSharedUefaSeason,linkSharedWorld,playEvent,offseasonRecovery,disciplinaryRecord,save,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,cslPool:CSL_DRAW_TEAMS,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
+core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,duo:()=>duoGames,makeSchedule,setupSharedUefaSeason,linkSharedWorld,playEvent,offseasonRecovery,disciplinaryRecord,save,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,awardTeamHonours,cslPool:CSL_DRAW_TEAMS,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
  const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
@@ -128,7 +128,7 @@ log("Both enter their parent CSL clubs' first teams at age 18, preserving youth 
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
  assert.equal(s.history.length,3);assert(s.season.apps>=0);assert.equal(s.ballonHistory.length,3);
- assert.equal(s.ballonHistory[0].model,6);assert.equal(state.sharedUniverse.awards[2028].ballots.length,100);assert.equal(state.sharedUniverse.awards[2028].totalPoints,6700);
+ assert.equal(s.ballonHistory[0].model,7);assert.equal(state.sharedUniverse.awards[2028].ballots.length,100);assert.equal(state.sharedUniverse.awards[2028].totalPoints,6700);
  assert(s.lastReview.performance);
 }
 assert.equal(state.duoGames.wang.ballonHistory[0].winner.name,state.duoGames.vini.ballonHistory[0].winner.name,"One unified Ballon d'Or winner");
@@ -313,6 +313,24 @@ const playerStar={club:"上海海港",ov:91,goals:38,assists:17,apps:48,rating:8
 let starWins=0;for(let i=0;i<1500;i++)if(api.awardCandidateScore(topStar,2027,2)>api.awardCandidateScore(playerStar,2027,0))starWins++;
 assert(starWins>300,"Strong European stars with trophies should remain serious Ballon d'Or contenders");
 log("Golden Ball awards compare league strength and team trophies, not goals alone");
+
+const v7User={club:"本菲卡",ov:90,goals:13,assists:8,apps:48,rating:6.31};
+const v7Rival={club:"国际米兰",ov:90,goals:34,assists:25,apps:48,rating:7.4};
+const deterministic=()=>0;
+assert(api.awardCandidateScore(v7Rival,2046,0,deterministic)>api.awardCandidateScore(v7User,2046,32,deterministic),
+ "A 34-goal 25-assist elite season should outrank 13-goal 8-assist despite maximum title bonus");
+const matching={club:"本菲卡",ov:87,goals:20,assists:12,apps:43,rating:7.25};
+assert.equal(api.awardCandidateScore(matching,2046,16,deterministic),api.awardCandidateScore({...matching},2046,16,deterministic),
+ "NPCs and both protagonists must use one identical objective formula");
+assert(api.awardCandidateScore({...matching,goals:35,assists:25},2046,0,deterministic)>
+ api.awardCandidateScore(matching,2046,0,deterministic),"Higher output must always be beneficial");
+assert(api.awardCandidateScore({...matching,rating:8.2},2046,0,deterministic)>
+ api.awardCandidateScore(matching,2046,0,deterministic),"A higher match rating must matter");
+assert(api.awardCandidateScore(matching,2046,32,deterministic)-api.awardCandidateScore(matching,2046,0,deterministic)===32,
+ "Team trophy contribution must be capped at 32 points for all candidates");
+assert.equal(api.awardTeamHonours("无法识别的俱乐部",2099),0);
+log("Ballon d'Or v7 rewards extraordinary performance and applies identical capped title bonuses");
+
 // Two trophyless seasons force a lateral transfer, not a demotion or upgrade.
 p.leagueId="ENG";p.club="布莱顿";p.trophylessStreak=0;p.poorStreak=0;p.forcedMove=false;p.forcedSameTier=false;
 active.honors=active.honors.filter(h=>h.year!==active.year||h.type!=="team");

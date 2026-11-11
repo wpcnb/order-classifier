@@ -1049,7 +1049,7 @@ function finishVote(){
  const votes=Object.fromEntries(list.map(x=>[x.id,Array(10).fill(0)]));
  const ballots=[];
  for(let juror=0;juror<100;juror++){
-  const top=list.map(x=>({id:x.id,score:x.score+R(-19,19)+.16*x.goals*Math.sin(juror*1.41)}))
+  const top=list.map(x=>({id:x.id,score:x.score+R(-13,13)+.12*x.goals*Math.sin(juror*1.41)}))
     .sort((a,b)=>b.score-a.score).slice(0,10);
   top.forEach((x,i)=>{points[x.id]+=pointsFor[i];votes[x.id][i]++});
   ballots.push(top.map(x=>x.id))
@@ -1074,19 +1074,36 @@ function awardLeagueTier(club){
  for(const [id,l] of Object.entries(DB))if(l.teams.some(t=>t.name===club))return id==="CHN"?.55:["NED","POR","TUR","BEL","SCO","AUT","SUI","DEN"].includes(id)?.82:id==="BRA"?.78:1;
  return .76;
 }
+// Version 7 award model: verified club achievements are shared by every
+// player at that club, including NPCs. Old award records remain untouched.
 function awardTeamHonours(club,year){
- const tables=Object.entries(sharedUniverse?.rounds||{}).filter(([k])=>k.startsWith(year+":")).map(([key,x])=>x.table)
-  .concat(Object.values(g.season.world||{}).map(x=>x.table),[g.season.leagueTable]);
- return tables.some(t=>t&&sortedTable(t)[0]?.name===club)?1:0;
+ const tables=Object.entries(sharedUniverse?.rounds||{}).filter(([k])=>k.startsWith(year+":")).map(([,x])=>x.table)
+  .concat(Object.values(g?.season?.world||{}).map(x=>x.table),[g?.season?.leagueTable]);
+ // One league championship counts once, even if the same table is in multiple
+ // shared-world ledgers. Domestic league prestige is a game estimate.
+ const leagueWin=tables.some(t=>t&&sortedTable(t)[0]?.name===club);
+ const leagueValue=leagueWin?Math.round(8*awardLeagueTier(club)):0;
+ // European final results are unique to the shared football world.
+ const ucl=sharedUniverse?.europeFinals?.[year+":欧冠"]?.winner===club;
+ const uel=sharedUniverse?.europeFinals?.[year+":欧联"]?.winner===club;
+ // Domestic cups are not yet fully simulated for NPC-only clubs. When a cup
+ // title was actually recorded, credit the same club bonus to all its players.
+ const cup=!!duoGames&&DUO_IDS.some(id=>{
+  const career=duoGames[id];
+  return career.year===year&&career.player.club===club&&career.honors.some(h=>h.year===year&&h.type==="team"&&
+   /杯冠军$/.test(h.name)&&h.name!=="欧冠冠军"&&h.name!=="欧联冠军");
+ });
+ return Math.min(32,leagueValue+(ucl?22:0)+(uel?12:0)+(cup?3:0));
 }
-function awardCandidateScore(x,year,teamTitles=0){
- const quality=awardLeagueTier(x.club),goals=x.goals||0,assists=x.assists||0,apps=Math.min(x.apps||0,58);
- // Diminishing returns beyond elite seasons prevent inflated assists alone from
- // dominating votes. One player still can win back-to-back if genuinely best.
- const output=(Math.min(goals,24)*.88+Math.max(0,goals-24)*.38+
-  Math.min(assists,15)*.63+Math.max(0,assists-15)*.25)*quality;
- return (x.ov||76)*.68+output+(x.rating||6.7)*5+apps*.12+
-  teamTitles*20+quality*16+R(-15,15);
+function awardCandidateScore(x,year,teamBonus=0,random=()=>R(-8,8)){
+ const quality=awardLeagueTier(x.club);
+ const goals=Math.max(0,x.goals||0),assists=Math.max(0,x.assists||0),apps=Math.min(Math.max(0,x.apps||0),60);
+ // Elite attacking output still matters beyond 24 goals and 15 assists.
+ const attack=(Math.min(goals,35)*1.34+Math.max(0,goals-35)*.78+
+  Math.min(assists,25)*.95+Math.max(0,assists-25)*.56)*quality;
+ const rating=C(x.rating??6.5,5,10);
+ return (x.ov||76)*.58+attack+(rating-6.5)*15+apps*.12+
+  C(teamBonus,0,32)+quality*14+random();
 }
 function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired))return;
@@ -1099,19 +1116,20 @@ function finalizeSharedSeason(){
  // Keep 100 jurors × 67 points = 6700 even in 2048+ seasons.
  const roster=duoGames.wang.npcs.filter(n=>Number.isFinite(n.ov)&&(n.apps||0)+(n.europeApps||0)>0&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
- return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating||6.3},year,awardTeamHonours(n.club,year))}});
+ return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating??6.3,teamBonus:awardTeamHonours(n.club,year),score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating??6.3},year,awardTeamHonours(n.club,year))}});
  for(const id of DUO_IDS){const x=duoGames[id],p=x.player,s=x.season,r=s.ratings,avg=r.length?r.reduce((a,b)=>a+b,0)/r.length:6.2,honors=x.honors.filter(h=>h.year===year).length;
  if(p.youth||p.retired)continue;
  nominees.push({id:"DUO_"+id,name:p.name,club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),
- score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},year,x.honors.filter(h=>h.year===year&&h.type==="team").length)})}
+ rating:avg,teamBonus:awardTeamHonours(p.club,year),
+ score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},year,awardTeamHonours(p.club,year))})}
  nominees.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
  if(nominees.length<10)throw Error("当季活跃球员不足10人：无法进行合法金球奖投票");
  const list=nominees.slice(0,30),points=Object.fromEntries(list.map(x=>[x.id,0])),votes=Object.fromEntries(list.map(x=>[x.id,Array(10).fill(0)])),ballots=[];
  for(let juror=0;juror<100;juror++){const pick=list.map(x=>({id:x.id,score:x.score+R(-19,19)+.16*x.goals*Math.sin(juror*1.41)})).sort((a,b)=>b.score-a.score).slice(0,10);
  pick.forEach((x,i)=>{points[x.id]+=UCL_PTS[i];votes[x.id][i]++});ballots.push(pick.map(x=>x.id))}
- const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id]})).sort((a,b)=>b.points-a.points||b.firstPlaceVotes-a.firstPlaceVotes||a.name.localeCompare(b.name));
+ const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,averageRating:Number((x.rating??6.5).toFixed(2)),teamBonus:x.teamBonus,points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id]})).sort((a,b)=>b.points-a.points||b.firstPlaceVotes-a.firstPlaceVotes||a.name.localeCompare(b.name));
  if(ranked.reduce((a,b)=>a+b.points,0)!==6700)throw Error("双人统一金球奖计票错误");
- const awardData={year,model:6,rankings:ranked,ballots,winner:ranked[0],totalPoints:6700};sharedUniverse.awards[year]=awardData;
+ const awardData={year,model:7,rankings:ranked,ballots,winner:ranked[0],totalPoints:6700};sharedUniverse.awards[year]=awardData;
  const leagues=new Set(DUO_IDS.filter(id=>!duoGames[id].player.retired).map(id=>duoGames[id].player.leagueId));
  for(const id of leagues){
  const entries=duoGames.wang.npcs.filter(n=>DB[id].teams.some(t=>t.name===n.club)&&n.pos!=="GK").map(n=>({id:n.id,goals:n.goals||0,assists:n.assists||0,apps:n.apps||0}));
