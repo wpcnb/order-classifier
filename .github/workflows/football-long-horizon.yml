@@ -1,0 +1,36 @@
+name: Football Dynasty 10 15 20 30-year longevity audit
+on:
+  pull_request:
+    paths:
+      - "football-legacy/tests/long-horizon.cjs"
+      - ".github/workflows/football-long-horizon.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  long-career:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        horizon: [10, 15, 20, 30]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simulate three complete dual careers
+        env:
+          STRESS_YEARS: ${{ matrix.horizon }}
+          STRESS_RUNS: '3'
+          STRESS_SHARD: ${{ matrix.horizon }}
+        run: |
+          set -o pipefail
+          node football-legacy/tests/long-horizon.cjs | tee horizon-${{ matrix.horizon }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duo-horizon-${{ matrix.horizon }}
+          path: horizon-${{ matrix.horizon }}.log
+          retention-days: 30
