@@ -1628,14 +1628,19 @@ function calendarPage(){const s=g.season;return '<div class="card"><div class="r
 function uefaPage(){const x=g.season.uefa;return '<div class="card"><div class="row"><h2>欧冠 / 欧联 · 2026/27 新赛制</h2><span class="chip">36队 · 8场联赛阶段 · 4主4客</span></div><p class="muted">第1—8名直通16强，第9—24名进入淘汰赛附加赛，第25—36名出局；赛季推演其他球队，依据36队统一积分排行。附加赛、16强、8强、半决赛均采用主客场两回合，决赛为单场。</p>'+(x?'<div class="grid4">'+metric("参赛赛事",x.type)+metric("欧战已赛",x.played+"/8")+metric("目前排名","#"+(sortedTable(x.table).findIndex(z=>z.name===g.player.club)+1))+metric("淘汰赛",x.stage==="league"?"未开始":x.stage)+'</div><h3 class="gap">36队欧战积分榜</h3>'+tablePanel(x.table,36):'<p class="muted">当前赛季未获得欧战资格，获得联赛前列名次可争取下赛季参加欧冠或欧联。</p>')+'</div>'}
 function worldPage(){
  const s=g.season,p=g.player,id=DB[g.worldFocus]?g.worldFocus:p.leagueId,league=DB[id],peer=duoGames&&Object.values(duoGames).find(x=>x.year===g.year&&x.player.leagueId===id),stand=id===p.leagueId?s.leagueTable:peer?.season.leagueTable||s.world?.[id]?.table;
- const npc=g.npcs.filter(n=>league.teams.some(t=>t.name===n.club)&&n.pos!=="GK");
+ const currentTeams=CHINA_DIVISIONS.includes(id)?chineseMembers(id,g.year):league.teams.map(t=>t.name);
+ const npc=g.npcs.filter(n=>currentTeams.includes(n.club)&&n.pos!=="GK");
  const top=npc.map(n=>({name:n.name,club:n.club,goals:n.goals,assists:n.assists,isUser:false}));
  if(id===p.leagueId&&!p.youth)top.push({name:p.name,club:p.club,goals:s.leagueGoals||0,assists:s.leagueAssists||0,isUser:true});
  top.sort((a,b)=>b.goals-a.goals||b.assists-a.assists);
  const assists=top.slice().sort((a,b)=>b.assists-a.assists||b.goals-a.goals);
  const years=(g.worldHistory||[]).slice(-12).reverse();
+ const latestMoves=sharedUniverse?.chineseMoves?.[g.year];
+ const chineseNote=CHINA_DIVISIONS.includes(id)?'<div class="item gap"><b>中国三级联赛 · 模拟升降级</b><p class="muted small">中超16队，中甲'+chineseMembers("CHN1",g.year).length+'队（2028年起扩军），中乙24队。中乙按南北区22轮＋第二阶段跨区8轮进行游戏模拟，第二阶段采用赛前种子分组，并非真实官方积分分组。</p>'+
+  (latestMoves?'<p class="small">上赛季中超降级：'+E((latestMoves.superDown||[]).join("、")||"—")+' · 中甲升超：'+E((latestMoves.superUp||[]).join("、")||"—")+
+   (latestMoves.expansion?' · 中甲扩军升班马：'+E((latestMoves.oneUp||[]).join("、")):'')+'</p>':'')+'</div>':"";
  const choose=Object.values(DB).map(l=>'<button class="button '+(id===l.id?"goldbtn":"")+'" data-action="worldSelect" data-id="'+l.id+'">'+l.name+'</button>').join("");
- return '<section class="card"><div class="cap">WORLD FOOTBALL · 全球联动赛季推演</div><h2>世界足球中心</h2><p class="muted">多个联赛随玩家赛季同步推进，分别进行30/34/38轮主客场双循环；AI球员的出场、进球、助攻逐场生成。非锁定的比赛和球星数据全部属于游戏赛季结果。</p><div class="flex">'+choose+'</div><h3 class="gap">'+league.name+' · 积分榜</h3>'+tablePanel(stand,league.teams.length)+'</section><div class="grid2 gap"><section class="card"><h2>'+league.name+' · 射手榜</h2><div class="list">'+top.slice(0,15).map((n,i)=>'<div class="item row '+(n.isUser?"mine":"")+'"><div><strong>'+(i+1)+'. '+E(n.name)+'</strong><div class="muted small">'+E(n.club)+'</div></div><b class="gold">'+n.goals+'球</b></div>').join('')+'</div></section><section class="card"><h2>'+league.name+' · 助攻榜</h2><div class="list">'+assists.slice(0,15).map((n,i)=>'<div class="item row '+(n.isUser?"mine":"")+'"><div><strong>'+(i+1)+'. '+E(n.name)+'</strong><div class="muted small">'+E(n.club)+'</div></div><b class="green">'+n.assists+'助</b></div>').join('')+'</div></section></div><section class="card gap"><h2>历年全球冠军年鉴</h2><div class="list">'+(years.length?years.map(y=>'<div class="item"><div class="cap">'+y.year+'</div>'+Object.entries(y.champions).map(([lid,name])=>'<span class="badge">'+E(DB[lid]?.name||lid)+' · '+E(name)+'</span>').join('')+'</div>').join(''):'<p class="muted">赛季推演完首个赛季后自动建立冠军年鉴。</p>')+'</div></section>'
+ return '<section class="card"><div class="cap">WORLD FOOTBALL · 全球联动赛季推演</div><h2>世界足球中心</h2><p class="muted">多个联赛随玩家赛季同步推进，根据各赛事模拟赛程推进；中乙采用22轮分区赛和8轮跨区排位赛。AI球员的出场、进球、助攻逐场生成。非锁定的比赛和球星数据全部属于游戏赛季结果。</p><div class="flex">'+choose+'</div><h3 class="gap">'+league.name+' · 积分榜</h3>'+tablePanel(stand,currentTeams.length)+chineseNote+'</section><div class="grid2 gap"><section class="card"><h2>'+league.name+' · 射手榜</h2><div class="list">'+top.slice(0,15).map((n,i)=>'<div class="item row '+(n.isUser?"mine":"")+'"><div><strong>'+(i+1)+'. '+E(n.name)+'</strong><div class="muted small">'+E(n.club)+'</div></div><b class="gold">'+n.goals+'球</b></div>').join('')+'</div></section><section class="card"><h2>'+league.name+' · 助攻榜</h2><div class="list">'+assists.slice(0,15).map((n,i)=>'<div class="item row '+(n.isUser?"mine":"")+'"><div><strong>'+(i+1)+'. '+E(n.name)+'</strong><div class="muted small">'+E(n.club)+'</div></div><b class="green">'+n.assists+'助</b></div>').join('')+'</div></section></div><section class="card gap"><h2>历年全球冠军年鉴</h2><div class="list">'+(years.length?years.map(y=>'<div class="item"><div class="cap">'+y.year+'</div>'+Object.entries(y.champions).map(([lid,name])=>'<span class="badge">'+E(DB[lid]?.name||lid)+' · '+E(name)+'</span>').join('')+'</div>').join(''):'<p class="muted">赛季推演完首个赛季后自动建立冠军年鉴。</p>')+'</div></section>'
 }
 function trainingPage(){if(g.mode==="coach")return coachPage();
  const p=g.player,coach=p.parentCoach,keys=Object.keys(STATS);
@@ -1802,11 +1807,11 @@ function duoTransferPage(){
  '<div class="grid2 gap">'+DUO_IDS.map(id=>{
   const x=duoGames[id],p=x.player,r=x.lastReview?.performance||p.transferAssessment,level=transferLevel(p.leagueId,p.club);
   const n=clubSeasonNumbers(x.season);
-  return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
+  return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(DB[p.leagueId].name)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
+   promotionDrawCard(id)+
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
    '<p class="muted small">连续无冠 '+(p.trophylessStreak||0)+' 季 · 连续表现不佳 '+(p.poorStreak||0)+' 季</p>'+
-   promotionDrawCard(id)+
    '<h3 class="gap">本赛季转会报价</h3><div class="list">'+(x.offers.length?x.offers.slice(0,8).map(o=>'<div class="item">'+E(o.club)+' · '+E(DB[o.id].name)+' · '+E(o.move)+'</div>').join(""):'<p class="muted">赛季结算后生成。</p>')+'</div></section>';
  }).join("")+'</div><section class="card gap"><h3>六档逐级晋升</h3><p>'+TRANSFER_LEVELS.map((name,i)=>(i+1)+'. '+name).join(" → ")+'</p><p class="muted small">普通升级一档；抽中唯一幸运卡可以跳两档。同档转会不计算晋升。必须通过赛季考核才可参与升级抽卡。</p></section>';
 }
