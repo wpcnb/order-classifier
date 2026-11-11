@@ -23,7 +23,7 @@ for(const key of oldKeys)assert.equal(x.stored.get(key),oldData,"opening must pr
 assert(x.html.includes("导出旧版单人生涯")&&x.html.includes("导出旧版双人生涯"),"old save export available on opening");
 assert(x.html.includes("双星同场")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 assert(x.html.includes("draw-card-grid")&&x.html.includes("中超"));
-assert.equal(x.api.cslPool().length,14);assert(!x.api.cslPool().includes("长春亚泰")&&!x.api.cslPool().includes("梅州客家"));
+assert.equal(x.api.cslPool().length,16);assert(x.api.cslPool().includes("辽宁铁人")&&x.api.cslPool().includes("重庆铜梁龙"));assert(!x.api.cslPool().includes("长春亚泰")&&!x.api.cslPool().includes("梅州客家"));
 log("Old data preserved; ten opening club cards visible");
 
 const overseas=harness();
