@@ -1998,6 +1998,39 @@ function duoLatestMatch(x){
  const score=E(m.home||x.player.club)+' '+(Number.isFinite(m.hs)?m.hs:'–')+' : '+(Number.isFinite(m.as)?m.as:'–')+' '+E(m.away||'待定');
  return '<p>'+score+'</p><p class="muted small">'+(m.played?(m.goals||0)+'球 '+(m.assists||0)+'助 · 评分 '+(m.rating??'–'):'未出场')+'</p>'+nextText;
 }
+// A finished season may already have a new club selected for next year.
+// Use the recorded season club when available, never infer a past teammate
+// from the current club after a transfer.
+function storySeasonClub(x){
+ if(x.season?.stage==="playing")return x.player?.club||null;
+ const record=(x.history||[]).findLast(h=>h.year===x.year&&(!h.generation||h.generation===x.generation));
+ if(record?.club)return record.club;
+ if(x.retirementSummary?.partialSeason?.year===x.year)return x.retirementSummary?.at?.club||null;
+ return null;
+}
+function duoSharedStory(a,b){
+ if(!a||!b||a.year!==b.year)return "";
+ const clubA=storySeasonClub(a),clubB=storySeasonClub(b);
+ if(!clubA||!clubB)return "";
+ const other=b.season?.results||[],matches=a.season?.results||[];
+ for(let i=matches.length-1;i>=0;i--){
+  const m=matches[i];
+  if(!m.played||!["league","cup","europe","europeKO"].includes(m.kind)||!m.date||!m.home||!m.away||!Number.isFinite(m.hs)||!Number.isFinite(m.as))continue;
+  const n=other.findLast(t=>t.played&&t.kind===m.kind&&t.date===m.date&&t.competition===m.competition&&t.stage===m.stage&&t.home===m.home&&t.away===m.away&&t.hs===m.hs&&t.as===m.as);
+  if(!n||![m.home,m.away].includes(clubA)||![m.home,m.away].includes(clubB))continue;
+  const same=clubA===clubB;
+  const val=x=>Number.isFinite(x)?String(x):"—";
+  const player=(x,r)=>E(x.player.name)+" "+val(r.goals)+"球 "+val(r.assists)+"助";
+  return '<section class="card gap"><h2>'+(same?'双人同队':'双人交锋')+'</h2><p class="muted small">本赛季共同出场 · '+E(m.date)+' · '+E(m.competition||"比赛")+'</p><p><b>'+E(m.home)+' '+m.hs+' : '+m.as+' '+E(m.away)+'</b></p><p>'+player(a,m)+'　｜　'+player(b,n)+'</p></section>';
+ }
+ return "";
+}
+function duoSeasonComparison(a,b){
+ if(!a||!b||a.year!==b.year||a.player?.retired||b.player?.retired)return "";
+ const sa=a.season,sb=b.season;
+ if(sa?.stage!=="review"||sb?.stage!=="review"||![sa.goals,sa.assists,sb.goals,sb.assists].every(Number.isFinite))return "";
+ return '<p class="muted small gap">两人本季对比（各项比赛）：进球 '+E(a.player.name)+' '+sa.goals+' : '+sb.goals+' '+E(b.player.name)+' · 助攻 '+sa.assists+' : '+sb.assists+'</p>';
+}
 function duoDashboard(){
  const both=DUO_IDS.map(id=>duoGames[id]);
  const retired=both.every(x=>x.player.retired);
@@ -2007,8 +2040,8 @@ function duoDashboard(){
  const action=retired?'<button class="button" data-page="career">查看生涯总结</button>':
   allReview?(missing.length?'<button class="button primary" data-page="transfer">处理转会决定</button>':'<button class="button primary" data-action="nextSeason">进入下一赛季</button>'):
   '<button class="button primary" data-action="simBoth">模拟整个赛季</button><button class="button" data-action="nextMatch">下一比赛日</button>';
- const summary=allReview&&!retired?'<section class="card gap"><h2>赛季总结</h2>'+DUO_IDS.map(id=>{const x=duoGames[id];return '<div class="item"><b>'+E(x.player.name)+'</b> · '+E(x.player.club)+' · '+x.season.apps+'场 '+x.season.goals+'球 '+x.season.assists+'助<br><span class="muted small">'+E(x.lastReview?.performance?.comment||"已结算")+'</span></div>'}).join("")+'</section>':'';
- return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'</div></div></div>'+summary+
+ const summary=allReview&&!retired?'<section class="card gap"><h2>赛季总结</h2>'+DUO_IDS.map(id=>{const x=duoGames[id];return '<div class="item"><b>'+E(x.player.name)+'</b> · '+E(x.player.club)+' · '+x.season.apps+'场 '+x.season.goals+'球 '+x.season.assists+'助<br><span class="muted small">'+E(x.lastReview?.performance?.comment||"已结算")+'</span></div>'}).join("")+duoSeasonComparison(both[0],both[1])+'</section>':'';
+ return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'</div></div></div>'+summary+duoSharedStory(both[0],both[1])+
  '<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
 }
 function duoWorldPage(){

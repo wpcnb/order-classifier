@@ -40,6 +40,9 @@ jobs:
       - name: Shared fixture scoring and dismissal regression tests
         run: node football-legacy/tests/shared-contributions.cjs
 
+      - name: Dual-player interaction display regression tests
+        run: node football-legacy/tests/duo-interactions.cjs
+
       - name: Shared national and long-career awards regressions
         run: node football-legacy/tests/national-awards.cjs
 
