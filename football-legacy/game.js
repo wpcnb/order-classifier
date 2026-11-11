@@ -18,7 +18,7 @@ const DUO_TEMPLATES={
 // Keep the existing league schedule for older saves; new draws use its 2026-CSL intersection.
 const CSL_DRAW_TEAMS=()=>DB.CHN.teams.map(t=>t.name).filter(name=>name!=="长春亚泰"&&name!=="梅州客家");
 let drawnClubs={wang:null,vini:null},openingDecks={wang:null,vini:null},openingSelectedIndex={wang:null,vini:null};
-function resetDraw(){drawnClubs={wang:null,vini:null};openingDecks={wang:null,vini:null};openingSelectedIndex={wang:null,vini:null};openingLeagues={wang:"CHN",vini:"CHN"};localStorage.removeItem(OPENING_STORE)}
+function resetDraw(){drawnClubs={wang:null,vini:null};openingDecks={wang:null,vini:null};openingSelectedIndex={wang:null,vini:null};openingLeagues={wang:"CHN",vini:"CHN"};localStorage.removeItem?.(OPENING_STORE)}
 const OPENING_LEAGUES=["CHN","ENG","ESP","GER","ITA","FRA"];
 const OPENING_STORE="football-dynasty-opening-v3";
 let openingLeagues={wang:"CHN",vini:"CHN"};
@@ -463,7 +463,7 @@ function makeDuoCareer(id){
 function buildDuoGame(){
  if(!DUO_IDS.every(id=>DB[openingLeagues[id]]?.teams.some(t=>t.name===drawnClubs[id]))){notify("请先为两名球员分别抽取青训球队");return}
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
- duoGames={wang,vini};localStorage.removeItem(OPENING_STORE);sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
+ duoGames={wang,vini};localStorage.removeItem?.(OPENING_STORE);sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
 }
 function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
