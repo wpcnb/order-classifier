@@ -17,16 +17,37 @@ const DUO_TEMPLATES={
 };
 // Keep the existing league schedule for older saves; new draws use its 2026-CSL intersection.
 const CSL_DRAW_TEAMS=()=>DB.CHN.teams.map(t=>t.name).filter(name=>name!=="长春亚泰"&&name!=="梅州客家");
-let drawnClubs={wang:null,vini:null},wheelBusy=false;
-function resetDraw(){drawnClubs={wang:null,vini:null};wheelBusy=false}
-function spinClub(id){
- if(wheelBusy||!DUO_IDS.includes(id)||drawnClubs[id])return;
- const pool=CSL_DRAW_TEAMS().filter(t=>t!==drawnClubs[DUO_IDS.find(x=>x!==id)]);
- wheelBusy=true;const target=pool[Math.floor(Math.random()*pool.length)];
- const disk=document.getElementById("wheel-"+id);
- if(disk){const n=CSL_DRAW_TEAMS().length,idx=CSL_DRAW_TEAMS().indexOf(target);disk.style.transition="transform 3.2s cubic-bezier(.15,.85,.15,1)";disk.style.transform="rotate("+(1800-idx*360/n-360/n/2)+"deg)"}
- const btn=document.querySelector('[data-action="spinClub"][data-id="'+id+'"]');if(btn)btn.disabled=true;
- setTimeout(()=>{drawnClubs[id]=target;wheelBusy=false;render();notify(DUO_TEMPLATES[id].name+" 抽中 "+target)},3300);
+let drawnClubs={wang:null,vini:null},openingDecks={wang:null,vini:null},openingSelectedIndex={wang:null,vini:null};
+function resetDraw(){drawnClubs={wang:null,vini:null};openingDecks={wang:null,vini:null};openingSelectedIndex={wang:null,vini:null}}
+function openingCards(id){
+ const other=DUO_IDS.find(x=>x!==id);
+ if(!openingDecks[id])openingDecks[id]=shuffleDraw(CSL_DRAW_TEAMS().filter(name=>name!==drawnClubs[other])).slice(0,10);
+ return openingDecks[id];
+}
+function flipOpeningCard(id,index){
+ if(!DUO_IDS.includes(id)||drawnClubs[id])return;
+ const options=openingCards(id);
+ if(!Number.isInteger(index)||index<0||index>=options.length)return;
+ const club=options[index],other=DUO_IDS.find(x=>x!==id);
+ drawnClubs[id]=club;openingSelectedIndex[id]=index;
+ // The second player's deck is refreshed without the first player's club.
+ if(!drawnClubs[other])openingDecks[other]=null;
+ const el=document.querySelector('[data-action="flipOpeningCard"][data-id="'+id+'"][data-i="'+index+'"]');
+ if(el)el.classList.add("revealed");
+ notify(DUO_TEMPLATES[id].name+" 抽中 "+club);
+ setTimeout(render,850);
+}
+function openingCardPanel(id){
+ const t=DUO_TEMPLATES[id],deck=openingCards(id),picked=drawnClubs[id];
+ return '<section class="card"><div class="row"><h2>'+E(t.name)+' · 青训球队盲抽</h2><span class="chip">16岁 · 中国籍 · 中超青训</span></div>'+
+ '<p class="muted small">中超随机10支不同俱乐部，点一张卡牌翻开；两人不会抽到同一支俱乐部。</p>'+
+ '<div class="draw-card-grid">'+deck.map((club,i)=>{
+ const open=!!picked&&openingSelectedIndex[id]===i;
+ return '<button type="button" class="draw-card '+(open?"revealed":"")+'" data-action="flipOpeningCard" data-id="'+id+'" data-i="'+i+'" '+(picked?"disabled":"")+' aria-label="'+(open?E("已抽中"+club):"第"+(i+1)+"张未翻开球队卡")+'"><span class="draw-card-inner"><span class="draw-card-back"><b>★</b><small>FOOTBALL<br>DYNASTY</small><em>'+String(i+1).padStart(2,"0")+'</em></span><span class="draw-card-front">'+clubShield(club)+'<strong>'+E(club)+'</strong><small>中超 · 青训</small></span></span></button>';
+ }).join("")+'</div>'+
+ '<p class="gold"><b>'+(picked?"已抽中："+E(picked):"请选择一张卡牌")+'</b></p>'+
+ '<div class="grid3">'+metric("18岁模板参考",t.historicalOverall)+metric("16岁青年能力",Math.round(Object.values(academyStats(t)).reduce((a,b)=>a+b,0)/7))+metric("潜力",t.potential)+'</div>'+
+ '<p class="muted small gap">'+E(t.reference)+'</p></section>';
 }
 const COUNTRIES=["中国","英格兰","西班牙","德国","法国","意大利","葡萄牙","荷兰","巴西","阿根廷","日本","韩国","沙特阿拉伯","澳大利亚","美国","加拿大","墨西哥","比利时","克罗地亚","摩洛哥","尼日利亚","塞内加尔","埃及","瑞士","奥地利","丹麦"];
 const RAW={
@@ -1585,9 +1606,9 @@ function reportPage(){
 
 function matchPage(){let ev=g.live?.event||currentEvent();if(!ev)return dashboard();let opp=ev.home&&ev.away?ev.home+" vs "+ev.away:g.player.club+" vs "+(ev.kind==="national"?"国家队对手":"杯赛对手");return '<div class="card"><div class="row"><div><div class="cap">MATCH CENTER · '+E(ev.date)+'</div><h2>'+E(ev.competition||(ev.kind==="league"?DB[g.player.leagueId].name:"正式比赛"))+'</h2></div><span class="chip">'+E(ev.stage||"对决")+'</span></div><div class="scoreboard"><div class="inside"><div class="vs">'+E(opp)+'</div><div class="muted">策略影响进球机会与个人表现；球员未出场时按均衡策略推演。</div></div></div><h3 class="gap">选择比赛策略</h3><div class="grid2"><button class="button" data-action="play" data-choice="balanced">均衡比赛 · 稳健发挥</button><button class="button primary" data-action="play" data-choice="attack">积极进攻 · 增加进球机会，也增加失球风险</button><button class="button" data-action="play" data-choice="creative">创造机会 · 提高进攻优势，争取助攻</button><button class="button" data-action="play" data-choice="defend">稳守反击 · 减少对手机会，己方进球也更难</button></div><div class="flex gap"><button class="button goldbtn" data-action="simSeason">从这里一键完成剩余赛季</button></div></div>'}
 function startPage(){
- const teams=CSL_DRAW_TEAMS(),colors=["#48e0ad","#e9bb64","#6e9bf7","#e37d95"];
- const wheel=id=>{const t=DUO_TEMPLATES[id],picked=drawnClubs[id];return '<section class="card"><div class="row"><h2>'+E(t.name)+'</h2><span class="chip">16岁 · 中国籍 · 中超青训</span></div><div class="grid3">'+metric("18岁模板参考",t.historicalOverall)+metric("16岁青年能力",Math.round(Object.values(academyStats(t)).reduce((a,b)=>a+b,0)/7))+metric("潜力",t.potential)+metric("身高",t.height+" cm")+'</div><div class="wheel-box"><div class="wheel-pointer">▼</div><div id="wheel-'+id+'" class="club-wheel" style="background:conic-gradient('+teams.map((name,i)=>colors[i%colors.length]+' '+(i*100/teams.length)+'% '+((i+1)*100/teams.length)+'%').join(",")+')"><span>中超<br>随机抽签</span>'+teams.map((name,i)=>'<em class="wheel-label" style="transform:rotate('+(i*360/teams.length+180/teams.length)+'deg) translateY(-120px) rotate(90deg)">'+E(name.slice(0,4))+'</em>').join('')+'</div></div><p class="muted small">随机范围：'+teams.length+'支2026中超球队（与现有赛程的交集） · 两人不会抽到同一队</p><p class="gold"><strong>'+(picked?"已抽中："+E(picked):"尚未抽签")+'</strong></p><button class="button '+(picked?"outline":"goldbtn")+'" data-action="spinClub" data-id="'+id+'" '+(picked||wheelBusy?"disabled":"")+'>'+(picked?"抽签已锁定":"点击旋转转盘")+'</button><p class="muted small gap">'+E(t.reference)+'</p></section>'};
- return '<div class="hero"><div><div class="cap">ONE SHARED FOOTBALL WORLD</div><h1>双星同场 · 中超起航</h1><p>王楚淇与维尼修斯均以16岁、中国籍进入2026赛季。随机抽取真实中超俱乐部青训，青年联赛独立统计，18岁升入本队一线队。</p></div></div><div class="grid2 gap">'+DUO_IDS.map(wheel).join("")+'</div><section class="card gap"><p>两张球员卡独立成长，联赛可以成为对手。</p><button class="button primary" data-action="preset" '+(DUO_IDS.every(id=>drawnClubs[id])?"":"disabled")+' >确认两队 · 开始双人青训赛季</button></section>'+legacyArchiveButtons();
+ return '<div class="hero"><div><div class="cap">ONE SHARED FOOTBALL WORLD</div><h1>双星同场 · 中超起航</h1><p>王楚淇与维尼修斯均以16岁、中国籍进入2026赛季。各自从随机十张中超球队卡牌中选一张翻开，18岁升入该俱乐部一线队。</p></div></div>'+
+ '<div class="grid2 gap">'+DUO_IDS.map(openingCardPanel).join("")+'</div>'+
+ '<section class="card gap"><p>两人分别选卡，抽中结果锁定，青训联赛独立统计。</p><button class="button primary" data-action="preset" '+(DUO_IDS.every(id=>drawnClubs[id])?"":"disabled")+' >确认两队 · 开始双人青训赛季</button></section>'+legacyArchiveButtons();
 }
 const SAFETY_STORE=STORE+"-safety";
 const LEGACY_ARCHIVES=[
@@ -1667,7 +1688,7 @@ function duoHistoryPage(){
 function topNav(){const tabs=[["dashboard","双人生涯"],["world","统一联赛 / 射手榜"],["transfer","升降档抽签 / 转会"],["honors","冠军与荣誉"],["awards","统一金球奖"],["career","两人履历"],["save","共同存档"]];return '<nav class="nav">'+tabs.map(([key,name])=>'<button data-page="'+key+'" class="'+(page===key?"active":"")+'">'+name+'</button>').join("")+'</nav>'}
 function render(){const a=$("app");if(!g){a.innerHTML=startPage();return}const pages={dashboard:duoDashboard,world:duoWorldPage,transfer:duoTransferPage,honors:duoHonorsPage,awards:duoAwardsPage,career:duoHistoryPage,save:savePage};a.innerHTML=duoTop()+topNav()+(pages[page]||duoDashboard)()}
 $("app").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b||b.disabled)return;const tab=b.dataset.page;if(tab){choosePage(tab);return}const action=b.dataset.action,key=b.dataset.key,i=Number(b.dataset.i||0);switch(action){
- case"exportLegacy":exportLegacy(key);break;case"preset":buildDuoGame();break;case"spinClub":spinClub(b.dataset.id);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
+ case"exportLegacy":exportLegacy(key);break;case"preset":buildDuoGame();break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
  case"nextMatch":simThree();break;case"play":break;
  case"simSeason":simBoth();break;case"simThree":simThree();break;case"addPoint":training(key);break;case"manualRecovery":manualRecovery();break;case"manualTraining":manualTraining(key);break;case"coachPoint":coachPoint(key);break;case"autoDistribute":autoPoints();save();render();break;
  case"awardYear":g.awardViewIndex=i;save();render();break;case"ballotCsv":exportBallotCsv();break;case"transfer":break;case"startCoach":if(confirm("保存球员履历，开启独立主教练模式？"))startCoachMode();break;case"coachScout":scoutForCoach();break;case"coachSign":signCoachProspect(i);break;case"coachJob":coachTransfer(i);break;case"coachAdd":coachPointAlloc(key);break;case"coachChild":if(confirm("保存执教记录，开启下一代球员？父亲继续执教同队。"))startNextGenerationFromCoach();break;case"worldSelect":g.worldFocus=b.dataset.id;save();render();break;case"nextSeason":simBoth();break;case"retireCoach":if(confirm("保存本代所有履历，退役执教并开启下一代？"))retire(true);break;case"retireSolo":if(confirm("保存本代履历并开启下一代（父亲不执教）？"))retire(false);break;
