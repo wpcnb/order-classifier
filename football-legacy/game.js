@@ -1996,7 +1996,11 @@ function duoLatestMatch(x){
  const nextText=next?'<p class="muted small">下一场：'+E(next.home||x.player.club)+' vs '+E(next.away||'待定')+'</p>':'';
  if(!m)return '<p class="muted small">本赛季尚无比赛</p>'+nextText;
  const score=E(m.home||x.player.club)+' '+(Number.isFinite(m.hs)?m.hs:'–')+' : '+(Number.isFinite(m.as)?m.as:'–')+' '+E(m.away||'待定');
- return '<p>'+score+'</p><p class="muted small">'+(m.played?(m.goals||0)+'球 '+(m.assists||0)+'助 · 评分 '+(m.rating??'–'):'未出场')+'</p>'+nextText;
+ const highlights=[];
+ if(m.yellowCards)highlights.push('黄牌 '+m.yellowCards+' 张');
+ if(m.redCard)highlights.push('红牌'+(m.redMinute?' · 第 '+m.redMinute+' 分钟':''));
+ if(m.newInjury)highlights.push('受伤 · 预计缺阵 '+m.newInjury+' 场');
+ return '<p>'+score+'</p><p class="muted small">'+(m.played?(m.goals||0)+'球 '+(m.assists||0)+'助 · 评分 '+(m.rating??'–'):'未出场')+'</p>'+(highlights.length?'<p class="pink small">'+highlights.map(E).join(' · ')+'</p>':'')+nextText;
 }
 // A finished season may already have a new club selected for next year.
 // Use the recorded season club when available, never infer a past teammate
