@@ -232,7 +232,7 @@ const downChoice=downGame.state.duoGames.wang.player.transferDraw.selected;
 assert(downGame.api.duo().wang.player.transferDraw.options.some(o=>o.club===downChoice.club),"Relegation chooses a valid lower-tier card");
 downGame.click("acceptDraw",{id:"wang"});downGame.click("simBoth");
 assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
-assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
+assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"降档转会");
 log("Relegation also requires player lottery and explicit acceptance");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved],...oldKeys.map(k=>[k,oldData])]);assert.equal(reload.state.duoGames.wang.history.length,3);
 assert(!reload.html.includes("切换并操作"));
