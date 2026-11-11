@@ -132,7 +132,8 @@ function compactWorld(world){
 function restoreWorld(world){
  for(const [id,w] of Object.entries(world||{})){
   if(!DB[id])continue;
-  const names=CHINA_DIVISIONS.includes(id)?chineseMembers(id,duoGames?.wang?.year):DB[id].teams.map(t=>t.name);
+  const savedNames=Object.keys(w.table||{});
+  const names=savedNames.length?savedNames:(CHINA_DIVISIONS.includes(id)?chineseMembers(id,duoGames?.wang?.year):DB[id].teams.map(t=>t.name));
   w.rounds=chinaLeagueRounds(id,names);
   w.total=w.rounds.length;
  }
@@ -178,7 +179,7 @@ function hydratePayload(data){
   for(const id of DUO_IDS){
    const x=duoGames[id];x.npcs=npc;
    x.season.world=world;
-   x.season.leagueRounds=leagueCalendar(x.player.leagueId,x.player.club,x.year);
+   x.season.leagueRounds=leagueCalendar(x.player.leagueId,x.player.club,x.year,Object.keys(x.season.leagueTable||{}));
    if(x.season.uefa?.sharedKey){
     const comp=sharedUniverse.europeCompetitions?.[x.season.uefa.sharedKey];
     if(comp){x.season.uefa.table=comp.table;x.season.uefa.drawRounds=comp.rounds;}
@@ -315,7 +316,7 @@ function chineseSeasonTransition(year){
  sharedUniverse.chineseMoves[target]={fromYear:year,superDown:cslOut,superUp:cslIn,oneDown:l1Out,twoUp:l2In,playoff};
 }
 function makeRR(names){const a=names.slice();if(a.length%2)a.push(null);const n=a.length,first=[],rotate=a.slice();for(let r=0;r<n-1;r++){const matches=[];for(let i=0;i<n/2;i++){let x=rotate[i],y=rotate[n-1-i];if(!x||!y)continue;const flip=(r+i)%2===1;matches.push({home:flip?y:x,away:flip?x:y})}first.push(matches);rotate.splice(1,0,rotate.pop())}return first.concat(first.map(round=>round.map(f=>({home:f.away,away:f.home}))))}
-function leagueCalendar(id,club,year){let teams=(CHINA_DIVISIONS.includes(id)?chineseMembers(id,year):DB[id].teams.map(z=>z.name)).map(name=>name+(club.endsWith("青训")?"青训":""));if(!teams.includes(club))teams[teams.length-1]=club;let rr=chinaLeagueRounds(id,teams);if(year===2026&&id==="ENG"&&club==="曼联"){rr=MANU_26.map(([date,opp,ha,gf,ga],idx)=>{let j=rr.findIndex(r=>r.some(f=>f.home===(ha==="H"?club:opp)&&f.away===(ha==="H"?opp:club)));if(j<0)throw Error("曼联完整赛程生成失败:"+opp+ha);const round=rr.splice(j,1)[0];round._date=date;round._manu={gf,ga,opp,ha};return round}).concat(rr);return rr.slice(0,38).map((round,i)=>({round:i+1,date:MANU_26[i][0],fixtures:round,verified:i<9?{gf:MANU_26[i][3],ga:MANU_26[i][4]}:null}))}const monthDates=[9,16,23,30];return rr.map((round,i)=>({round:i+1,date:new Date(Date.UTC(year,7,22+i*7)).toISOString().slice(0,10),fixtures:round,verified:null}))}
+function leagueCalendar(id,club,year,rosterOverride=null){let teams=(rosterOverride?.length?rosterOverride.map(x=>x.replace(/青训$/,"")):(CHINA_DIVISIONS.includes(id)?chineseMembers(id,year):DB[id].teams.map(z=>z.name))).map(name=>name+(club.endsWith("青训")?"青训":""));if(!teams.includes(club))teams[teams.length-1]=club;let rr=chinaLeagueRounds(id,teams);if(year===2026&&id==="ENG"&&club==="曼联"){rr=MANU_26.map(([date,opp,ha,gf,ga],idx)=>{let j=rr.findIndex(r=>r.some(f=>f.home===(ha==="H"?club:opp)&&f.away===(ha==="H"?opp:club)));if(j<0)throw Error("曼联完整赛程生成失败:"+opp+ha);const round=rr.splice(j,1)[0];round._date=date;round._manu={gf,ga,opp,ha};return round}).concat(rr);return rr.slice(0,38).map((round,i)=>({round:i+1,date:MANU_26[i][0],fixtures:round,verified:i<9?{gf:MANU_26[i][3],ga:MANU_26[i][4]}:null}))}const monthDates=[9,16,23,30];return rr.map((round,i)=>({round:i+1,date:new Date(Date.UTC(year,7,22+i*7)).toISOString().slice(0,10),fixtures:round,verified:null}))}
 function makeUefaDraw(clubs,preset=[]){
  // Eight distinct opponents, eight matchdays with 18 fixtures each, four home and four away per club.
  const ids=Array.from({length:36},(_,i)=>"S"+i);
