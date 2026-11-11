@@ -1538,10 +1538,12 @@ function requestLateralOffers(id){
  if(!duoGames||!DUO_IDS.includes(id))return;
  const x=duoGames[id],reason=lateralTransferReason(x);
  if(reason){notify(reason);return}
+ if(x.lateralOffersYear===x.year){notify("本赛季报价已经生成");return}
  const p=x.player,current=transferLevel(p.leagueId,p.club),ov=overall(p),a=p.transferAssessment||{};
  const pool=Object.entries(DB).filter(([league])=>league!=="BRA").flatMap(([league,l])=>l.teams.map(t=>({id:league,club:t.name,power:power(t.name),tier:transferLevel(league,t.name)}))).filter(o=>o.club!==p.club&&o.tier===current&&(!a.poor||o.power<power(p.club)));
  if(!pool.length){notify("目前没有符合条件的同档球队");return}
  x.offers=shuffleDraw(pool).slice(0,6).map(o=>({...o,move:"同级转会",wage:Math.round((o.power*480+ov*270+(p.fame||0)*140)*(.85+Math.random()*.5)/1000)*1000,years:R(2,5)}));
+ x.lateralOffersYear=x.year;
  save();render();
 }
 function acceptLateralOffer(id,index){
@@ -1599,7 +1601,7 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;
   p.poorStreak=0;p.trophylessStreak=0;p.forcedMove=false;p.forcedSameTier=false;
   log("青训毕业：18岁升入 "+p.club+" 一线队。青训进球助攻单独保存在青年履历中。")}
  const rankForNextSeason=previousClubRank(p.leagueId,p.club,previousYear)??
-  (p.club===previousClub&&p.leagueId===previousLeague?(g.lastReview?.rank||10):10);
+  (p.club===previousClub&&p.leagueId===previousLeague&&p.sameTierMoveYear!==previousYear?(g.lastReview?.rank||10):10);
  g.year++;p.age++;p.contract=Math.max(0,p.contract-1);
  const recovery=offseasonRecovery(p);
  if(recovery.injuryBefore)log("休赛期伤病恢复："+recovery.injuryBefore+"→"+recovery.injuryAfter+"场，严重伤病不会自动清零。");

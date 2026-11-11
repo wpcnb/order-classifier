@@ -37,7 +37,9 @@ function offerFor(x){return {id:"CHN",club:x.player.club==="上海申花"?"上�
 {
  const h=newGame(),d=review(h),x=d.wang;x.offers=[];h.api.requestLateralOffers("wang");
  assert(x.offers.length>0&&x.offers.length<=6);assert(x.offers.every(o=>h.api.transferLevel(o.id,o.club)===0));
+ const firstOffers=JSON.stringify(x.offers);h.api.requestLateralOffers("wang");assert.equal(JSON.stringify(x.offers),firstOffers,"same season offers cannot be repeatedly rerolled");
  const reload=harness([[SAVE,h.storage.get(SAVE)]]);assert.deepEqual(JSON.parse(JSON.stringify(reload.api.duo().wang.offers)),JSON.parse(JSON.stringify(x.offers)));
+ reload.api.requestLateralOffers("wang");assert.equal(JSON.stringify(reload.api.duo().wang.offers),firstOffers,"reload cannot reroll the same season offers");
  x.player.forcedMove=true;const before=x.player.club;h.api.acceptLateralOffer("wang",0);assert.equal(x.player.club,before);
  x.player.forcedMove=false;x.player.age=39;h.api.acceptLateralOffer("wang",0);assert.equal(x.player.club,before,"final pre-retirement season cannot sign a new transfer");
  console.log("✓ 旧存档可获取并保存同档报价，强制降档不能绕过目标盲卡");

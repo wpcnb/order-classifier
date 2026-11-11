@@ -47,6 +47,13 @@ function movedClub(previousRank,destinationRank){
 assert.equal(movedClub(1,12),null,"old team's first place cannot qualify a 12th-place destination");
 assert.equal(movedClub(10,1),"欧冠","destination's first place qualifies regardless of old team's position");
 assert.equal(movedClub(1,6),"欧联","destination's sixth place qualifies for Europa League");
+{
+ const h=start();h.api.setG("wang");const g=h.api.get(),p=g.player;
+ p.youth=false;p.leagueId="ENG";p.club="纽卡斯尔联";p.age=25;p.sameTierMoveYear=2027;
+ g.year=2027;g.season.stage="review";g.lastReview={rank:1};
+ h.api.setSync(true);h.api.nextSeason();
+ assert.equal(g.season.uefa,null,"a pre-season lateral transfer cannot use the old club's first place when the target table is unavailable");
+}
 console.log("✓ European qualification uses the destination club's own previous league table");
 for(const [id,name] of Object.entries({ENG:"足总杯",ESP:"国王杯",GER:"德国杯",ITA:"意大利杯",FRA:"法国杯",CHN:"足协杯",BRA:"巴西杯",NED:"荷兰杯",POR:"葡萄牙杯",TUR:"土耳其杯",BEL:"比利时杯",SCO:"苏格兰杯",AUT:"奥地利杯",SUI:"瑞士杯",DEN:"丹麦杯"}))assert.equal(start().api.createCups(id,2028).name,name);
 console.log("✓ each league uses its own domestic cup name");
