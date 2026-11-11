@@ -128,7 +128,7 @@ log("Both enter their parent CSL clubs' first teams at age 18, preserving youth 
 for(const id of ["wang","vini"]){
  const s=state.duoGames[id];assert.equal(s.season.stage,"review",id+" season incomplete");
  assert.equal(s.history.length,3);assert(s.season.apps>=0);assert.equal(s.ballonHistory.length,3);
- assert.equal(s.ballonHistory[0].model,6);assert.equal(state.sharedUniverse.awards[2028].ballots.length,100);assert.equal(state.sharedUniverse.awards[2028].totalPoints,6700);
+ assert.equal(s.ballonHistory[0].model,7);assert.equal(state.sharedUniverse.awards[2028].ballots.length,100);assert.equal(state.sharedUniverse.awards[2028].totalPoints,6700);
  assert(s.lastReview.performance);
 }
 assert.equal(state.duoGames.wang.ballonHistory[0].winner.name,state.duoGames.vini.ballonHistory[0].winner.name,"One unified Ballon d'Or winner");
