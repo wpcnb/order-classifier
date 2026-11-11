@@ -169,7 +169,7 @@ function duoPayload(){
   europeFinals:shared.europeFinals||{},
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
-  awards:shared.awards||{},national:shared.national||{},
+  awards:shared.awards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),
   offseasonYears:(shared.offseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -790,7 +790,16 @@ function simulateNPCOffseason(){
  const allTeams=Object.entries(DB).flatMap(([id,league])=>league.teams.map(t=>({id,name:t.name,strength:power(t.name)})));
  for(const n of g.npcs){
   n.age=(n.age||24)+1;n.potential=n.potential||90;
-  if(n.age>=39){n.realPerson=false;n.name=P(NAMES1)+"·"+P(NAMES2);n.age=R(17,21);n.ov=R(49,73);n.potential=R(78,96);n.id="new_"+g.year+"_"+n.id;n.form=45}
+  const ageLimit=n.pos==="GK"?41:["CB","CDM"].includes(n.pos)?40:39;
+  const retirementRisk=n.age>=35?Math.min(.24,(n.age-34)*.023):0;
+  if(n.age>=ageLimit||n.age>=35&&Math.random()<retirementRisk){
+   sharedUniverse=sharedUniverse||{};
+   const retired=sharedUniverse.npcRetirements||(sharedUniverse.npcRetirements=[]);
+   retired.push({year:g.year,name:n.name,age:n.age,club:n.club,position:n.pos,finalOverall:n.ov});
+   if(retired.length>140)retired.splice(0,retired.length-140);
+   n.realPerson=false;n.name=P(NAMES1)+"·"+P(NAMES2);n.age=R(17,21);
+   n.ov=R(49,73);n.potential=R(78,96);n.id="new_"+g.year+"_"+n.id;n.form=45
+  }
   else n.ov=C(n.ov+(n.age<25&&n.ov<n.potential?R(0,2):n.age>33?-R(0,2):R(-1,1)),40,99);
   if(n.age>=19&&n.age<=34&&n.ov>=64&&Math.random()<.022){
    const eligible=allTeams.filter(t=>t.name!==n.club&&Math.abs(t.strength-n.ov)<17);
@@ -1080,7 +1089,7 @@ function finalizeSharedSeason(){
  const original=activeDuo,originalGame=g;
  // Later generations remain eligible for annual awards after original real-person seeds retire.
  // Keep 100 jurors × 67 points = 6700 even in 2048+ seasons.
- const roster=duoGames.wang.npcs.filter(n=>Number.isFinite(n.ov)&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
+ const roster=duoGames.wang.npcs.filter(n=>Number.isFinite(n.ov)&&(n.apps||0)+(n.europeApps||0)>0&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
  return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating||6.3},year,awardTeamHonours(n.club,year))}});
  for(const id of DUO_IDS){const x=duoGames[id],p=x.player,s=x.season,r=s.ratings,avg=r.length?r.reduce((a,b)=>a+b,0)/r.length:6.2,honors=x.honors.filter(h=>h.year===year).length;
@@ -1088,6 +1097,7 @@ function finalizeSharedSeason(){
  nominees.push({id:"DUO_"+id,name:p.name,club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),
  score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},year,x.honors.filter(h=>h.year===year&&h.type==="team").length)})}
  nominees.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
+ if(nominees.length<10)throw Error("当季活跃球员不足10人：无法进行合法金球奖投票");
  const list=nominees.slice(0,30),points=Object.fromEntries(list.map(x=>[x.id,0])),votes=Object.fromEntries(list.map(x=>[x.id,Array(10).fill(0)])),ballots=[];
  for(let juror=0;juror<100;juror++){const pick=list.map(x=>({id:x.id,score:x.score+R(-19,19)+.16*x.goals*Math.sin(juror*1.41)})).sort((a,b)=>b.score-a.score).slice(0,10);
  pick.forEach((x,i)=>{points[x.id]+=UCL_PTS[i];votes[x.id][i]++});ballots.push(pick.map(x=>x.id))}
