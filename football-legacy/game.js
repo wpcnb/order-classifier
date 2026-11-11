@@ -58,7 +58,7 @@ GER:["德甲","德国",["拜仁慕尼黑","多特蒙德","勒沃库森","RB莱�
 FRA:["法甲","法国",["巴黎圣日耳曼","马赛","摩纳哥","里尔","里昂","尼斯","朗斯","雷恩","斯特拉斯堡","布雷斯特","南特","图卢兹","欧塞尔","梅斯","洛里昂","勒阿弗尔","昂热","兰斯"]],
 CHN:["中超","中国",["成都蓉城","上海海港","上海申花","北京国安","山东泰山","浙江队","天津津门虎","武汉三镇","河南队","深圳新鹏城","云南玉昆","青岛西海岸","青岛海牛","大连英博","辽宁铁人","重庆铜梁龙"]],
 CH1:["中甲","中国",["广东广州豹","南通支云","陕西联合","广西恒宸","深圳青年人","延边龙鼎","无锡吴钩","石家庄功夫","长春亚泰","宁波队","大连鲲城","南京城市","苏州东吴","定南赣联","梅州客家","佛山南狮"]],
-CH2:["中乙","中国",["山东泰山金钢山队","上海海港B队","山西崇德荣海","大连可为","泰安天贶","大连英博B队","南通海门珂缔缘","兰州陇原竞技","青岛红狮","长春喜都","北京理工","上海赛更达","贵州贵阳竞技","深圳2028","江西庐山","杭州临平吴越","武汉三镇B队","成都蓉城B队","广州蒲公英","广东铭途","赣州瑞狮","泉州亚新","温州职业足球俱乐部","广西蓝航"]],
+CH2:["中乙","中国",["长春喜都","北京理工","大连可为","山西崇德荣海","兰州陇原竞技","泰安天贶","青岛红狮","南通海门珂缔缘","上海赛更达","上海海港B队","山东泰山金钢山队","大连英博B队","湖北青年星","杭州临平吴越","江西庐山","温州FC","贵州贵阳竞技","赣州瑞狮","厦门飞鹭","广州蒲公英","广东铭途","深圳2028","武汉三镇B队","成都蓉城B队"]],
 TUR:["土超","土耳其",["加拉塔萨雷","费内巴切","贝西克塔斯","特拉布宗体育","伊斯坦布尔巴萨克赛尔","萨姆松体育","哥兹塔比","里泽斯堡","阿兰亚体育","安塔利亚体育","科尼亚体育","加济安泰普","开塞利体育","卡斯帕萨","埃于普体育","法蒂赫卡拉古鲁克"]],
 BEL:["比甲","比利时",["布鲁日","安德莱赫特","圣吉罗斯联合","亨克","根特","安特卫普","标准列日","梅赫伦","沙勒罗瓦","韦斯特洛","色格拉布鲁日","旧海弗莱鲁汶","圣图尔登","登德尔","拉卢维耶尔","威尔郡"]],
 SCO:["苏超","苏格兰",["凯尔特人","格拉斯哥流浪者","哈茨","希伯尼安","阿伯丁","邓迪联","马瑟韦尔","圣米伦","基尔马诺克","邓迪FC","利文斯顿","福尔柯克"]],
@@ -70,6 +70,45 @@ POR:["葡超","葡萄牙",["葡萄牙体育","本菲卡","波尔图","布拉加"
 BRA:["巴甲","巴西",["弗拉门戈","帕尔梅拉斯","博塔弗戈","弗鲁米嫩塞","科林蒂安","圣保罗","桑托斯","国际","格雷米奥","米内罗竞技","克鲁塞罗","巴伊亚","福塔莱萨","瓦斯科达伽马","布拉甘蒂诺","塞阿拉","维多利亚","尤文图德","累西腓体育","米拉索尔"]]
 };
 const DB={};Object.entries(RAW).forEach(([id,v])=>{DB[id]={id,name:v[0],country:v[1],teams:v[2].map((name,i)=>({name,power:C(Math.round((id==="CH2"?63:id==="CH1"?69:id==="CHN"?75:id==="BRA"?82:94)-i*1.55+(i%3)-1),48,96)}))}});
+// Chinese domestic pyramid: each club moves as a club, separately from the
+// player's six-level international transfer reputation ladder.
+const CHINA_LEAGUES=["CHN","CH1","CH2"];
+const CHINA_ORIGINAL_CLUBS=Object.fromEntries(CHINA_LEAGUES.flatMap(id=>
+ DB[id].teams.map(t=>[t.name,{name:t.name,power:t.power}])));
+function chineseMembership(){return Object.fromEntries(CHINA_LEAGUES.map(id=>[id,DB[id].teams.map(t=>t.name)]))}
+function restoreChineseMembership(m){
+ if(!m||!CHINA_LEAGUES.every(id=>Array.isArray(m[id])&&m[id].length===({CHN:16,CH1:16,CH2:24}[id])))return false;
+ const names=CHINA_LEAGUES.flatMap(id=>m[id]);
+ if(new Set(names).size!==names.length||names.some(n=>!CHINA_ORIGINAL_CLUBS[n]))return false;
+ for(const id of CHINA_LEAGUES)DB[id].teams=m[id].map(n=>({...CHINA_ORIGINAL_CLUBS[n]}));
+ return true;
+}
+function chinaLeagueOf(club){return CHINA_LEAGUES.find(id=>DB[id].teams.some(t=>t.name===club))||null}
+function chineseTable(id,year){
+ const peer=duoGames&&Object.values(duoGames).find(x=>x.year===year&&x.player.leagueId===id&&!x.player.youth);
+ const current=peer?.season?.leagueTable;
+ return sharedUniverse?.rounds?.[year+":"+id]?.table||current||duoGames?.wang?.season?.world?.[id]?.table||duoGames?.vini?.season?.world?.[id]?.table||null;
+}
+function settleChinaPyramid(year){
+ if(!duoGames||!sharedUniverse||year<2028||sharedUniverse.chinaHistory?.some(x=>x.year===year))return null;
+ const tables=Object.fromEntries(CHINA_LEAGUES.map(id=>[id,chineseTable(id,year)]));
+ if(CHINA_LEAGUES.some(id=>!tables[id]||Object.keys(tables[id]).length!==DB[id].teams.length||
+  Object.values(tables[id]).some(t=>t.p<1)))return null;
+ const rankings=Object.fromEntries(CHINA_LEAGUES.map(id=>[id,sortedTable(tables[id]).map(t=>t.name)]));
+ const dropCHN=rankings.CHN.slice(-2),riseCH1=rankings.CH1.slice(0,2);
+ const dropCH1=rankings.CH1.slice(-2),riseCH2=rankings.CH2.slice(0,2);
+ const before=chineseMembership(),next={
+  CHN:[...before.CHN.filter(n=>!dropCHN.includes(n)),...riseCH1],
+  CH1:[...before.CH1.filter(n=>!riseCH1.includes(n)&&!dropCH1.includes(n)),...dropCHN,...riseCH2],
+  CH2:[...before.CH2.filter(n=>!riseCH2.includes(n)),...dropCH1]
+ };
+ if(!restoreChineseMembership(next))throw Error("中国三级联赛升降级名单不合法");
+ const entry={year,downFromSuper:dropCHN,upToSuper:riseCH1,downFromFirst:dropCH1,upToFirst:riseCH2};
+ sharedUniverse.chinaMembership=chineseMembership();
+ (sharedUniverse.chinaHistory||(sharedUniverse.chinaHistory=[])).push(entry);
+ sharedUniverse.chinaHistory=sharedUniverse.chinaHistory.slice(-30);
+ return entry;
+}
 const MANU_26=[
 ["2026-08-22","赫尔城","A",0,2],["2026-08-30","伊普斯维奇","H",5,2],["2026-09-06","埃弗顿","A",2,2],["2026-09-13","曼城","H",0,1],["2026-09-20","富勒姆","A",1,1],
 ["2026-10-10","热刺","H",1,1],["2026-10-18","利兹联","A",1,1],["2026-10-25","伯恩茅斯","H",0,3],["2026-10-31","切尔西","A",0,2],
@@ -152,7 +191,7 @@ function duoPayload(){
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
   awards:shared.awards||{},national:shared.national||{},
   offseasonYears:(shared.offseasonYears||[]).slice(-3),
-  clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
+  clubRatings:shared.clubRatings||{},chinaMembership:shared.chinaMembership||chineseMembership(),chinaHistory:(shared.chinaHistory||[]).slice(-30),npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
  };
  const packed={};
@@ -173,6 +212,7 @@ function duoPayload(){
 function hydratePayload(data){
  if(!data?.duoGames?.wang?.player||!data.duoGames?.vini?.player)throw Error("invalid save");
  duoGames=data.duoGames;sharedUniverse=data.sharedUniverse||{};
+ restoreChineseMembership(sharedUniverse.chinaMembership);
  if(data.compact){
   const npc=sharedUniverse.npcs||[];
   const world=restoreWorld(sharedUniverse.world);
@@ -444,7 +484,7 @@ function makeDuoCareer(id){
 function buildDuoGame(){
  if(!DUO_IDS.every(id=>CSL_DRAW_TEAMS().includes(drawnClubs[id]))){notify("请先为两名球员分别翻开中超球队卡牌");return}
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
- duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
+ duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{},chinaMembership:chineseMembership(),chinaHistory:[]};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
 }
 function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
@@ -457,6 +497,7 @@ function linkSharedWorld(){
  sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
  sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
  sharedUniverse.clubRatings=sharedUniverse.clubRatings||{};
+ if(!sharedUniverse.chinaMembership)sharedUniverse.chinaMembership=chineseMembership();
  a.npcs=b.npcs=a.npcs.filter(n=>!DUO_IDS.some(id=>n.name===duoGames[id].player.name)); // One AI roster without duplicated protagonists
  a.clubRatings=b.clubRatings=sharedUniverse.clubRatings;
  if(a.year===b.year){
@@ -1311,7 +1352,7 @@ function applyPlayerTransfer(o,automatic=false){
 }
 function transfer(i){if(!g?.offers?.[i])return;applyPlayerTransfer(g.offers[i])}
 function nextSeason(){if(!g||g.season.stage!=="review")return;
- if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
+ if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}const chineseChanges=settleChinaPyramid(duoGames.wang.year);syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}let movedByDraw=false;
  if(p.forcedMove&&p.transferDraw?.selected){
   if(!applyPlayerTransfer(p.transferDraw.selected,true))return;
@@ -1327,6 +1368,7 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
  }
  if(!movedByDraw&&!p.forcedMove&&!p.forcedSameTier&&!p.youth&&p.transferDraw?.selected){if(!applyPlayerTransfer(p.transferDraw.selected,true))return}
  delete p.transferDraw;
+ const domesticLeague=chinaLeagueOf(p.club);if(domesticLeague&&CHINA_LEAGUES.includes(p.leagueId))p.leagueId=domesticLeague;
  const graduating=p.youth&&p.age+1>=ACADEMY_GRADUATION_AGE;
  if(graduating){
   // After two academy seasons the player reaches the SAME original age-18
