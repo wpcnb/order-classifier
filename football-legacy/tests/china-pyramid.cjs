@@ -8,7 +8,7 @@ const ctx={window:{},document:{getElementById:node,querySelector:()=>null,create
 for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,f),"utf8"),ctx,{filename:f,timeout:4000});
 vm.runInNewContext(script,ctx,{filename:"game.js",timeout:4000});
 const a=ctx.window.__china,runTimer=()=>{let n=0;while(timers.length&&n++<100)timers.shift()()};
-const click=(action,id,i=0)=>handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id,i}})}})};
+function click(action,id,i=0){handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id,i}})}})}
 assert.deepEqual(["CHN","CHN1","CHN2"].map(id=>a.DB[id].teams.length),[16,16,24]);
 const names=a.chineseMembers("CHN2",2026),rounds=a.chinaLeagueRounds("CHN2",names);
 assert.equal(rounds.length,30);
