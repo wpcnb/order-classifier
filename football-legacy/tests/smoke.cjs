@@ -240,6 +240,7 @@ retirementFixture.click("simBoth");
 assert.equal(retirementFixture.state.duoGames.vini.year,afterOne+1,"The surviving player must reach the following year");
 assert.equal(retirementFixture.state.duoGames.wang.year,afterOne+1,"Retired player's world year must stay synchronized");
 assert.equal(retirementFixture.state.duoGames.wang.player.retired,true);
+assert(retirementFixture.state.sharedUniverse.npcOffseasonYears.includes(afterOne+1),"AI season turnover must occur even after Wang retires");
 const retirementReload=harness([[SAVE,retirementFixture.stored.get(SAVE)]]);
 assert.equal(retirementReload.state.duoGames.wang.player.retired,true,"Retirement must persist after reload");
 log("Independent retirement works without a next generation and the surviving player continues");
