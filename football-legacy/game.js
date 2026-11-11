@@ -817,6 +817,32 @@ function disciplinaryRecord(p,ev){
  if(!p.discipline[scope])p.discipline[scope]={yellow:0,ban:0};
  return p.discipline[scope];
 }
+// Match-card probabilities are per appearance. Second caution means immediate dismissal;
+ // serious direct red is rare, and never combined with yellow in the same match.
+function rollMatchCards(p,choice="balanced",random=Math.random){
+ const byPosition={GK:.045,ST:.105,LW:.165,RW:.165,CAM:.155,CM:.19,CDM:.245,LB:.21,RB:.21,CB:.235};
+ const yellowChance=C((byPosition[p.position]??.16)+(choice==="defend"?.025:choice==="attack"?-.01:0),.03,.29);
+ const roll=random();
+ if(roll<.001)return {yellowCards:0,redCard:"direct"};
+ if(roll<.001+yellowChance)return random()<.012?
+  {yellowCards:2,redCard:"second-yellow"}:{yellowCards:1,redCard:null};
+ return {yellowCards:0,redCard:null};
+}
+function applyMatchDiscipline(p,ev,choice="balanced",random=Math.random){
+ const scope=disciplinaryScope(ev),record=disciplinaryRecord(p,ev);
+ const cards=rollMatchCards(p,choice,random);
+ if(cards.redCard){
+  p.redCards=(p.redCards||0)+1;
+  const ban=cards.redCard==="second-yellow"?1:2;
+  record.ban=Math.max(record.ban,ban);
+  log(p.name+"在"+scope+"赛事"+(cards.redCard==="second-yellow"?"两黄变一红":"因严重犯规被直接红牌罚下")+"，该项赛事停赛"+ban+"场。");
+ }else if(cards.yellowCards===1){
+  record.yellow++;
+  log(p.name+"在"+scope+"赛事领到1张黄牌。");
+  if(record.yellow>=5){record.ban=Math.max(record.ban,1);record.yellow=0;log(p.name+"在"+scope+"累计5张黄牌，该赛事下轮停赛。")}
+ }
+ return cards;
+}
 function refreshSuspensionSummary(p){
  p.suspension=Math.max(0,...Object.values(p.discipline||{}).map(x=>x.ban||0));
  p.yellowCards=p.discipline?.league?.yellow||0;
@@ -880,13 +906,9 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  }if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
  if(injuredBefore){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
  if(suspendedBefore){disciplinary.ban--;if(disciplinary.ban===0)log(p.name+"在本项赛事停赛期满。")}
+ let matchCards={yellowCards:0,redCard:null};
  if(played){
-  const roll=Math.random();
-  if(roll<.007){p.redCards=(p.redCards||0)+1;disciplinary.ban=Math.max(disciplinary.ban,2);log(p.name+"在"+disciplinaryScope(ev)+"被红牌罚下，该赛事停赛2场。")}
-  else if(roll<.102){
-   disciplinary.yellow++;
-   if(disciplinary.yellow>=5){disciplinary.ban=Math.max(disciplinary.ban,1);disciplinary.yellow=0;log(p.name+"在"+disciplinaryScope(ev)+"累计5张黄牌，该赛事下轮停赛。")}
-  }
+  matchCards=applyMatchDiscipline(p,ev,choice);
   const loss=R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30);
   p.stamina=percent(p.stamina-loss+(ev.kind==="league"?5:3));
   const injuryRisk=.008+Math.max(0,44-p.stamina)*.0020+(p.age>=30?.006:0);
@@ -894,7 +916,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  }else{p.stamina=percent(p.stamina+R(4,9))}
  refreshSuspensionSummary(p);p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
  eventResult={...ev,home,away,hs,as,played,goals,assists,rating,real:false,
-  injury:p.injuryMatches||0,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),
+  injury:p.injuryMatches||0,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,
   missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  s.index++;s.completed++;g.live=null;
  if(!batch){if(s.index>=s.events.length)endSeason();else{save();page="report";render()}}
@@ -1554,7 +1576,7 @@ function reportPage(){
  return '<section class="card"><div class="row"><div class="cap">POST MATCH · 比赛报告</div><span class="chip">'+E(m.date||"")+' · '+E(m.competition||DB[p.leagueId].name)+'</span></div>'+
  '<div class="scoreboard"><div class="inside"><div class="cap">'+(m.real?"已核实结果":"游戏赛季结果 · 已完赛")+'</div><div class="club-match">'+clubShield(m.home)+'<span class="match-club-name">'+E(m.home)+'</span><span class="gold match-vs">'+m.hs+' : '+m.as+'</span><span class="match-club-name">'+E(m.away)+'</span>'+clubShield(m.away)+'</div><p class="muted small">'+E(m.stage||"正式比赛")+'</p></div></div>'+
  '<div class="grid4 gap">'+metric("本场评分",m.coach?"教练执教":m.played?m.rating+"/10":"未上场")+metric("个人进球",m.coach?"—":m.goals||0)+metric("个人助攻",m.coach?"—":m.assists||0)+metric("比赛结果",ours>opp?"获胜":ours<opp?"落败":"战平")+'</div>'+
- '<section class="card gap"><h2>赛后状态</h2>'+(m.coach?'<p class="muted">本场以主教练身份执教。</p>':'<p>出场：'+(m.played?'是':'否')+' · 伤停剩余：'+(m.injury||0)+' 场 · 停赛剩余：'+(m.suspension||0)+' 场</p>')+'</section>'+
+ '<section class="card gap"><h2>赛后状态</h2>'+(m.coach?'<p class="muted">本场以主教练身份执教。</p>':'<p>出场：'+(m.played?'是':'否')+' · 伤停剩余：'+(m.injury||0)+' 场 · 停赛剩余：'+(m.suspension||0)+' 场</p>'+(m.played&&m.yellowCards!==undefined?'<p>本场纪律：'+(m.redCard==="second-yellow"?"两黄变一红":m.redCard==="direct"?"直接红牌":m.yellowCards===1?"黄牌1张":"无牌")+'</p>':""))+'</section>'+
  '<div class="flex gap"><button class="button primary" data-action="nextMatch" '+(g.season.stage!=="playing"?"disabled":"")+'>下一场比赛</button><button class="button" data-page="calendar">查看全年赛历</button><button class="button goldbtn" data-action="simSeason" '+(g.season.stage!=="playing"?"disabled":"")+'>一键完成剩余赛季</button></div></section>'
 }
 
