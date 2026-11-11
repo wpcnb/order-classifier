@@ -219,18 +219,23 @@ function chineseClubDivision(club,year){
  for(const id of CHINA_DIVISIONS)if(chineseMembers(id,year).includes(club))return id;
  return null;
 }
+function chinaSecondStageGroups(names){
+ const n=names.slice(0,12).sort((a,b)=>power(b)-power(a)),
+       s=names.slice(12,24).sort((a,b)=>power(b)-power(a));
+ return [[n.slice(0,4),s.slice(0,4)],[n.slice(4,8),s.slice(4,8)],[n.slice(8,12),s.slice(8,12)]];
+}
 function chinaLeagueRounds(id,names){
  if(id!=="CHN2"||names.length!==24)return makeRR(names);
- // China League Two season model: north/south 12-team groups for 22 rounds,
- // then eight simulated promotion/relegation group rounds (30 total).
- // Stage-two allocation here is seeded by strength before kickoff; it is a
- // game approximation, not a claim about official real-world round-two qualifiers.
+ // 24 clubs: first 22 matchdays are regional home/away double RR.
+ // Then each team meets four clubs from the other region twice (8 games).
+ // The in-game group placement is seeded by pre-season club power, a
+ // simulation approximation, not the official stage-one final standings.
  const north=names.slice(0,12),south=names.slice(12);
  const northRounds=makeRR(north),southRounds=makeRR(south);
  const rounds=Array.from({length:22},(_,i)=>northRounds[i].concat(southRounds[i]));
- const n=north.slice().sort((a,b)=>power(b)-power(a)),t=south.slice().sort((a,b)=>power(b)-power(a));
- const groups=[[n.slice(0,4),t.slice(0,4)],[n.slice(4,8),t.slice(4,8)],[n.slice(8,12),t.slice(8,12)]];
- for(let i=0;i<8;i++){const fixtures=[];
+ const groups=chinaSecondStageGroups(names);
+ for(let i=0;i<8;i++){
+  const fixtures=[];
   for(const [a,b] of groups)for(let j=0;j<4;j++){
    const northTeam=a[j],southTeam=b[(j+i%4)%4];
    fixtures.push(i<4?{home:northTeam,away:southTeam}:{home:southTeam,away:northTeam});
@@ -256,7 +261,8 @@ function chineseSeasonTransition(year){
  // Two graduates using the in-game 2027 regional league simulation.
  if(year===2027&&current.CHN1.length===16&&current.CHN2.length===24){
   const t=duoGames.wang.season.world?.CHN2?.table||duoGames.vini.season.world?.CHN2?.table;
-  const candidates=t?sortedTable(t).map(x=>x.name):current.CHN2;
+  const championGroup=new Set(chinaSecondStageGroups(current.CHN2)[0].flat());
+  const candidates=(t?sortedTable(t).map(x=>x.name):current.CHN2).filter(x=>championGroup.has(x));
   const promoted=candidates.filter(x=>!x.endsWith("B队")).slice(0,2);
   const reserve=CHINA_CROWN_RESERVE.filter(x=>!CHINA_DIVISIONS.some(id=>current[id].includes(x))).slice(0,2);
   if(promoted.length===2&&reserve.length===2){
@@ -272,11 +278,18 @@ function chineseSeasonTransition(year){
  if(CHINA_DIVISIONS.some(id=>!tables[id]||Object.keys(tables[id]).length!==current[id].length)){finish(current);return}
  const orders=Object.fromEntries(CHINA_DIVISIONS.map(id=>[id,sortedTable(tables[id]).map(t=>t.name)]));
  const cslOut=orders.CHN.slice(-2),cslIn=orders.CHN1.slice(0,2);
- const l1Out=orders.CHN1.slice(-2),l2Candidates=orders.CHN2.filter(x=>{
-  const parent=x.replace(/B队$/,"");
-  return !x.endsWith("B队")||!current.CHN1.includes(parent)&&!cslOut.includes(parent)
- });
+ const l1Out=orders.CHN1.slice(-2);
+ const championGroup=new Set(chinaSecondStageGroups(current.CHN2)[0].flat());
+ // Only final promotion-group sides qualify; cap B-team admissions at one.
+ const l2Candidates=[];let bTeamCount=0;
+ for(const x of orders.CHN2){
+  if(!championGroup.has(x))continue;
+  const reserve=x.endsWith("B队"),parent=x.replace(/B队$/,"");
+  if(reserve&&(current.CHN1.includes(parent)||cslOut.includes(parent)||bTeamCount>=1))continue;
+  l2Candidates.push(x);if(reserve)bTeamCount++;
+ }
  const l2In=l2Candidates.slice(0,2);
+ if(l2In.length!==2){finish(current);return}
  let next={
   CHN:current.CHN.filter(x=>!cslOut.includes(x)).concat(cslIn),
   CHN1:current.CHN1.filter(x=>!cslIn.includes(x)&&!l1Out.includes(x)).concat(cslOut,l2In),
