@@ -127,8 +127,23 @@ function realNPC(person,i){
 }
 function ensureRealAwardPlayers(){
  if(!g||!Array.isArray(g.npcs))return;
- const real=realAwardRoster().filter(person=>duoGames?!DUO_IDS.some(id=>person[0]===duoGames[id].player.name):person[0]!==g.player.name),present=new Set(g.npcs.filter(n=>n.realPerson).map(n=>n.name));
+ const roster=realAwardRoster(), byName=new Map(roster.map(person=>[person[0],person]));
+ const retired=new Set([...(sharedUniverse?.retiredRealPeople||[]),...(sharedUniverse?.npcRetirements||[]).map(n=>n.name)].filter(name=>byName.has(name)));
+ if(sharedUniverse)sharedUniverse.retiredRealPeople=[...retired];
+ // Older saves could resurrect a real player at their 2026 age. Restore the
+ // minimum plausible age and discard anyone already retired or over the limit.
+ for(let i=g.npcs.length-1;i>=0;i--){
+  const n=g.npcs[i],person=byName.get(n.name);if(!n.realPerson||!person)continue;
+  const ageLimit=n.pos==="GK"?41:["CB","CDM"].includes(n.pos)?40:39;
+  n.age=Math.max(Number(n.age)||0,person[4]+Math.max(0,g.year-2026));
+  if(retired.has(n.name)||(g.year>2026&&n.age>=ageLimit)){retired.add(n.name);g.npcs.splice(i,1)}
+ }
+ if(sharedUniverse)sharedUniverse.retiredRealPeople=[...retired];
+ const real=roster.filter(person=>duoGames?!DUO_IDS.some(id=>person[0]===duoGames[id].player.name):person[0]!==g.player.name),present=new Set(g.npcs.filter(n=>n.realPerson).map(n=>n.name));
  for(let i=0;i<real.length;i++)if(!present.has(real[i][0])){
+  // A missing real person in a later save may already have retired. Do not
+  // recreate them with their original 2026 age when loading or playing.
+  if(retired.has(real[i][0])||g.year>2026)continue;
   const existing=g.npcs.find(n=>n.name===real[i][0]);
   if(existing){existing.realPerson=true;present.add(existing.name);continue}
   g.npcs.push(realNPC(real[i],i));present.add(real[i][0])
@@ -174,7 +189,7 @@ function duoPayload(){
   europeFinals:shared.europeFinals||{},
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
-  awards:shared.awards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),
+  awards:shared.awards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
   offseasonYears:(shared.offseasonYears||[]).slice(-3),npcOffseasonYears:(shared.npcOffseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -435,7 +450,7 @@ function createUefa(club,id,year,rank){
  return {type,drawRounds,verifiedHistory:!!imported,source:imported?"UEFA官方（截至2026-11-01）":"游戏赛季结果",table:Object.fromEntries(clubs.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),played:0,stage:"league",completed:false,knockoutIndex:0,knockoutResults:[],matches}
 }
 
-function createCups(id,year){let name=id==="ENG"?"足总杯":id==="ESP"?"国王杯":id==="GER"?"德国杯":id==="ITA"?"意大利杯":id==="FRA"?"法国杯":id==="CHN"?"足协杯":id==="BRA"?"巴西杯":id==="NED"?"荷兰杯":"葡萄牙杯";return {name,active:true,stage:0,stages:["第三轮","第四轮","第五轮","八强","半决赛","决赛"],results:[]}}
+function createCups(id,year){const name=({ENG:"足总杯",ESP:"国王杯",GER:"德国杯",ITA:"意大利杯",FRA:"法国杯",CHN:"足协杯",BRA:"巴西杯",NED:"荷兰杯",POR:"葡萄牙杯",TUR:"土耳其杯",BEL:"比利时杯",SCO:"苏格兰杯",AUT:"奥地利杯",SUI:"瑞士杯",DEN:"丹麦杯"})[id]||"国内杯";return {name,active:true,stage:0,stages:["第三轮","第四轮","第五轮","八强","半决赛","决赛"],results:[]}}
 function makeSchedule(player,year,prevRank=10){
  const league=leagueCalendar(player.leagueId,player.club,year),uefa=player.youth?null:createUefa(player.club,player.leagueId,year,prevRank),cup=createCups(player.leagueId,year);
  let events=league.map(r=>{const f=r.fixtures.find(f=>f.home===player.club||f.away===player.club);return {id:"l"+r.round,kind:"league",date:r.date,round:r.round,home:f.home,away:f.away,verified:r.verified?{gf:r.verified.gf,ga:r.verified.ga}:null}});
@@ -825,6 +840,7 @@ function simulateNPCOffseason(){
   const retirementRisk=n.age>=35?Math.min(.24,(n.age-34)*.023):0;
   if(n.age>=ageLimit||n.age>=35&&Math.random()<retirementRisk){
    sharedUniverse=sharedUniverse||{};
+   if(n.realPerson){const names=sharedUniverse.retiredRealPeople||(sharedUniverse.retiredRealPeople=[]);if(!names.includes(n.name))names.push(n.name)}
    const retired=sharedUniverse.npcRetirements||(sharedUniverse.npcRetirements=[]);
    retired.push({year:g.year,name:n.name,age:n.age,club:n.club,position:n.pos,finalOverall:n.ov});
    if(retired.length>140)retired.splice(0,retired.length-140);
@@ -843,6 +859,20 @@ function simulateNPCOffseason(){
 
 function currentEvent(){return g.season.events[g.season.index]||null}
 function sortedTable(table){return Object.values(table).sort((a,b)=>b.points-a.points||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
+function previousClubRank(id,club,year){
+ const tables=[sharedUniverse?.rounds?.[year+":"+id]?.table];
+ if(duoGames)for(const who of DUO_IDS){const x=duoGames[who];
+  if(x.year===year&&x.player.leagueId===id&&!x.player.youth)tables.push(x.season.leagueTable);
+  if(x.year===year)tables.push(x.season.world?.[id]?.table);
+ }
+ tables.push(g?.season?.world?.[id]?.table);
+ for(const table of tables){
+  if(!table?.[club]||!table[club].p)continue;
+  const rank=sortedTable(table).findIndex(entry=>entry.name===club);
+  if(rank>=0)return rank+1;
+ }
+ return null;
+}
 function playerFit(){let p=g.player;return C(.20+overall(p)/155+(p.coachTrust-55)/450+(p.parentCoach?.skills?.motivation||0)/650-(p.stamina<40?.16:0)+(p.seasonForm||0)*.10,.26,.91)}
 function allocateAvailable(points,values,keys,limit){
  let n=0;while(points>0){const available=keys.filter(k=>values[k]<limit);if(!available.length)break;const key=available[n%available.length];values[key]++;points--;n++}return points
@@ -1421,6 +1451,7 @@ function nextSeason(){if(!g||(g.season.stage!=="review"&&!g.player.retired))retu
  if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired)){notify("同一时间线：请先完成仍在参赛球员的当前赛季");return}if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.player.retired){g.year++;g.season={...g.season,stage:"retired",events:[],index:0,completed:0,world:null,leagueRounds:[],results:[],uefa:null,national:null};return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;
+ const previousClub=p.club,previousLeague=p.leagueId,previousYear=g.year;
  // A player finishes their age-39 season and retires when turning 40.
  // A loaded legacy player already aged 40+ retires during hydration instead.
  if(duoGames&&p.age>=39){
@@ -1448,6 +1479,8 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;
   p.club=p.academyParentClub||p.club.replace(/青训$/,"");p.youth=false;p.wage=Math.max(p.wage,7000);p.contract=4;
   p.poorStreak=0;p.trophylessStreak=0;p.forcedMove=false;p.forcedSameTier=false;
   log("青训毕业：18岁升入 "+p.club+" 一线队。青训进球助攻单独保存在青年履历中。")}
+ const rankForNextSeason=previousClubRank(p.leagueId,p.club,previousYear)??
+  (p.club===previousClub&&p.leagueId===previousLeague?(g.lastReview?.rank||10):10);
  g.year++;p.age++;p.contract=Math.max(0,p.contract-1);
  const recovery=offseasonRecovery(p);
  if(recovery.injuryBefore)log("休赛期伤病恢复："+recovery.injuryBefore+"→"+recovery.injuryAfter+"场，严重伤病不会自动清零。");
@@ -1459,7 +1492,7 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;
   p.agingImpact={age:p.age,pace:old.pace-p.stats.pace,physical:old.physical-p.stats.physical,dribble:old.dribble-p.stats.dribble};
   log("年龄影响：速度 -"+p.agingImpact.pace+"，身体 -"+p.agingImpact.physical+(p.agingImpact.dribble?"，盘带 -"+p.agingImpact.dribble:"")+"。");
  }else if(p.age<24){p.points+=R(0,2)}
- p.seasonForm=C(R(-100,100)/100-(p.age>=35?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;// Age the shared AI roster once per year even when Wang has retired and Vini plays on.
+ p.seasonForm=C(R(-100,100)/100-(p.age>=35?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,rankForNextSeason);g.lastMatch=null;g.offers=[];g.live=null;// Age the shared AI roster once per year even when Wang has retired and Vini plays on.
  if(!sharedUniverse||!sharedUniverse.npcOffseasonYears?.includes(g.year)){
   simulateNPCOffseason();
   if(sharedUniverse)(sharedUniverse.npcOffseasonYears||(sharedUniverse.npcOffseasonYears=[])).push(g.year);

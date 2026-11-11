@@ -36,5 +36,8 @@ jobs:
       - name: Shared national and long-career awards regressions
         run: node football-legacy/tests/national-awards.cjs
 
+      - name: Club qualification and retired-player integrity
+        run: node football-legacy/tests/world-integrity.cjs
+
       - name: Baseline 100-season simulation
         run: node football-legacy/tests/balance-100.cjs
