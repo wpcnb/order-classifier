@@ -96,7 +96,7 @@ assert.equal(safeSeason.state.duoGames.wang.year,2027);
 assert.equal(safeSeason.state.duoGames.vini.year,2027);
 assert.equal(safeSeason.state.duoGames.wang.season.stage,"playing");
 assert.equal(safeSeason.state.duoGames.wang.season.completed,0,"Entering next season must not silently simulate its matches");
-assert(safeSeason.html.includes('data-action="simBoth"')&&safeSeason.html.includes("模拟整个赛季"));
+assert(safeSeason.html.includes('data-action="quickCareerAdvance"')&&safeSeason.html.includes("模拟剩余赛季"));
 log("Season controls clearly advance a year without silently simulating it");
 
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
