@@ -170,7 +170,7 @@ function duoPayload(){
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
   awards:shared.awards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),
-  offseasonYears:(shared.offseasonYears||[]).slice(-3),
+  offseasonYears:(shared.offseasonYears||[]).slice(-3),npcOffseasonYears:(shared.npcOffseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
  };
@@ -1392,7 +1392,11 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;let movedByDraw=fa
  g.year++;p.age++;p.contract=Math.max(0,p.contract-1);
  const recovery=offseasonRecovery(p);
  if(recovery.injuryBefore)log("休赛期伤病恢复："+recovery.injuryBefore+"→"+recovery.injuryAfter+"场，严重伤病不会自动清零。");
- if(p.suspension>0)log("新赛季仍需执行剩余"+p.suspension+"场赛事停赛。");p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=35){for(const k of ["pace","physical",...(p.age>=37?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=37?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=35?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;if(!sharedUniverse||sharedUniverse.offseasonYears.filter(y=>y===g.year).length<=1&&activeDuo==="wang")simulateNPCOffseason();createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
+ if(p.suspension>0)log("新赛季仍需执行剩余"+p.suspension+"场赛事停赛。");p.morale=percent(p.morale+8);if(p.contract===0){p.contract=2;p.wage=Math.round(p.wage*1.08);log("合约到期，续约两年。")}if(p.age>=35){for(const k of ["pace","physical",...(p.age>=37?["dribble"]:[])])p.stats[k]=Math.max(30,p.stats[k]-R(0,p.age>=37?2:1));}else if(p.age<24){p.points+=R(0,2)}p.seasonForm=C(R(-100,100)/100-(p.age>=35?.12:0)-(p.injuryHistory||0)*.008,-1,1);p.scoutingRoll=Math.random();if(p.parentCoach)p.parentCoach.points+=3;if(!sharedUniverse||!sharedUniverse.offseasonYears.includes(g.year)){offseasonClubUpdate();if(sharedUniverse)sharedUniverse.offseasonYears.push(g.year)}g.season=makeSchedule(p,g.year,g.lastReview?.rank||8);g.lastMatch=null;g.offers=[];g.live=null;// Age the shared AI roster once per year even when Wang has retired and Vini plays on.
+ if(!sharedUniverse||!sharedUniverse.npcOffseasonYears?.includes(g.year)){
+  simulateNPCOffseason();
+  if(sharedUniverse)(sharedUniverse.npcOffseasonYears||(sharedUniverse.npcOffseasonYears=[])).push(g.year);
+ }createWorld(g.season);page="dashboard";log("第"+g.generation+"代 · "+g.year+"/"+(g.year+1)+" 赛季开始。");save();render()}
 function retire(withCoach){const p=g.player;if(p.age<32){notify("球员至少32岁才能主动退役并开启下一代");return}const archive={generation:g.generation,name:p.name,country:p.country,club:p.club,position:p.position,age:p.age,career:{...p.career},honors:g.honors.filter(h=>h.generation===g.generation),headCoach:!!withCoach,year:g.year};g.ancestors.push(archive);const lastClub=p.club.replace(/青训$/,"");let t=mkTalent(),name=p.name.replace(/(·\d+世)+$/,"")+"·"+(g.generation+1)+"世";const child={...initialPlayer(false),name,country:p.country,age:16,position:P(["LW","RW","ST","CAM","CM","CB"]),club:lastClub+"青训",leagueId:p.leagueId,youth:true,number:R(11,40),stats:t.stats,potential:t.potential,trait:t.specialty,cash:12000,wage:1600,contract:2,fame:5,career:{apps:0,goals:0,assists:0,national:0},parentCoach:withCoach?{name:p.name,club:lastClub,points:5,skills:{tactics:20,training:25,motivation:20,scouting:20}}:null};g.generation++;g.player=child;g.year++;g.offers=[];g.live=null;g.season=makeSchedule(child,g.year,10);simulateNPCOffseason();createWorld(g.season);log("家族第"+g.generation+"代正式开启："+child.name+"，父亲"+(withCoach?"担任 "+lastClub+" 主教练":"选择退役生活")+"。");page="family";save();render()}
 function createCoachSchedule(){
  const p={...g.player,club:g.coach.club,leagueId:g.coach.leagueId,age:g.coach.age,youth:false};
@@ -1729,11 +1733,11 @@ function duoDashboard(){
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
- const peer=DUO_IDS.map(who=>duoGames[who]).find(x=>x.player.leagueId===id);
+ const peer=DUO_IDS.map(who=>duoGames[who]).find(x=>!x.player.retired&&x.player.leagueId===id);
  const table=peer?.season.leagueTable||duoGames.wang.season.world?.[id]?.table;
  const academy=!!peer?.player.youth,names=new Set(l.teams.map(t=>t.name)),npcs=academy?[]:duoGames.wang.npcs.filter(n=>names.has(n.club)&&n.pos!=="GK");
  const players=npcs.map(n=>({id:n.id,name:n.name,club:n.club,goals:n.goals||0,assists:n.assists||0}));
- for(const who of DUO_IDS){const x=duoGames[who];if(x.player.leagueId===id&&!!x.player.youth===academy)players.push({id:who,name:x.player.name,club:x.player.club,goals:x.season.leagueGoals||0,assists:x.season.leagueAssists||0})}
+ for(const who of DUO_IDS){const x=duoGames[who];if(!x.player.retired&&x.player.leagueId===id&&!!x.player.youth===academy)players.push({id:who,name:x.player.name,club:x.player.club,goals:x.season.leagueGoals||0,assists:x.season.leagueAssists||0})}
  const score=(key,other)=>players.slice().sort((a,b)=>b[key]-a[key]||b[other]-a[other]).slice(0,20).map((p,i)=>'<div class="item row '+(DUO_IDS.includes(p.id)?"mine":"")+'"><span><b>'+(i+1)+'. '+E(p.name)+'</b><br><small class="muted">'+E(p.club)+'</small></span><strong>'+p[key]+'</strong></div>').join("");
  return '<section class="card"><h2>统一世界足球中心 · '+year+'</h2><div class="flex">'+Object.entries(DB).map(([key,val])=>'<button class="button '+(id===key?"goldbtn":"")+'" data-action="worldSelect" data-id="'+key+'">'+E(val.name)+'</button>').join("")+'</div><h3 class="gap">'+E(l.name)+(academy?'青训':'')+' · 唯一积分榜</h3>'+tablePanel(table,l.teams.length)+'</section><div class="grid2 gap"><section class="card"><h2>'+(academy?"双主角进球对比":"统一射手榜")+'</h2>'+(academy?'<p class="muted small">仅显示两名主角，不是全部青训球员排名。</p>':"")+score("goals","assists")+'</section><section class="card"><h2>'+(academy?"双主角助攻对比":"统一助攻榜")+'</h2>'+score("assists","goals")+'</section></div>';
 }
