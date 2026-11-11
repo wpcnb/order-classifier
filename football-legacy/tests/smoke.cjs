@@ -25,6 +25,26 @@ assert(x.html.includes("双星同场")&&x.html.includes("王楚淇")&&x.html.inc
 assert(x.html.includes("draw-card-grid")&&x.html.includes("中超"));
 assert.equal(x.api.cslPool().length,14);assert(!x.api.cslPool().includes("长春亚泰")&&!x.api.cslPool().includes("梅州客家"));
 log("Old data preserved; ten opening club cards visible");
+
+const overseas=harness();
+overseas.click("chooseAcademy",{id:"wang",league:"ENG"});
+overseas.click("chooseAcademy",{id:"vini",league:"ESP"});
+const openSave=overseas.stored.get("football-dynasty-opening-v3");
+assert(openSave&&JSON.parse(openSave).decks.wang.length===10);
+const overseasReload=harness([["football-dynasty-opening-v3",openSave]]);
+assert(overseasReload.html.includes("英超")&&overseasReload.html.includes("西甲"),"Opening youth leagues must survive page reload");
+overseasReload.click("flipOpeningCard",{id:"wang",i:0});overseasReload.flush();
+overseasReload.click("flipOpeningCard",{id:"vini",i:0});overseasReload.flush();
+const revealSave=overseasReload.stored.get("football-dynasty-opening-v3");
+const overseasLocked=harness([["football-dynasty-opening-v3",revealSave]]);
+assert(overseasLocked.html.includes("已抽中"),"Opening card selection must remain locked after refresh");
+overseasLocked.click("preset");
+assert.equal(overseasLocked.state.duoGames.wang.player.leagueId,"ENG");
+assert.equal(overseasLocked.state.duoGames.vini.player.leagueId,"ESP");
+assert(overseasLocked.state.duoGames.wang.player.club.endsWith("青训"));
+assert(overseasLocked.state.duoGames.vini.player.club.endsWith("青训"));
+log("Separate English and Spanish academy drafts survive reload and open valid youth careers");
+
 x.click("preset");assert(!x.state,"Must draw before starting");
 x.click("flipOpeningCard",{id:"wang",i:0});x.flush();
 x.click("flipOpeningCard",{id:"vini",i:0});x.flush();
@@ -152,6 +172,14 @@ assert.equal(replay.state.duoGames.wang.player.club,selected.club,"Actual new cl
 assert.equal(replay.state.duoGames.wang.player.leagueId,selected.id,"League must follow drawn destination");
 assert.equal(replay.state.duoGames.wang.player.transferHistory.at(-1).reason,"抽签达标升级","Promotion history should distinguish lottery upgrades");
 log("Promotion cards block auto-advance and preserve the manually flipped result");
+const declined=harness([[SAVE,JSON.stringify(forcedFixture)]]);
+declined.page("transfer");
+const beforeStay=declined.state.duoGames.wang.player.club;
+declined.click("declineDraw",{id:"wang"});
+declined.click("simBoth");
+assert.equal(declined.state.duoGames.wang.player.club,beforeStay,"Declining a club draw must preserve the original club");
+log("A player may decline the unlocked draw and continue at the current club");
+
 const relegationSave=JSON.parse(x.stored.get(SAVE));
 const down=relegationSave.duoGames.wang;
 down.player.leagueId="ENG";down.player.club="切尔西";down.player.forcedMove=true;down.player.forcedSameTier=false;
