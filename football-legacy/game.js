@@ -83,6 +83,7 @@ let sharedUniverse=null,syncSeasonChange=false,g=null,duoGames=null,activeDuo="w
 function toDate(d){return d==="—"?"":d}
 function power(team){
  if(team.endsWith("青训"))return Math.max(42,power(team.slice(0,-2))-30);
+ if(CHINA_CROWN_RESERVE.includes(team))return 56;
  if(g?.clubRatings&&Number.isFinite(g.clubRatings[team]))return g.clubRatings[team];
  for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power}
  return 80
@@ -207,6 +208,9 @@ function titleResult(d){return d.home+" "+d.hs+" : "+d.as+" "+d.away}
 // Chinese domestic pyramid is separate from the six international career tiers.
 // Clubs move between these divisions; a player may follow the club or transfer.
 const CHINA_DIVISIONS=["CHN","CHN1","CHN2"];
+// Documented 2026 member-association championship participants used only for
+// simulated later promotion into League Two, not as confirmed 2028 entrants.
+const CHINA_CROWN_RESERVE=["榆林旅投矿工","深圳吉祥","陕西宝鸡联腾","江苏常晋","武汉联镇","广东吴川青年","大连聚惺晟恒","辽宁盛京新锐"];
 function chineseMembers(id,year=duoGames?.wang?.year??g?.year??2026){
  const recorded=sharedUniverse?.chineseMembership?.[year]?.[id];
  return Array.isArray(recorded)?recorded.slice():DB[id].teams.map(t=>t.name);
@@ -225,9 +229,14 @@ function chinaLeagueRounds(id,names){
  const northRounds=makeRR(north),southRounds=makeRR(south);
  const rounds=Array.from({length:22},(_,i)=>northRounds[i].concat(southRounds[i]));
  const n=north.slice().sort((a,b)=>power(b)-power(a)),t=south.slice().sort((a,b)=>power(b)-power(a));
- const groups=[[...n.slice(0,4),...t.slice(0,4)],[...n.slice(4,8),...t.slice(4,8)],[...n.slice(8,12),...t.slice(8,12)]];
- const groupRounds=groups.map(group=>makeRR(group).slice(0,8));
- for(let i=0;i<8;i++)rounds.push(groupRounds.flatMap(g=>g[i]));
+ const groups=[[n.slice(0,4),t.slice(0,4)],[n.slice(4,8),t.slice(4,8)],[n.slice(8,12),t.slice(8,12)]];
+ for(let i=0;i<8;i++){const fixtures=[];
+  for(const [a,b] of groups)for(let j=0;j<4;j++){
+   const northTeam=a[j],southTeam=b[(j+i%4)%4];
+   fixtures.push(i<4?{home:northTeam,away:southTeam}:{home:southTeam,away:northTeam});
+  }
+  rounds.push(fixtures);
+ }
  return rounds;
 }
 function chineseSeasonTable(id){
@@ -242,6 +251,21 @@ function chineseSeasonTransition(year){
  if(sharedUniverse.chineseMembership[target])return;
  const current=Object.fromEntries(CHINA_DIVISIONS.map(id=>[id,chineseMembers(id,year)]));
  const finish=next=>{sharedUniverse.chineseMembership[target]=next;};
+ // The 2027→2028 expansion makes League One 18 clubs. Both protagonists
+ // are in academies until 2028; retain CSL clubs and model two extra League
+ // Two graduates using the in-game 2027 regional league simulation.
+ if(year===2027&&current.CHN1.length===16&&current.CHN2.length===24){
+  const t=duoGames.wang.season.world?.CHN2?.table||duoGames.vini.season.world?.CHN2?.table;
+  const candidates=t?sortedTable(t).map(x=>x.name):current.CHN2;
+  const promoted=candidates.filter(x=>!x.endsWith("B队")).slice(0,2);
+  const reserve=CHINA_CROWN_RESERVE.filter(x=>!CHINA_DIVISIONS.some(id=>current[id].includes(x))).slice(0,2);
+  if(promoted.length===2&&reserve.length===2){
+   const next={CHN:current.CHN.slice(),CHN1:[...current.CHN1,...promoted],CHN2:[...current.CHN2.filter(x=>!promoted.includes(x)),...reserve]};
+   finish(next);
+   sharedUniverse.chineseMoves[target]={fromYear:year,expansion:true,oneUp:promoted,twoNew:reserve};
+   return;
+  }
+ }
  // Academy-only years do not manufacture first-team CSL relegation tables.
  if(DUO_IDS.every(id=>duoGames[id].player.youth)){finish(current);return}
  const tables=Object.fromEntries(CHINA_DIVISIONS.map(id=>[id,chineseSeasonTable(id)]));
@@ -261,7 +285,7 @@ function chineseSeasonTransition(year){
  // 2026 model includes the extra 1.5-place promotion/relegation playoff:
  // 14th in League One vs third eligible League Two team, over two legs.
  let playoff=null;
- if(year>=2028||year===2026){
+ if(year===2026){
   const l1Play=orders.CHN1[orders.CHN1.length-3],l2Play=l2Candidates[2];
   if(l1Play&&l2Play&&l1Play!==l2Play){
    const [a,b]=simulateScore(l2Play,l1Play),[c,d]=simulateScore(l1Play,l2Play);
