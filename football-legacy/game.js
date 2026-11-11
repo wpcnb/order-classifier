@@ -2077,7 +2077,7 @@ function duoWorldPage(){
 }
 function duoTransferPage(){
  const missing=missingPromotionDraws();
- return '<div class="card transfer-hero"><h2>双人转会</h2><p class="muted">两人分别决定去留，需要抽卡时请亲自选择。</p><details class="item"><summary>查看抽卡与转会规则</summary><p class="muted small">达标升级时各自抽10张卡：9张下一档、1张再上一档；只差一级到最高档时10张均为最高档。降档时抽10张目标档球队卡。翻牌结果即时保存，必须处理完成才能进入下赛季。连续两季无冠仅提醒，翻牌后可以接受或留队。</p></details>'+
+ return '<div class="card transfer-hero"><h2>双人转会</h2><p class="muted">两人分别决定去留，升降档球队需亲自抽卡。</p><details class="item"><summary>查看抽卡与转会规则</summary><p class="muted small">达标升级时各自抽10张卡：9张下一档、1张再上一档；只差一级到最高档时10张均为最高档。降档时抽10张目标档球队卡。翻牌结果即时保存，必须处理完成才能进入下赛季。连续两季无冠仅提醒，翻牌后可以接受或留队。</p></details>'+
  (missing.length?'<p class="gold"><b>等待 '+missing.map(id=>E(duoGames[id].player.name)).join("、")+' 完成升降档抽签</b></p>':'')+
  '<div class="flex">'+(DUO_IDS.every(id=>duoGames[id].player.retired||duoGames[id].season.stage==="review")?(missing.length?'':(DUO_IDS.every(id=>duoGames[id].player.retired)?'':'<button class="button primary" data-action="nextSeason">进入下一赛季</button>')):'<button class="button primary" data-action="simBoth">模拟本赛季</button>')+'</div></div>'+
  '<div class="grid2 gap">'+DUO_IDS.map(id=>{
