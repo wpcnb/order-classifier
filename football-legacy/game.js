@@ -466,6 +466,7 @@ function makeDuoCareer(id){
  return g;
 }
 function buildDuoGame(){
+ if(incompatibleLegacySave){notify("检测到旧版不兼容联赛存档，请先保留原始备份再重新开局");return}
  if(!DUO_IDS.every(id=>DB[openingLeagues[id]]?.teams.some(t=>t.name===drawnClubs[id]))){notify("请先为两名球员分别抽取青训球队");return}
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
  duoGames={wang,vini};localStorage.removeItem?.(OPENING_STORE);sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
@@ -1528,7 +1529,7 @@ function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){shared
  let n=0;while(n<3&&g.season.index<g.season.events.length){automaticPrep();playEvent(currentEvent(),"balanced",true);n++}if(g.season.index>=g.season.events.length)endSeason();else{save();page="dashboard";render()}
 }
 function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵世代_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
-async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if(!confirm("导入双人生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();notify("同一足球世界双人生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
+async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if(DUO_IDS.some(id=>!DB[v.duoGames[id].player.leagueId])){notify("该旧存档包含已取消联赛。文件保持原样，不会覆盖当前存档");return}if(!confirm("导入双人生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();notify("同一足球世界双人生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
 function newGameDialog(){if(g&&!confirm("删除当前两人生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);resetDraw();render()}
 function choosePage(p){page=p;render()}
 function bar(n){return '<div class="meter"><span style="width:'+percent(n)+'%"></span></div>'}
@@ -1688,8 +1689,22 @@ function reportPage(){
 }
 
 function matchPage(){let ev=g.live?.event||currentEvent();if(!ev)return dashboard();let opp=ev.home&&ev.away?ev.home+" vs "+ev.away:g.player.club+" vs "+(ev.kind==="national"?"国家队对手":"杯赛对手");return '<div class="card"><div class="row"><div><div class="cap">MATCH CENTER · '+E(ev.date)+'</div><h2>'+E(ev.competition||(ev.kind==="league"?DB[g.player.leagueId].name:"正式比赛"))+'</h2></div><span class="chip">'+E(ev.stage||"对决")+'</span></div><div class="scoreboard"><div class="inside"><div class="vs">'+E(opp)+'</div><div class="muted">策略影响进球机会与个人表现；球员未出场时按均衡策略推演。</div></div></div><h3 class="gap">选择比赛策略</h3><div class="grid2"><button class="button" data-action="play" data-choice="balanced">均衡比赛 · 稳健发挥</button><button class="button primary" data-action="play" data-choice="attack">积极进攻 · 增加进球机会，也增加失球风险</button><button class="button" data-action="play" data-choice="creative">创造机会 · 提高进攻优势，争取助攻</button><button class="button" data-action="play" data-choice="defend">稳守反击 · 减少对手机会，己方进球也更难</button></div><div class="flex gap"><button class="button goldbtn" data-action="simSeason">从这里一键完成剩余赛季</button></div></div>'}
+let incompatibleLegacySave="";
+const INCOMPATIBLE_ARCHIVE=STORE+"-incompatible-archive";
+function archiveIncompatibleSave(){
+ if(!incompatibleLegacySave)return;
+ try{
+  const raw=localStorage.getItem(STORE);
+  if(!raw)return notify("无法找到原始存档");
+  if(localStorage.getItem(INCOMPATIBLE_ARCHIVE))return notify("已有一份不兼容旧档备份。为避免覆盖，请先导出已备份的旧档");
+  localStorage.setItem(INCOMPATIBLE_ARCHIVE,raw);
+  if(localStorage.getItem(INCOMPATIBLE_ARCHIVE)!==raw)throw Error("backup mismatch");
+  incompatibleLegacySave="";render();notify("旧存档完整保存在单独的旧版备份中，可导出，现可开始新游戏");
+ }catch(e){notify("备份失败。原始存档未被删除，请先导出 JSON 文件")}
+}
 function startPage(){
  return '<div class="hero"><div><div class="cap">ONE SHARED FOOTBALL WORLD</div><h1>双星同场 · 青训起航</h1><p>各自选择中超或五大联赛青训，从随机十张俱乐部卡牌中翻开一张。16岁开始，18岁升入所抽俱乐部一线队。</p></div></div>'+
+ (incompatibleLegacySave?'<section class="card gap"><h2>旧版存档需要手动处理</h2><p class="muted">'+E(incompatibleLegacySave)+'。原始存档仍留在浏览器，游戏不会自动更换俱乐部或覆盖旧档。</p><div class="flex"><button class="button" data-action="exportIncompatible">导出原始存档 JSON</button><button class="button goldbtn" data-action="archiveIncompatible">先保留旧档备份，再允许新开局</button></div></section>':'')+
  '<div class="grid2 gap">'+DUO_IDS.map(openingCardPanel).join("")+'</div>'+
  '<section class="card gap"><p>两人分别选卡，翻牌结果本地保存；青训比赛和成年比赛数据分开统计。</p><button class="button primary" data-action="preset" '+(DUO_IDS.every(id=>drawnClubs[id])?"":"disabled")+' >确认两队 · 开始双人青训赛季</button></section>'+legacyArchiveButtons();
 }
@@ -1698,10 +1713,12 @@ const LEGACY_ARCHIVES=[
  {key:LEGACY_STORE,label:"旧版单人生涯",format:"football-dynasty-v4"},
  {key:LEGACY_STORE+"-safety",label:"旧版单人保险备份",format:"football-dynasty-v4"},
  {key:"football-dynasty-duo-v1-20261110",label:"旧版双人生涯",format:"football-dynasty-duo-v1"},
- {key:"football-dynasty-duo-v1-20261110-safety",label:"旧版双人保险备份",format:"football-dynasty-duo-v1"}
+ {key:"football-dynasty-duo-v1-20261110-safety",label:"旧版双人保险备份",format:"football-dynasty-duo-v1"},
+ {key:INCOMPATIBLE_ARCHIVE,label:"不兼容旧版双人生涯备份",format:"football-dynasty-duo-v2"},
+ {key:STORE,label:"待迁移旧版双人生涯",format:"football-dynasty-duo-v2",onlyIncompatible:true}
 ];
 function legacyArchiveButtons(){
- let found=[];try{found=LEGACY_ARCHIVES.filter(x=>localStorage.getItem(x.key)!=null)}catch(e){return ""}
+ let found=[];try{found=LEGACY_ARCHIVES.filter(x=>(!x.onlyIncompatible||incompatibleLegacySave)&&localStorage.getItem(x.key)!=null)}catch(e){return ""}
  if(!found.length)return "";
  return '<section class="card gap"><h2>旧版存档</h2><p class="muted small">旧档保留在本设备，不自动转换；请导出备份。</p><div class="flex">'+found.map((x,i)=>'<button class="button" data-action="exportLegacy" data-key="'+E(x.key)+'">导出'+E(x.label)+'</button>').join("")+'</div></section>';
 }
@@ -1777,7 +1794,7 @@ function topNav(){const tabs=[["dashboard","双人生涯"],["world","统一联�
 function render(){const a=$("app");if(!g){a.innerHTML=startPage();return}const pages={dashboard:duoDashboard,world:duoWorldPage,transfer:duoTransferPage,honors:duoHonorsPage,awards:duoAwardsPage,career:duoHistoryPage,save:savePage};a.innerHTML=duoTop()+topNav()+(pages[page]||duoDashboard)()}
 $("app").addEventListener("change",ev=>{const id=ev.target.dataset.duoName;if(id&&DUO_IDS.includes(id)&&!drawnClubs[id]){duoDraft[id]=String(ev.target.value||DUO_TEMPLATES[id].name).trim().slice(0,22)||DUO_TEMPLATES[id].name;persistOpening();}});
 $("app").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b||b.disabled)return;const tab=b.dataset.page;if(tab){choosePage(tab);return}const action=b.dataset.action,key=b.dataset.key,i=Number(b.dataset.i||0);switch(action){
- case"exportLegacy":exportLegacy(key);break;case"preset":buildDuoGame();break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
+ case"exportLegacy":exportLegacy(key);break;case"exportIncompatible":exportLegacy(STORE);break;case"archiveIncompatible":archiveIncompatibleSave();break;case"preset":buildDuoGame();break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
  case"nextMatch":simNext();break;case"play":break;
  case"simSeason":simBoth();break;case"simThree":simThree();break;case"addPoint":training(key);break;case"manualRecovery":manualRecovery();break;case"manualTraining":manualTraining(key);break;case"coachPoint":coachPoint(key);break;case"autoDistribute":autoPoints();save();render();break;
  case"awardYear":g.awardViewIndex=i;save();render();break;case"ballotCsv":exportBallotCsv();break;case"transfer":break;case"startCoach":notify("本版本专注双人生涯，不再开启转世或下一代");break;case"coachScout":scoutForCoach();break;case"coachSign":signCoachProspect(i);break;case"coachJob":coachTransfer(i);break;case"coachAdd":coachPointAlloc(key);break;case"coachChild":notify("本版本已取消下一代球员系统");break;case"worldSelect":g.worldFocus=b.dataset.id;save();render();break;case"nextSeason":simBoth();break;case"retireCoach":retirePlayer(activeDuo);break;case"retireSolo":retirePlayer(activeDuo);break;
@@ -1789,9 +1806,12 @@ $("importFile").addEventListener("change",e=>{importFile(e.target.files[0]);e.ta
 try{
  const v=JSON.parse(localStorage.getItem(STORE));
  if(v?.version===2&&v.duoGames?.wang?.player&&v.duoGames?.vini?.player){
-  hydratePayload(v);
-  for(const id of DUO_IDS){const item=duoGames[id];item.mode=item.mode||"player";if(item.player.trainingUsed===undefined)item.player.trainingUsed=false}
-  if(!g.season.world)createWorld(g.season);ensureRealAwardPlayers();
+  const invalid=DUO_IDS.filter(id=>!DB[v.duoGames[id].player.leagueId]).map(id=>v.duoGames[id].player.leagueId);
+  if(invalid.length)incompatibleLegacySave="检测到本版本已取消的联赛："+[...new Set(invalid)].join("、");
+  else hydratePayload(v);
+  if(duoGames){for(const id of DUO_IDS){const item=duoGames[id];item.mode=item.mode||"player";if(item.player.trainingUsed===undefined)item.player.trainingUsed=false}
+   if(!g.season.world)createWorld(g.season);ensureRealAwardPlayers()}
+
  }
 }catch(e){g=null;duoGames=null}openingState();render();
 window.__footballDynastySelfTest=()=>{const tests=[];let rr=makeRR(DB.ENG.teams.map(x=>x.name));tests.push(["英超38轮",rr.length===38]);tests.push(["每轮10场",rr.every(x=>x.length===10)]);let key={};for(const round of rr)for(const f of round){key[f.home+"|"+f.away]=(key[f.home+"|"+f.away]||0)+1}tests.push(["每对主客仅交手一次",Object.values(key).every(n=>n===1)&&Object.keys(key).length===380]);tests.push(["曼联真实赛程38场",MANU_26.length===38]);tests.push(["曼联欧冠前三场历史锁定",MANU_CL.slice(0,3).every(x=>x.length===5)]);tests.push(["七项能力",Object.keys(STATS).length===7]);tests.push(["双人开局资料",DUO_IDS.length===2&&DUO_TEMPLATES.wang.historicalOverall===83&&DUO_TEMPLATES.vini.historicalOverall===77]);tests.push(["转会层级判定",transferLevel("CHN","上海海港")===0&&transferLevel("NED","海伦芬")===1&&transferLevel("POR","本菲卡")===2&&transferLevel("ENG","布莱顿")===3&&transferLevel("ENG","阿森纳")===4&&transferLevel("ESP","皇家马德里")===5&&transferLevel("FRA","巴黎圣日耳曼")===5]);return tests};
