@@ -45,7 +45,7 @@ assert(!["皇家马德里"].includes(v.club));
 assert.equal(w.sourceRating,83);assert.equal(v.sourceRating,77);
 assert.equal(w.heightCm,177);assert.equal(v.heightCm,176);
 assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
-assert(x.html.includes("一键同步模拟两人"));
+assert(x.html.includes("模拟当前赛季")&&x.html.includes("自主退役"));
 log("Both named stars begin aged 16 at separate real CSL academies with scaled-down historical templates");
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
 x.page("world");assert(x.html.includes("双主角进球对比")&&x.html.includes("仅显示两名主角")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
@@ -146,7 +146,7 @@ const replay=harness([[SAVE,forced.stored.get(SAVE)]]);
 assert.equal(replay.state.duoGames.wang.player.transferDraw.selected.club,selected.club,"Lottery choice is restored from storage");
 replay.page("honors");
 assert(replay.html.includes("荣誉陈列室")&&replay.html.includes("金球奖逐年排名"),"Trophy cabinet includes Golden Ball records");
-replay.click("simBoth");
+replay.click("acceptDraw",{id:"wang"});replay.click("simBoth");
 assert.equal(replay.state.duoGames.wang.year,2029,"Ready pair should advance together");
 assert.equal(replay.state.duoGames.wang.player.club,selected.club,"Actual new club must exactly match manually drawn club");
 assert.equal(replay.state.duoGames.wang.player.leagueId,selected.id,"League must follow drawn destination");
@@ -167,10 +167,10 @@ downGame.click("simBoth");assert.equal(downGame.state.duoGames.wang.year,2028,"R
 downGame.click("flipPromotionCard",{id:"wang",i:0});downGame.flush();
 const downChoice=downGame.state.duoGames.wang.player.transferDraw.selected;
 assert(downGame.api.duo().wang.player.transferDraw.options.some(o=>o.club===downChoice.club),"Relegation chooses a valid lower-tier card");
-downGame.click("simBoth");
+downGame.click("acceptDraw",{id:"wang"});downGame.click("simBoth");
 assert.equal(downGame.state.duoGames.wang.player.club,downChoice.club,"Relegation must use player-drawn club");
 assert.equal(downGame.state.duoGames.wang.player.transferHistory.at(-1).reason,"强制降档");
-log("Relegation also requires player lottery; trophyless same-tier moves are automatic");
+log("Relegation also requires player lottery and explicit acceptance");
 const saved=x.stored.get(SAVE),reload=harness([[SAVE,saved],...oldKeys.map(k=>[k,oldData])]);assert.equal(reload.state.duoGames.wang.history.length,3);
 assert(!reload.html.includes("切换并操作"));
 assert(reload.api.get().npcs.length>100,"NPC roster restored after compact reload");
@@ -194,9 +194,24 @@ if(drawsBeforeReload.length){
  const restored=harness([[SAVE,reload.stored.get(SAVE)]]);
  assert.equal(restored.state.duoGames[target].player.transferDraw.selected.club,previous,"Lottery result survives page reload");
 }
-for(const id of ["wang","vini"])if(reload.state.duoGames[id].player.transferDraw?.options?.length&&!reload.state.duoGames[id].player.transferDraw.selected){reload.click("flipPromotionCard",{id,i:0});reload.flush()}
+for(const id of ["wang","vini"])if(reload.state.duoGames[id].player.transferDraw?.options?.length){if(!reload.state.duoGames[id].player.transferDraw.selected){reload.click("flipPromotionCard",{id,i:0});reload.flush()}reload.click("acceptDraw",{id})}
 reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2029);assert.equal(state.duoGames[id].history.length,4)}
 if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable,"Players in same league must share table");log("Both careers advance synchronously into next season and survive reload");
+
+const retirementFixture=harness([[SAVE,x.stored.get(SAVE)]]);
+retirementFixture.click("retirePlayer",{id:"wang"});
+assert.equal(retirementFixture.state.duoGames.wang.player.retired,true);
+assert.equal(retirementFixture.state.duoGames.vini.player.retired||false,false);
+retirementFixture.click("simBoth");
+assert.equal(retirementFixture.state.duoGames.vini.season.stage,"review","The surviving player must finish the season");
+retirementFixture.click("simBoth");
+assert.equal(retirementFixture.state.duoGames.vini.year,2029,"The surviving player must reach the following year");
+assert.equal(retirementFixture.state.duoGames.wang.year,2029,"Retired player's world year must stay synchronized");
+assert.equal(retirementFixture.state.duoGames.wang.player.retired,true);
+const retirementReload=harness([[SAVE,retirementFixture.stored.get(SAVE)]]);
+assert.equal(retirementReload.state.duoGames.wang.player.retired,true,"Retirement must persist after reload");
+log("Independent retirement works without a next generation and the surviving player continues");
+
 const api=reload.api;
 assert.deepEqual(Array.from(api.levels),["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"]);
 assert.equal(api.transferLevel("CHN","成都蓉城"),0);
@@ -245,11 +260,11 @@ active.honors=active.honors.filter(h=>h.year!==active.year||h.type!=="team");
 s.results=Array.from({length:30},(_,i)=>({kind:"league",played:true,goals:1,assists:0,rating:8.0,home:p.club,away:"对手",hs:2,as:0}));
 const noCup1=api.seasonPerformance(),noCup2=api.seasonPerformance();
 assert.equal(noCup1.trophylessStreak,1);assert.equal(noCup1.forcedSameTier,false);
-assert.equal(noCup2.trophylessStreak,2);assert.equal(noCup2.forcedSameTier,true);
+assert.equal(noCup2.trophylessStreak,2);assert.equal(noCup2.forcedSameTier,false);assert.equal(p.sameTierReminder,true);
 assert.equal(noCup2.forcedMove,false);
 const sameOffers=api.generateOffers();assert(sameOffers.length>0);
-assert(sameOffers.every(o=>o.tier===3&&o.move==="同级转会"),"No-title transfer must stay within club tier");
-log("Two trophyless seasons trigger same-tier transfers, independent of goal totals");
+assert(!p.forcedSameTier,"Trophyless streak must not force a club switch");
+log("Two trophyless seasons only notify players without enforcing a transfer");
 
 // One real simulated 2048/49 Champions League, never two independent worlds.
 const fixture=harness([[SAVE,x.stored.get(SAVE)]]);
