@@ -691,7 +691,15 @@ function reconcileEuropeanHonors(){
 function runSharedDay(date,focusId=null,focusChoice="balanced"){
  const original=activeDuo;
  let total=0;
- for(const id of DUO_IDS){
+ // When both protagonists share a fixture and side, alternate processing order
+ // across matchdays. The later player draws from the remaining scoring budget,
+ // so a fixed Wang-first order would otherwise create a systematic advantage.
+ const a=duoGames.wang,b=duoGames.vini,ea=a.season.events[a.season.index],eb=b.season.events[b.season.index];
+ const sameSide=ea&&eb&&ea.date===date&&eb.date===date&&ea.kind===eb.kind&&ea.home===eb.home&&ea.away===eb.away&&
+  (ea.kind==="national"?a.player.country===b.player.country:a.player.club===b.player.club&&a.player.leagueId===b.player.leagueId&&!!a.player.youth===!!b.player.youth);
+ const dayHash=String(date).split("").reduce((n,c)=>n+c.charCodeAt(0),0);
+ const order=sameSide&&dayHash%2?[...DUO_IDS].reverse():DUO_IDS;
+ for(const id of order){
   activeDuo=id;g=duoGames[id];
   let safe=0;
   while(g.season.stage==="playing"&&g.season.events[g.season.index]?.date===date&&safe++<16){
@@ -922,7 +930,7 @@ function calcRating(outcome,goals,assists,win,context={}){
 }
 // Allocate actual team goals to the player and teammates; no invented personal goals.
 // A scorer's probability is a share of the team's actual goals, not extra goals.
-function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced"){
+function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced",minutes=90){
  const ov=overall(p),advantage=C((ov-opponentPower)/35,-.65,.75);
  const attacker=["ST","LW","RW"].includes(p.position),creator=["CAM","CM","LW","RW"].includes(p.position);
  const shotBase=p.position==="ST"?.16:attacker?.125:p.position==="CAM"?.065:.018;
@@ -934,11 +942,35 @@ function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced")
  const finishingDiminish=already>45?.30:already>35?.50:already>25?.72:1;
  const assistDiminish=created>35?.48:created>25?.72:1;
  let goals=0,assists=0;
- for(let i=0;i<teamGoals;i++){const r=Math.random();
+ for(let i=0;i<teamGoals;i++){
+  // Goals are not yet simulated minute by minute. For a dismissed player,
+  // sample whether this team goal happened while they were still on the pitch.
+  if(minutes<90&&Math.random()>=C(minutes/90,0,1))continue;
+  const r=Math.random();
   if(r<shoot*finishingDiminish)goals++;
   else if(r<shoot*finishingDiminish+(1-shoot*finishingDiminish)*assist*assistDiminish)assists++;
  }
  return {goals,assists}
+}
+// Both protagonists must share the actual team goals in the same fixture.
+// Each goal has at most one scorer and at most one assist; a goal scored by
+// one protagonist may legitimately have been assisted by the other.
+function sharedTeammateResult(p,ev,home,away){
+ if(!duoGames)return null;
+ const other=DUO_IDS.map(id=>duoGames[id]).find(x=>x&&x!==g&&x.year===g.year);
+ if(!other)return null;
+ const sameTeam=ev.kind==="national"?other.player.country===p.country:
+  other.player.club===p.club&&other.player.leagueId===p.leagueId&&!!other.player.youth===!!p.youth;
+ if(!sameTeam)return null;
+ return (other.season.results||[]).findLast(m=>m.kind===ev.kind&&m.date===ev.date&&
+  m.home===home&&m.away===away&&m.competition===ev.competition&&
+  m.stage===ev.stage&&(!ev.fixtureId||m.fixtureId===ev.fixtureId))||null;
+}
+function capSharedContributions(p,ev,home,away,teamGoals,contribution){
+ const prior=sharedTeammateResult(p,ev,home,away);
+ if(!prior)return contribution;
+ return {goals:Math.min(contribution.goals,Math.max(0,teamGoals-(prior.goals||0))),
+  assists:Math.min(contribution.assists,Math.max(0,teamGoals-(prior.assists||0)))};
 }
 // Discipline is competition-specific; injuries cover the player's team fixtures.
 function disciplinaryScope(ev){return ev.kind==="europeKO"||ev.kind==="europe"?"europe":ev.kind==="national"?"national":ev.kind==="cup"?"cup":"league"}
@@ -1015,6 +1047,11 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  const unable=injuredBefore||suspendedBefore;
  const appears=!unable&&p.stamina>20&&Math.random()<playerFit();
  if(!appears)choice="balanced";
+ const played=appears;
+ let matchCards={yellowCards:0,redCard:null};
+ if(played){matchCards=applyMatchDiscipline(p,ev,choice);
+  if(matchCards.redCard)matchCards.redMinute=R(matchCards.redCard==="second-yellow"?35:15,89)}
+ const minutesPlayed=played?(matchCards.redMinute||90):0;
  const bias=choice==="creative"?4:0;
  const targetDiff=(ownHome?1:-1)*(ourPower-oppStrength+bias);
  const defending=choice==="defend";
@@ -1022,16 +1059,26 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  let hs=baseline[0],as=baseline[1];
  if(sharedMatch){hs=sharedMatch.fixture.hs;as=sharedMatch.fixture.as;}
  if(ev.kind==="league"){const fixture=sharedLeagueRound(ev);if(fixture){hs=fixture.hs;as=fixture.as}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
- const played=appears,contribution=played?playerMatchContribution(p,ev,oppStrength,our,choice):{goals:0,assists:0};
+ // Teammates play one domestic cup fixture, including a shared shootout.
+ const priorCup=ev.kind==="cup"?sharedTeammateResult(p,ev,home,away):null;
+ if(priorCup){hs=priorCup.hs;as=priorCup.as;our=ownHome?hs:as;their=ownHome?as:hs}
+ const contribution=played?capSharedContributions(p,ev,home,away,our,playerMatchContribution(p,ev,oppStrength,our,choice,minutesPlayed)):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
- const rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}):0;
+ let rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}):0;
+ if(matchCards.redCard)rating=Math.max(4.6,Math.round((rating-.4)*10)/10);
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
  if(ev.kind==="europe"){const e=s.uefa;
  if(sharedMatch)processSharedUefaRound(ev);
  else{updateTable(e.table,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");simulateUefaOthers(e,ev)}
  e.played++;
  if(e.played>=8){const rank=sharedMatch?sharedMatch.comp.standings.indexOf(p.club)+1:sortedTable(e.table).findIndex(t=>t.name===p.club)+1;e.rank=rank;if(rank>24){e.completed=true;e.stage="eliminated";log(e.type+"联赛阶段第"+rank+"名，未能晋级。")}else{e.stage="knockout";if(sharedMatch)addSharedKnockouts();else addKnockouts()}}}
- if(ev.kind==="cup"){const penalties=our===their,win=our>their||(penalties&&Math.random()<C(.5+(overall(p)-75)/250,.35,.68));s.cup.results.push({stage:ev.stage,hs,as,win,penalties});if(penalties)log(s.cup.name+ev.stage+"90分钟战平，"+(win?"点球晋级。":"点球出局。"));if(!win){s.cup.active=false;log(s.cup.name+" "+ev.stage+"止步。")}else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军","team")}}}
+ let cupWin=null;
+ if(ev.kind==="cup"){
+  const penalties=our===their,peer=DUO_IDS.map(id=>duoGames?.[id]).find(x=>x&&x!==g&&x.year===g.year);
+  // Old saves may have the shootout in cup.results rather than on the match.
+  const recorded=priorCup?(typeof priorCup.cupWin==="boolean"?priorCup.cupWin:peer?.season.cup?.results?.findLast(r=>r.stage===ev.stage&&r.hs===hs&&r.as===as)?.win):null;
+  const win=typeof recorded==="boolean"?recorded:our>their||(penalties&&Math.random()<C(.5+(overall(p)-75)/250,.35,.68));
+  cupWin=win;s.cup.results.push({stage:ev.stage,hs,as,win,penalties});if(penalties)log(s.cup.name+ev.stage+"90分钟战平，"+(win?"点球晋级。":"点球出局。"));if(!win){s.cup.active=false;log(s.cup.name+" "+ev.stage+"止步。")}else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军","team")}}}
  if(ev.kind==="national"){s.nationalApps++;if(played)p.career.national++;const n=s.national;
  if(n){n.results.push({stage:ev.stage,home,away,hs,as});if(n.knockout){
   if(ev.nationalIndex<=2){n.groupPlayed++;n.groupPoints+=our>their?3:our===their?1:0;if(n.groupPlayed===3){if(n.groupPoints>=4){n.stage="knockout";log(p.country+" "+n.name+"小组赛出线！")}else{n.active=false;n.stage="eliminated";log(p.country+" "+n.name+"小组赛出局。")}}}
@@ -1049,17 +1096,15 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  }if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
  if(injuredBefore){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
  if(suspendedBefore){disciplinary.ban--;if(disciplinary.ban===0)log(p.name+"在本项赛事停赛期满。")}
- let matchCards={yellowCards:0,redCard:null};
  if(played){
-  matchCards=applyMatchDiscipline(p,ev,choice);
-  const loss=R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30);
+  const loss=Math.round((R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30))*minutesPlayed/90);
   p.stamina=percent(p.stamina-loss+(ev.kind==="league"?5:3));
   const injuryRisk=.008+Math.max(0,44-p.stamina)*.0020+(p.age>=30?.006:0);
   if(Math.random()<injuryRisk){p.injuryMatches=R(1,p.age>=30?7:5);p.injuryHistory=(p.injuryHistory||0)+1;log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
  }else{p.stamina=percent(p.stamina+R(4,9))}
  refreshSuspensionSummary(p);p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
  eventResult={...ev,home,away,hs,as,played,goals,assists,rating,real:false,
-  injury:p.injuryMatches||0,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,
+  injury:p.injuryMatches||0,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,redMinute:matchCards.redMinute||null,redMinuteSource:matchCards.redCard?"simulation":null,minutesPlayed,cupWin,
   missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  s.index++;s.completed++;g.live=null;
  if(!batch){if(s.index>=s.events.length)endSeason();else{save();page="report";render()}}

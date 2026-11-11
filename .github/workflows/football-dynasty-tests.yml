@@ -33,6 +33,9 @@ jobs:
       - name: Yellow and red card regression tests
         run: node football-legacy/tests/discipline.cjs
 
+      - name: Shared fixture scoring and dismissal regression tests
+        run: node football-legacy/tests/shared-contributions.cjs
+
       - name: Shared national and long-career awards regressions
         run: node football-legacy/tests/national-awards.cjs
 
