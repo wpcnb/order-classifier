@@ -28,6 +28,10 @@ jobs:
         run: node football-legacy/tests/smoke.cjs
       - name: Player aging and retirement regressions
         run: node football-legacy/tests/player-aging.cjs
+      - name: Custom player styles
+        run: node football-legacy/tests/player-profiles.cjs
+      - name: Same-tier transfers and training focus
+        run: node football-legacy/tests/lateral-training.cjs
       - name: Match-strategy regression tests
         run: node football-legacy/tests/match-strategy.cjs
       - name: Role-aware promotion regression tests

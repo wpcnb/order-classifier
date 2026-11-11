@@ -44,7 +44,7 @@ function duoPlayerTemplate(id){
 }
 function openingPlayerStyle(id){
  const selected=openingStyles[id],locked=!!drawnClubs[id];
- return '<label class="field">能力风格（可选）<select data-duo-style="'+E(id)+'" '+(locked?'disabled':'')+'>'+Object.entries(PLAYER_STYLES).map(([key,style])=>'<option value="'+E(key)+'" '+(key===selected?'selected':'')+'>'+E(style.name)+'</option>').join("")+'</select></label><p class="muted small">风格是游戏估算，不会根据姓名自动识别真实身体或足球能力；游戏国籍默认中国。</p>';
+ return '<details class="item"><summary>能力风格：'+E((PLAYER_STYLES[selected]||PLAYER_STYLES.default).name)+'（可选）</summary><label class="field">选择能力风格<select data-duo-style="'+E(id)+'" '+(locked?'disabled':'')+'>'+Object.entries(PLAYER_STYLES).map(([key,style])=>'<option value="'+E(key)+'" '+(key===selected?'selected':'')+'>'+E(style.name)+'</option>').join("")+'</select></label><p class="muted small">风格是游戏估算，不会根据姓名自动识别真实身体或足球能力；游戏国籍默认中国。</p></details>';
 }
 function chooseAcademy(id,league){
  if(!DUO_IDS.includes(id)||!OPENING_LEAGUES.includes(league)||drawnClubs[id])return;
@@ -73,7 +73,7 @@ function flipOpeningCard(id,index){
  persistOpening();
  const el=document.querySelector('[data-action="flipOpeningCard"][data-id="'+id+'"][data-i="'+index+'"]');
  if(el)el.classList.add("revealed");
- notify(DUO_TEMPLATES[id].name+" 抽中 "+club);
+ notify((duoDraft[id]||DUO_TEMPLATES[id].name)+" 抽中 "+club);
  setTimeout(render,850);
 }
 function openingCardPanel(id){
