@@ -76,7 +76,7 @@ assert(!["皇家马德里"].includes(v.club));
 assert.equal(w.sourceRating,83);assert.equal(v.sourceRating,77);
 assert.equal(w.heightCm,177);assert.equal(v.heightCm,176);
 assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
-assert(x.html.includes("自主退役")&&x.html.includes("下一比赛日")&&x.html.includes("模拟整个赛季"));
+assert(x.html.includes("自主退役")&&x.html.includes("模拟剩余赛季")&&x.html.includes("下个比赛日")&&x.html.includes("data-career-pace"));
 log("Both named stars begin aged 16 at separate real CSL academies with scaled-down historical templates");
 const nextOne=harness([[SAVE,x.stored.get(SAVE)]]);
 const beforeDate=nextOne.state.duoGames.wang.season.completed+nextOne.state.duoGames.vini.season.completed;
