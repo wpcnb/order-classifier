@@ -1038,7 +1038,7 @@ function finalizeSharedSeason(){
 // Club reputation tiers are based on specific teams, not just their domestic league.
 const LEGENDARY_CLUBS=new Set(["皇家马德里","巴塞罗那","巴黎圣日耳曼","曼城","曼联","利物浦","拜仁慕尼黑","阿森纳","尤文图斯","AC米兰"]);
 const FIVE_ELITE_CLUBS=new Set(["阿森纳","切尔西","热刺","马德里竞技","国际米兰","AC米兰","尤文图斯","那不勒斯","多特蒙德","勒沃库森","罗马","马赛","里昂"]);
-const NON_FIVE_ELITE_CLUBS=new Set(["本菲卡","波尔图","葡萄牙体育","阿贾克斯","埃因霍温","费耶诺德","布拉加","阿尔克马尔","特温特"]);
+const NON_FIVE_ELITE_CLUBS=new Set(["本菲卡","波尔图","葡萄牙体育","阿贾克斯","埃因霍温","费耶诺德","布拉加","阿尔克马尔","特温特","乌德勒支"]);
 const TRANSFER_LEVELS=["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"];
 // Tier-aware and position-adjusted criteria: match ratings use calibrated values
 // and target output scales across competition levels. One tier per season maximum.
