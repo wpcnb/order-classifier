@@ -295,7 +295,7 @@ function chineseSeasonTransition(year){
     next.CHN2=next.CHN2.filter(x=>x!==l2Play).concat(l1Play)}
   }
  }
- for(const id of CHINA_DIVISIONS)if(new Set(next[id]).size!==next[id].length)throw Error("中国联赛升降级出现重复俱乐部:"+id);
+ for(const id of CHINA_DIVISIONS)if(new Set(next[id]).size!==next[id].length)throw Error("中国联赛升降级出现重复俱乐部:"+id+" year="+year+" current="+JSON.stringify(current)+" movements="+JSON.stringify({cslOut,cslIn,l1Out,l2In})+" next="+JSON.stringify(next));
  const all=CHINA_DIVISIONS.flatMap(id=>next[id]);
  if(new Set(all).size!==all.length||all.length!==current.CHN.length+current.CHN1.length+current.CHN2.length)throw Error("中国联赛球队出现跨级重复或丢失");
  finish(next);
