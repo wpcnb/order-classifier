@@ -2106,6 +2106,25 @@ function duoWorldPage(){
  const score=(key,other)=>players.slice().sort((a,b)=>b[key]-a[key]||b[other]-a[other]).slice(0,20).map((p,i)=>'<div class="item row '+(DUO_IDS.includes(p.id)?"mine":"")+'"><span><b>'+(i+1)+'. '+E(p.name)+'</b><br><small class="muted">'+E(p.club)+'</small></span><strong>'+p[key]+'</strong></div>').join("");
  return '<section class="card"><h2>统一世界足球中心 · '+year+'</h2><label class="field">选择联赛<select data-world-league="1">'+Object.entries(DB).map(([key,val])=>'<option value="'+key+'" '+(id===key?"selected":"")+'>'+E(val.name)+'</option>').join("")+'</select></label><h3 class="gap">'+E(l.name)+(academy?'青训':'')+' · 唯一积分榜</h3>'+tablePanel(table,l.teams.length)+'</section><div class="grid2 gap"><section class="card"><h2>'+(academy?"双主角进球对比":"统一射手榜")+'</h2>'+(academy?'<p class="muted small">仅显示两名主角，不是全部青训球员排名。</p>':"")+score("goals","assists")+'</section><section class="card"><h2>'+(academy?"双主角助攻对比":"统一助攻榜")+'</h2>'+score("assists","goals")+'</section></div>';
 }
+function transferCriteria(p,n,level){
+ const gate=TRANSFER_GATES[level];if(!gate||p.youth)return "";
+ const attack=["ST","LW","RW","CAM"].includes(p.position);
+ const ratingStandard=[6.98,7.00,7.04,7.10,7.18][level]??7.2;
+ const rating=Math.max(gate.avg+(attack?0:.22),ratingStandard).toFixed(2);
+ const apps=Math.max(15,gate.apps);
+ let detail;
+ if(attack){
+  const creator=p.position==="CAM",g=creator?Math.max(2,gate.g-3):gate.g,sum=creator?Math.max(5,gate.sum-2):gate.sum;
+  const threshold=[16,18,20,23,25][level]??25,divisor=p.position==="CAM"?.90:p.position==="ST"?1.12:1;
+  const output=Math.ceil(threshold*divisor);
+  detail='进球至少 '+g+'、助攻至少 '+gate.a+' 或两项合计至少 '+sum+'；且进球助攻合计至少 '+output+'。';
+ }else{
+  const known=n.matchesWithScore||0,rate=p.position==="CM"?.20:.28;
+  detail='按实际出场比赛中的球队零封考核；当前有效比分 '+known+' 场，需至少 '+Math.max(4,Math.ceil(known*rate))+' 场零封，且有效比分覆盖至少七成出场。';
+ }
+ const chance=Math.round(([.69,.62,.58,.50,.44][level]??0)*100);
+ return '<details class="item"><summary>查看升档条件</summary><p class="muted small">俱乐部赛事出场至少 '+apps+' 场，场均评分至少 '+rating+'，综合能力至少 '+gate.ov+'。'+E(detail)+'满足数据后还需球探评估（游戏概率 '+chance+'%，每赛季固定一次）。</p></details>';
+}
 function duoTransferPage(){
  const missing=missingPromotionDraws();
  return '<div class="card transfer-hero"><h2>双人转会</h2><p class="muted">两人分别决定去留，升降档球队需亲自抽卡。</p><details class="item"><summary>查看抽卡与转会规则</summary><p class="muted small">达标升级时各自抽10张卡：9张下一档、1张再上一档；只差一级到最高档时10张均为最高档。降档时抽10张目标档球队卡。翻牌结果即时保存，必须处理完成才能进入下赛季。连续两季无冠仅提醒，翻牌后可以接受或留队。</p></details>'+
@@ -2113,12 +2132,12 @@ function duoTransferPage(){
  '<div class="flex">'+(DUO_IDS.every(id=>duoGames[id].player.retired||duoGames[id].season.stage==="review")?(missing.length?'':(DUO_IDS.every(id=>duoGames[id].player.retired)?'':'<button class="button primary" data-action="nextSeason">进入下一赛季</button>')):'<button class="button primary" data-action="simBoth">模拟本赛季</button>')+'</div></div>'+
  '<div class="grid2 gap">'+DUO_IDS.map(id=>{
   const x=duoGames[id],p=x.player,r=x.lastReview?.performance||p.transferAssessment,level=transferLevel(p.leagueId,p.club);
-  const n=clubSeasonNumbers(x.season);
+  const n=clubSeasonNumbers(x.season,p.club);
   return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
    '<p class="muted small">连续无冠 '+(p.trophylessStreak||0)+' 季 · 连续表现不佳 '+(p.poorStreak||0)+' 季</p>'+
-   promotionDrawCard(id)+
+   promotionDrawCard(id)+transferCriteria(p,n,level)+
    lateralOfferPanel(id)+'</section>';
  }).join("")+'</div><section class="card gap"><h3>六档逐级晋升</h3><p>'+TRANSFER_LEVELS.map((name,i)=>(i+1)+'. '+name).join(" → ")+'</p><p class="muted small">普通升级一档；抽中唯一幸运卡可以跳两档。同档转会不计算晋升。必须通过赛季考核才可参与升级抽卡。</p></section>';
 }
