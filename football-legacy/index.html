@@ -104,8 +104,32 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 .hero-awards::before{background-image:url("./assets/trophy.webp")}
 @media(max-width:640px){.opening-hero::before{aspect-ratio:3.4/1;background-position:center 35%}.opening-hero{min-height:0}.opening-hero>div{padding:12px 15px}.opening-hero h1{font-size:23px;margin:4px 0}.opening-hero p{margin-bottom:0;font-size:13px}.duo-overview{padding:10px}.duo-compact{padding:7px}.career-hero>div{padding:16px}.nav{position:sticky;top:0;z-index:10}.nav-picker{display:none}}
 
+
+/* Quick-play mobile visual polish without changing the original cover. */
+.pace-picker{display:inline-flex;align-items:center;gap:8px;color:#d9e9f8;font-size:13px}
+.pace-picker select{max-width:165px;min-height:44px;border:1px solid #7da59e;border-radius:10px;background:#102d3c;color:#fff;padding:8px 10px}
+.career-main-action{min-width:184px;box-shadow:0 8px 25px #1de5a72b}
+.duo-ledger summary{cursor:pointer;color:var(--gold);list-style-position:inside}
+.news-feed{border-color:#426d68;background:linear-gradient(140deg,#142f42,#10273b)}
+.news-list{display:grid;gap:8px;margin-top:12px}
+.news-line{display:grid;gap:3px;padding:12px 14px;border-left:3px solid var(--lime);background:#102339;border-radius:9px;min-width:0;overflow-wrap:anywhere}
+.news-line b{font-size:14px}.news-line p{margin:0}.news-alert{border-left-color:#ff9b8a}.news-transfer{border-left-color:var(--gold)}
+.signing-result{padding:18px;border-radius:15px;border:1px solid #eac16e;background:linear-gradient(100deg,#081b33cb,#133748bd),url("./assets/signing.webp") center/cover}
+.signing-result h3{font-size:21px;color:#ffe5a8;margin:5px 0}.signing-result p{margin:5px 0}
+@media(max-width:640px){
+ .career-hero .flex{display:grid;grid-template-columns:1fr;gap:10px}
+ .career-main-action{width:100%;min-height:52px;font-size:17px}
+ .pace-picker{justify-content:space-between;width:100%}
+ .pace-picker select{max-width:68%;width:68%}
+ .news-feed,.duo-ledger{padding:13px}
+ .news-line{padding:11px}
+ .duo-overview-players{grid-template-columns:1fr 1fr}
+ .duo-compact summary{font-size:12px}
+ .draw-card-grid{gap:5px}
+}
+
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=mobile-duo-20261112" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=quick-five-20261112" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.
