@@ -199,10 +199,10 @@ if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)ass
 const api=reload.api;
 assert.deepEqual(Array.from(api.levels),["中超","欧洲非五大联赛普通球队","欧洲非五大联赛豪门","五大联赛普通球队","五大联赛豪门","世界传奇豪门"]);
 assert.equal(api.transferLevel("CHN","成都蓉城"),0);
-assert.equal(api.transferLevel("NED","乌德勒支"),1);
+assert.equal(api.transferLevel("NED","海伦芬"),1);
 assert.equal(api.transferLevel("POR","波尔图"),2);
 assert.equal(api.transferLevel("ENG","布莱顿"),3);
-assert.equal(api.transferLevel("ENG","阿森纳"),4);
+assert.equal(api.transferLevel("ENG","切尔西"),4);
 for(const [league,club] of [["ESP","皇家马德里"],["ESP","巴塞罗那"],["FRA","巴黎圣日耳曼"],["ENG","曼城"],["ENG","曼联"]])assert.equal(api.transferLevel(league,club),5,club+" is legendary");
 const active=api.get();const p=active.player,s=active.season;
 p.leagueId="ESP";p.club="皇家马德里";p.position="LW";p.poorStreak=0;p.forcedMove=false;
