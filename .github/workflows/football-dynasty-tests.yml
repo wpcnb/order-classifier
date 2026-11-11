@@ -34,5 +34,8 @@ jobs:
       - name: Shared national and long-career awards regressions
         run: node football-legacy/tests/national-awards.cjs
 
+      - name: China 2026-2029 three-division pyramid regression
+        run: node football-legacy/tests/china-pyramid.cjs
+
       - name: Baseline 100-season simulation
         run: node football-legacy/tests/balance-100.cjs
