@@ -16,7 +16,7 @@ const DUO_TEMPLATES={
   stats:{pace:93,shoot:72,pass:64,dribble:81,defense:29,physical:60,mental:77}}
 };
 // Keep the existing league schedule for older saves; new draws use its 2026-CSL intersection.
-const CSL_DRAW_TEAMS=()=>DB.CHN.teams.map(t=>t.name).filter(name=>name!=="长春亚泰"&&name!=="梅州客家");
+const CSL_DRAW_TEAMS=()=>DB.CHN.teams.map(t=>t.name); // Verified 2026 CSL membership (16 clubs); domestic pyramid stays fixed in this game.
 let drawnClubs={wang:null,vini:null},openingDecks={wang:null,vini:null},openingSelectedIndex={wang:null,vini:null};
 function resetDraw(){drawnClubs={wang:null,vini:null};openingDecks={wang:null,vini:null};openingSelectedIndex={wang:null,vini:null};openingLeagues={wang:"CHN",vini:"CHN"};localStorage.removeItem?.(OPENING_STORE)}
 const OPENING_LEAGUES=["CHN","ENG","ESP","GER","ITA","FRA"];
@@ -77,7 +77,7 @@ ESP:["西甲","西班牙",["皇家马德里","巴塞罗那","马德里竞技","�
 ITA:["意甲","意大利",["国际米兰","AC米兰","那不勒斯","尤文图斯","罗马","亚特兰大","拉齐奥","博洛尼亚","佛罗伦萨","都灵","热那亚","乌迪内斯","卡利亚里","维罗纳","莱切","帕尔马","萨索洛","比萨","科莫","克雷莫内塞"]],
 GER:["德甲","德国",["拜仁慕尼黑","多特蒙德","勒沃库森","RB莱比锡","法兰克福","斯图加特","弗赖堡","霍芬海姆","沃尔夫斯堡","门兴","美因茨","不莱梅","柏林联合","奥格斯堡","汉堡","科隆","圣保利","海登海姆"]],
 FRA:["法甲","法国",["巴黎圣日耳曼","马赛","摩纳哥","里尔","里昂","尼斯","朗斯","雷恩","斯特拉斯堡","布雷斯特","南特","图卢兹","欧塞尔","梅斯","洛里昂","勒阿弗尔","昂热","兰斯"]],
-CHN:["中超","中国",["成都蓉城","上海海港","上海申花","北京国安","山东泰山","浙江队","天津津门虎","武汉三镇","河南队","深圳新鹏城","云南玉昆","青岛西海岸","青岛海牛","大连英博","长春亚泰","梅州客家"]],
+CHN:["中超","中国",["成都蓉城","上海海港","上海申花","北京国安","山东泰山","浙江队","天津津门虎","武汉三镇","河南队","深圳新鹏城","云南玉昆","青岛西海岸","青岛海牛","大连英博","辽宁铁人","重庆铜梁龙"]],
 NED:["荷甲","荷兰",["埃因霍温","阿贾克斯","费耶诺德","阿尔克马尔","特温特","乌德勒支","海伦芬","格罗宁根","前进之鹰","奈梅亨","鹿特丹斯巴达","兹沃勒","锡塔德幸运","赫拉克勒斯","威廉二世","瓦尔韦克","布雷达","阿尔梅勒城"]],
 POR:["葡超","葡萄牙",["葡萄牙体育","本菲卡","波尔图","布拉加","吉马良斯","法马利康","里奥阿维","圣克拉拉","莫雷伦斯","埃斯托里尔","卡萨皮亚","吉尔维森特","阿罗卡","博阿维斯塔","阿马多拉之星","法鲁人","通德拉","阿维什"]],
 TUR:["土超","土耳其",["加拉塔萨雷","费内巴切","贝西克塔斯","特拉布宗体育","伊斯坦布尔巴萨克赛尔","萨姆松体育","哥兹塔比","里泽斯堡","阿兰亚体育","安塔利亚体育","科尼亚体育","加济安泰普","开塞利体育","卡斯帕萨","埃于普体育","法蒂赫卡拉古鲁克"]],
