@@ -606,7 +606,7 @@ function retirePlayer(id){
  if(!duoGames||!DUO_IDS.includes(id)||duoGames[id].player.retired)return;
  const p=duoGames[id].player;
  if(!confirm("确定让 "+p.name+" 在"+p.age+"岁退役？退役后不可重新参赛，另一人的生涯会继续。"))return;
- recordPlayerRetirement(id);const settled=finalizeRetiredSeasonIfReady();save();page="career";render();if(settled)notify(p.name+"已退役，另一名球员可以继续比赛");
+ recordPlayerRetirement(id);const settled=finalizeRetiredSeasonIfReady(),saved=save();page="career";render();if(settled&&saved)notify(p.name+"已退役，另一名球员可以继续比赛");
 }
 function nextSharedDate(){
  const dates=DUO_IDS.map(id=>{const x=duoGames[id];return x.season.stage==="playing"?x.season.events[x.season.index]?.date:null}).filter(Boolean);
