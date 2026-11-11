@@ -58,16 +58,37 @@ function toReview(h,ages){const d=h.api.duo();for(const [id,age] of Object.entri
 {
  const original=newGame(),data=JSON.parse(original.storage.get(SAVE)),player=data.duoGames.wang;
  player.player.age=42;player.player.youth=false;player.season.stage="playing";player.season.apps=2;player.season.goals=1;
+ player.player.career.apps=2;player.player.career.goals=1;
  player.season.results=[{date:"2035-01-01",home:"上海申花",away:"北京国安",hs:1,as:0}];
  const raw=JSON.stringify(data),h=harness([[SAVE,raw]]),d=h.api.duo();
  assert.equal(d.wang.player.retired,true);assert.equal(d.wang.player.age,42);assert.equal(d.wang.retirementSummary.partialSeason.apps,2);
  assert.equal(d.wang.retirementSummary.partialSeason.results.length,1);assert.equal(d.wang.season.stage,"retired");
  assert.equal(d.vini.season.stage,"playing");assert.equal(h.storage.get(SAVE+"-before-auto-retirement"),raw);
  assert.equal(JSON.parse(h.storage.get(SAVE)).duoGames.wang.player.retired,true);
+ h.click(null,{page:"career"});assert(h.html.includes("2场 1球 0助 · 未完赛季（退役）"));
+ assert.equal(d.wang.player.career.apps,2);assert.equal(d.wang.player.career.goals,1);
+ const reloaded=harness([[SAVE,h.storage.get(SAVE)]]);reloaded.click(null,{page:"career"});
+ assert(reloaded.html.includes("2场 1球 0助 · 未完赛季（退役）"));
+ assert.equal(reloaded.api.duo().wang.player.career.apps,2);assert.equal(reloaded.api.duo().wang.player.career.goals,1);
  h.click("simBoth");assert.equal(d.vini.season.stage,"review");
  console.log("✓ 导入满40岁的旧档立即退役，保留已踢比赛、可导出备份，另一人继续比赛");
  const blocked=harness([[SAVE,raw]],true);
  assert.equal(blocked.api.duo().wang.player.retired,true);assert.equal(blocked.storage.get(SAVE),raw);
  blocked.click("simBoth");assert.equal(blocked.storage.get(SAVE),raw,"backup failure must never overwrite the source save");
  console.log("✓ 浏览器空间不足时保留原始存档，不覆盖");
+}
+{
+ const h=newGame(),d=h.api.duo(),x=d.wang;
+ x.season.apps=3;x.season.goals=2;x.season.assists=1;
+ x.season.results=[{kind:"league",played:true,goals:2,assists:1}];
+ x.player.academyCareer={apps:3,goals:2,assists:1};
+ h.click("retirePlayer",{id:"wang"});
+ h.click(null,{page:"career"});
+ assert(h.html.includes("青训 · "+x.player.club+" · 3场 2球 1助 · 未完赛季（退役）"));
+ assert.equal(x.player.academyCareer.apps,3);assert.equal(x.player.academyCareer.goals,2);
+ assert.equal(x.player.career.apps,0);assert.equal(x.player.career.goals,0);
+ const reload=harness([[SAVE,h.storage.get(SAVE)]]);reload.click(null,{page:"career"});
+ assert(reload.html.includes("3场 2球 1助 · 未完赛季（退役）"));
+ assert.equal(reload.api.duo().wang.player.academyCareer.goals,2);
+ console.log("✓ 中途自主退役的青训履历可见且不重复计入成年生涯");
 }
