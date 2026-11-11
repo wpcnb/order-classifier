@@ -76,7 +76,7 @@ assert(!["皇家马德里"].includes(v.club));
 assert.equal(w.sourceRating,83);assert.equal(v.sourceRating,77);
 assert.equal(w.heightCm,177);assert.equal(v.heightCm,176);
 assert.equal(w.born,"1999-02-06");assert.equal(v.born,"2000-07-12");
-assert(x.html.includes("模拟当前赛季")&&x.html.includes("自主退役")&&x.html.includes("下一场")&&x.html.includes("整个赛季"));
+assert(x.html.includes("自主退役")&&x.html.includes("下一比赛日")&&x.html.includes("模拟整个赛季"));
 log("Both named stars begin aged 16 at separate real CSL academies with scaled-down historical templates");
 const nextOne=harness([[SAVE,x.stored.get(SAVE)]]);
 const beforeDate=nextOne.state.duoGames.wang.season.completed+nextOne.state.duoGames.vini.season.completed;
@@ -86,6 +86,18 @@ assert(afterDate>beforeDate,"Next Match should advance at least one fixture");
 assert.equal(nextOne.state.duoGames.wang.year,2026);
 assert.equal(nextOne.state.duoGames.vini.year,2026);
 log("Next Match advances the shared world by one matchday without completing the season");
+
+const safeSeason=harness([[SAVE,x.stored.get(SAVE)]]);
+safeSeason.click("simBoth");
+assert.equal(safeSeason.state.duoGames.wang.season.stage,"review");
+assert(safeSeason.html.includes('data-action="nextSeason"')&&safeSeason.html.includes("进入下一赛季"),"At year end, the main action must describe advancing the year");
+safeSeason.click("nextSeason");
+assert.equal(safeSeason.state.duoGames.wang.year,2027);
+assert.equal(safeSeason.state.duoGames.vini.year,2027);
+assert.equal(safeSeason.state.duoGames.wang.season.stage,"playing");
+assert.equal(safeSeason.state.duoGames.wang.season.completed,0,"Entering next season must not silently simulate its matches");
+assert(safeSeason.html.includes('data-action="simBoth"')&&safeSeason.html.includes("模拟整个赛季"));
+log("Season controls clearly advance a year without silently simulating it");
 
 assert(!x.html.includes("切换并操作"),"No per-player switch buttons");
 x.page("world");assert(x.html.includes("双主角进球对比")&&x.html.includes("仅显示两名主角")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
