@@ -299,7 +299,8 @@ function chineseSeasonTransition(year){
  // 2026 model includes the extra 1.5-place promotion/relegation playoff:
  // 14th in League One vs third eligible League Two team, over two legs.
  let playoff=null;
- if(year===2026){
+ if(year===2026||year>=2028){
+  // Later seasons retain the 2026 1.5-place playoff as a clearly simulated rule.
   const l1Play=orders.CHN1[orders.CHN1.length-3],l2Play=l2Candidates[2];
   if(l1Play&&l2Play&&l1Play!==l2Play){
    const [a,b]=simulateScore(l2Play,l1Play),[c,d]=simulateScore(l1Play,l2Play);
@@ -486,10 +487,10 @@ function addSharedKnockouts(){
  g.season.events.push(...events);g.season.events.sort((a,b)=>a.date.localeCompare(b.date));
 }
 function createUefa(club,id,year,rank){
- if(!["ENG","ESP","ITA","GER","FRA","POR","NED"].includes(id))return null;
+ if(!["ENG","ESP","ITA","GER","FRA","POR","NED","TUR","BEL","SCO","AUT"].includes(id))return null;
  const isManu=year===2026&&club==="曼联",type=isManu?"欧冠":rank<=4?"欧冠":rank<=7?"欧联":null;
  if(!type)return null;
- let clubs=isManu?UEFA_TEAMS.slice():[club,...Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED"].includes(l.id)).flatMap(l=>l.teams.map(t=>t.name)).filter(x=>x!==club)];
+ let clubs=isManu?UEFA_TEAMS.slice():[club,...Object.values(DB).filter(l=>["ENG","ESP","GER","ITA","FRA","POR","NED","TUR","BEL","SCO","AUT"].includes(l.id)).flatMap(l=>l.teams.map(t=>t.name)).filter(x=>x!==club)];
  clubs=[club,...new Set(clubs.filter(x=>x!==club))].slice(0,36);
  if(clubs.length!==36)throw Error("欧战参赛队不是36支");
  const preset=isManu?MANU_CL.map(f=>({opponent:f[1],home:f[2]==="H"})):[];
@@ -502,7 +503,7 @@ function createUefa(club,id,year,rank){
  return {type,drawRounds,verifiedHistory:!!imported,source:imported?"UEFA官方（截至2026-11-01）":"游戏赛季结果",table:Object.fromEntries(clubs.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}])),played:0,stage:"league",completed:false,knockoutIndex:0,knockoutResults:[],matches}
 }
 
-function createCups(id,year){let name=id==="ENG"?"足总杯":id==="ESP"?"国王杯":id==="GER"?"德国杯":id==="ITA"?"意大利杯":id==="FRA"?"法国杯":id==="CHN"?"足协杯":id==="BRA"?"巴西杯":id==="NED"?"荷兰杯":"葡萄牙杯";return {name,active:true,stage:0,stages:["第三轮","第四轮","第五轮","八强","半决赛","决赛"],results:[]}}
+function createCups(id,year){let name=({ENG:"足总杯",ESP:"国王杯",GER:"德国杯",ITA:"意大利杯",FRA:"法国杯",CHN:"足协杯",CHN1:"足协杯",CHN2:"足协杯",BRA:"巴西杯",NED:"荷兰杯",POR:"葡萄牙杯",TUR:"土耳其杯",BEL:"比利时杯",SCO:"苏格兰杯",AUT:"奥地利杯"})[id]||"国内杯";return {name,active:true,stage:0,stages:["第三轮","第四轮","第五轮","八强","半决赛","决赛"],results:[]}}
 function makeSchedule(player,year,prevRank=10){
  const league=leagueCalendar(player.leagueId,player.club,year),uefa=player.youth?null:createUefa(player.club,player.leagueId,year,prevRank),cup=createCups(player.leagueId,year);
  let events=league.map(r=>{const f=r.fixtures.find(f=>f.home===player.club||f.away===player.club);return {id:"l"+r.round,kind:"league",date:r.date,round:r.round,home:f.home,away:f.away,verified:r.verified?{gf:r.verified.gf,ga:r.verified.ga}:null}});
@@ -1129,7 +1130,7 @@ function finishVote(){
 
 
 function awardLeagueTier(club){
- for(const [id,l] of Object.entries(DB))if(l.teams.some(t=>t.name===club))return id==="CHN"?.55:id==="NED"||id==="POR"?.82:id==="BRA"?.78:1;
+ for(const [id,l] of Object.entries(DB))if(l.teams.some(t=>t.name===club))return id==="CHN"?.55:id==="CHN1"?.44:id==="CHN2"?.32:["NED","POR","TUR","BEL","SCO","AUT"].includes(id)?.82:id==="BRA"?.78:1;
  return .76;
 }
 function awardTeamHonours(club,year){
