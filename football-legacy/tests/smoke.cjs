@@ -187,6 +187,9 @@ delete down.player.transferDraw;
 down.offers=[{club:"布莱顿",id:"ENG",tier:3,wage:43000,years:3,move:"降档"},
 {club:"富勒姆",id:"ENG",tier:3,wage:41000,years:3,move:"降档"}];
 relegationSave.duoGames.vini.offers=[];delete relegationSave.duoGames.vini.player.transferDraw;
+relegationSave.duoGames.vini.player.forcedMove=false;
+relegationSave.duoGames.vini.player.forcedSameTier=false;
+relegationSave.duoGames.vini.player.transferAssessment={...relegationSave.duoGames.vini.player.transferAssessment,maxTier:0,qualified:false};
 const downGame=harness([[SAVE,JSON.stringify(relegationSave)]]);
 downGame.page("transfer");assert(downGame.html.includes("十张球队盲抽卡"),"Relegation offers must open manual cards");
 assert.equal(downGame.api.duo().wang.player.transferDraw.options.length,10);
