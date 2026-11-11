@@ -1399,7 +1399,7 @@ function seasonPerformance(){
  const eligible=!p.youth&&n.apps>=15;
  const maxTier=eligible&&!poor&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
  const comment=p.youth?"青训阶段：16—17岁参加青年联赛，18岁自动进入本俱乐部一线队；青年数据不计入成年赛季。":p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":n.apps<15?"出场不足，不按进球助攻处罚":!offense?(maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"根据评分、出场和球队零封考核，不按进球助攻处罚"):
-  p.forcedMove?"连续两个赛季未达标，必须降至较低一级球队":
+  p.forcedMove?"连续两个赛季未达标，可选择降档或留队":
   tier===0&&poor&&p.poorStreak>=2?"中超已是起步最低档，留队或同级转会，不会假装降档":
   poor?"本赛季低于留队标准，累计不达标"+p.poorStreak+"季":
   tier===TRANSFER_LEVELS.length-1?"已达到最高的世界传奇豪门档次":
@@ -1571,7 +1571,7 @@ function endSeason(){
   g.history.push({year:g.year,generation:g.generation,club:p.club,league:league.name,age:p.age,rank,apps:s.apps,goals:s.goals,assists:s.assists,leagueGoals:s.leagueGoals||0,leagueAssists:s.leagueAssists||0,average:avg.toFixed(2),points:sortedTable(s.leagueTable).find(t=>t.name===p.club)?.points||0,europa:s.uefa?.type||null});
  g.lastReview={rank,avg:avg.toFixed(2),goals:s.goals,assists:s.assists,performance,leagueGoalLeader:goalKing?{name:goalKing.name,goals:goalKing.goals}:null};
  g.offers=p.youth?[]:generateOffers();
- s.stage="review";ensurePromotionDraw(g);page="review";log("完成 "+g.year+"/"+(g.year+1)+" 赛季，联赛第"+rank+"名。"+(performance.poor?"进球助攻未达标，连续"+performance.poorStreak+"季；"+(performance.forcedMove?"下赛季必须降档转会。":"将影响球队信任。"):"表现考核："+performance.comment));save();render()
+ s.stage="review";ensurePromotionDraw(g);page="review";log("完成 "+g.year+"/"+(g.year+1)+" 赛季，联赛第"+rank+"名。"+(performance.poor?"进球助攻未达标，连续"+performance.poorStreak+"季；"+(performance.forcedMove?"可选择降档或留队。":"将影响球队信任。"):"表现考核："+performance.comment));save();render()
 }
 
 function applyPlayerTransfer(o,automatic=false,deferDisplay=false){
@@ -1585,7 +1585,7 @@ function applyPlayerTransfer(o,automatic=false,deferDisplay=false){
  const wasForced=p.forcedMove,old=p.club;p.club=o.club;p.leagueId=o.id;p.youth=false;
  if(p.parentCoach)p.parentCoach.club=o.club;
  p.wage=o.wage;p.contract=o.years;p.morale=85;p.coachTrust=65;p.forcedMove=false;p.forcedSameTier=false;p.poorStreak=0;p.trophylessStreak=0;
- p.transferHistory=p.transferHistory||[];p.transferHistory.push({year:g.year,from:old,to:o.club,reason:automatic?(wasForced?"强制降档":o.move==="同级转会"?"连续无冠·同档转会":"抽签达标升级"):o.move||"转会"});
+ p.transferHistory=p.transferHistory||[];p.transferHistory.push({year:g.year,from:old,to:o.club,reason:automatic?(wasForced?"降档转会":o.move==="同级转会"?"连续无冠·同档转会":"抽签达标升级"):o.move||"转会"});
  g.offers=[];log((automatic?(wasForced?"考核未达标抽签降档":o.move==="同级转会"?"连续无冠自动同档抽签":"赛季达标抽签升级"):"正式转会")+": "+old+" → "+p.club);
  if(!automatic&&!deferDisplay){save();render()}return true;
 }
