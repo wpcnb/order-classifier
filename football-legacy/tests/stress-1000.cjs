@@ -23,7 +23,7 @@ const keys=["wang","vini"];
 const initial=()=>Array(years).fill(0);
 const buckets=()=>Array(6).fill(0);
 const summary={
- shard,runs,years,completedRuns:0,completedSeasons:0,playerSeasons:0,exceptions:[],
+ shard,runs,years,completedRuns:0,completedSeasons:0,playerSeasons:0,retiredRuns:0,automaticRetirements:0,exceptions:[],
  byTier:buckets(),byYearTier:Array.from({length:years},buckets),
  goals:{sum:0,max:0,over30:0,over40:0,over50:0,over60:0,over91:0,buckets:[0,0,0,0,0,0,0,0]},
  assists:{sum:0,max:0,over30:0,over40:0},ratings:{sum:0,below6:0,above8:0},
@@ -33,7 +33,7 @@ const summary={
  trophyless:{forcedSameTier:0,unresolved:0,streak2:0}, 
  awards:{wang:0,vini:0,other:0,winners:{},byYear:Array.from({length:years},()=>({wang:0,vini:0,other:0}))},
  milestones:{firstEurope:initial(),firstLegendary:initial(),neverEurope:0,neverLegendary:0,finalTiers:buckets()},
- integrity:{yearDesync:0,stageIncomplete:0,leagueTableMismatch:0,duplicateBallon:0,invalidGoalShare:0,missingAwards:0,wrongDrawDestination:0,failedSeasonAdvance:0,duplicateClub:0},
+ integrity:{yearDesync:0,stageIncomplete:0,leagueTableMismatch:0,duplicateBallon:0,invalidGoalShare:0,missingAwards:0,wrongDrawDestination:0,failedSeasonAdvance:0,duplicateClub:0,invalidRetirement:0,retiredResumed:0,retirementNotPersisted:0},
  storage:{sum:0,max:0,over1MB:0,over3MB:0,over5MB:0,byYearMax:initial()},
  perf:{millis:0}
 };
@@ -48,11 +48,12 @@ for(let trial=0;trial<runs;trial++){
  for(let season=0;season<years;season++){
   try{
    const oldState=app.state(),oldYear=oldState.wang.year;
+   const previous=Object.fromEntries(keys.map(id=>[id,{retired:!!oldState[id].player.retired,career:JSON.stringify(oldState[id].player.career)}]));
    const beforeClubs=Object.fromEntries(keys.map(id=>[id,{club:oldState[id].player.club,level:app.level(oldState[id].player),transferCount:oldState[id].player.transferHistory?.length||0,draw:oldState[id].player.transferDraw,forcedSameTier:!!oldState[id].player.forcedSameTier}]));
    for(const id of keys){
     const d=oldState[id].player.transferDraw;
     if(d?.options?.length&&!d.selected){inc(summary.draws,d.direction==="down"?"down":"up");{const a=d.options.map(o=>app.level({leagueId:o.id,club:o.club})),normal=a.filter(t=>t===d.level).length,lucky=a.filter(t=>t===d.level+1).length,expected=d.direction==="up"&&d.level<5;if(a.length!==10||normal!==(expected?9:10)||lucky!==(expected?1:0))summary.draws.unexpected++}}
-    if((oldState[id].player.forcedMove||(!oldState[id].player.forcedSameTier&&oldState[id].player.transferAssessment?.maxTier>beforeClubs[id].level))&&!d?.options?.length&&oldState[id].season.stage==="review")summary.draws.missingOptions++;
+    if(!oldState[id].player.retired&&oldState[id].player.age<39&&(oldState[id].player.forcedMove||(!oldState[id].player.forcedSameTier&&oldState[id].player.transferAssessment?.maxTier>beforeClubs[id].level))&&!d?.options?.length&&oldState[id].season.stage==="review")summary.draws.missingOptions++;
    }
    app.drawPromotions();
    const chosen=Object.fromEntries(keys.map(id=>[id,app.state()[id].player.transferDraw?.selected?.club||null]));
@@ -60,15 +61,32 @@ for(let trial=0;trial<runs;trial++){
    const state=app.state(),y=state.wang.year;
    if(state.wang.year!==state.vini.year)summary.integrity.yearDesync++;
    if(y!==2026+season){summary.integrity.failedSeasonAdvance++;throw Error("Expected "+(2026+season)+" got "+y)}
-   if(state.wang.season.stage!=="review"||state.vini.season.stage!=="review")summary.integrity.stageIncomplete++;
+   for(const id of keys){
+    const {player:p,season:s}=state[id];
+    if(p.retired){
+     if(s.stage!=="retired"||p.age!==40||p.retiredAt?.age!==40||!p.retiredAt?.automatic)summary.integrity.invalidRetirement++;
+     if(previous[id].retired&&JSON.stringify(p.career)!==previous[id].career)summary.integrity.retiredResumed++;
+     if(!previous[id].retired)summary.automaticRetirements++;
+    }else if(p.age>=40||s.stage!=="review")summary.integrity.stageIncomplete++;
+   }
+   // There is no additional played season once both have retired. Verify a
+   // repeated fast-forward is inert instead of fabricating six future years.
+   if(keys.every(id=>state[id].player.retired)){
+    const ended=JSON.stringify(state);app.click("simBoth");
+    if(JSON.stringify(app.state())!==ended)summary.integrity.retiredResumed++;
+    const saved=[...app.storage.entries()].find(([k])=>k.startsWith("football-dynasty-duo-v2-"))?.[1];
+    const savedGames=saved&&JSON.parse(saved).duoGames;
+    if(!savedGames||keys.some(id=>!savedGames[id]?.player.retired||savedGames[id].player.retiredAt?.age!==40||JSON.stringify(savedGames[id].player.career)!==JSON.stringify(state[id].player.career)))summary.integrity.retirementNotPersisted++;
+    summary.retiredRuns++;break;
+   }
    summary.completedSeasons++;
    let anyTeamTitle=false;
    for(const id of keys){
     const x=state[id],p=x.player,s=x.season,lv=app.level(p),prior=beforeClubs[id];
+    if(p.retired)continue;
     if(season===0&&id==="vini"&&p.club===state.wang.player.club)summary.integrity.duplicateClub++;
     if(!Number.isInteger(lv)||lv<0||lv>=6)throw Error("Invalid tier "+lv);
     summary.byTier[lv]++;summary.byYearTier[season][lv]++;
-    summary.milestones.finalTiers[lv]+=(season===years-1?1:0);
     if(lv>0&&firstEurope[id]===undefined){firstEurope[id]=season;summary.milestones.firstEurope[season]++}
     if(lv===5&&firstLegendary[id]===undefined){firstLegendary[id]=season;summary.milestones.firstLegendary[season]++}
     const g=s.goals||0,a=s.assists||0,apps=s.apps||0,ov=app.ratings(p);
@@ -99,7 +117,7 @@ for(let trial=0;trial<runs;trial++){
     if(season>0&&prior.club===p.club&&prior.forcedSameTier)summary.trophyless.unresolved++;
    }
    if(!anyTeamTitle)summary.trophy.noneBoth++;
-   if(state.wang.player.leagueId===state.vini.player.leagueId){
+   if(!state.wang.player.retired&&!state.vini.player.retired&&state.wang.player.leagueId===state.vini.player.leagueId){
     if(JSON.stringify(state.wang.season.leagueTable)!==JSON.stringify(state.vini.season.leagueTable))summary.integrity.leagueTableMismatch++;
    }
    const winner=state.wang.ballonHistory?.at(-1)?.winner?.name;const winnerB=state.vini.ballonHistory?.at(-1)?.winner?.name;
@@ -114,7 +132,7 @@ for(let trial=0;trial<runs;trial++){
    if(bytes>1e6)summary.storage.over1MB++;if(bytes>3e6)summary.storage.over3MB++;if(bytes>5e6)summary.storage.over5MB++;
   }catch(e){recordException(trial,season,e);ok=false;break}
  }
- if(ok){summary.completedRuns++;for(const id of keys){if(firstEurope[id]===undefined)summary.milestones.neverEurope++;if(firstLegendary[id]===undefined)summary.milestones.neverLegendary++}}
+ if(ok){summary.completedRuns++;for(const id of keys){summary.milestones.finalTiers[app.level(app.state()[id].player)]++;if(firstEurope[id]===undefined)summary.milestones.neverEurope++;if(firstLegendary[id]===undefined)summary.milestones.neverLegendary++}}
  if((trial+1)%10===0)console.error("Shard "+shard+" completed "+(trial+1)+"/"+runs+" games");
 }
 summary.perf.millis=Date.now()-clock;

@@ -7,7 +7,11 @@
 html{scrollbar-color:#3a6581 #101e2d}body{background-attachment:fixed}
 .hero{background-position:center 60%;background-blend-mode:normal;box-shadow:0 22px 56px #0006,inset 0 0 0 1px #88ffd21a}
 .hero:after{content:"";pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#092233c2 0,#102d4055 54%,transparent 100%);z-index:0}
-.hero>div{position:relative;z-index:2}
+.hero{padding:0;display:flex;flex-direction:column;align-items:stretch;background:#102638}
+.hero::before{content:"";display:block;width:100%;aspect-ratio:2.7/1;max-height:430px;background:#102638 url("./assets/interview-duo.webp") center 45%/cover no-repeat}
+.hero::after{display:none}
+.hero>div{position:relative;z-index:2;padding:26px 34px 30px}
+@media(max-width:640px){.hero::before{aspect-ratio:16/9}.hero>div{padding:20px 23px 24px}}
 .photo{background-image:linear-gradient(130deg,#10414b9a,#101c4294),url("./assets/stadium.svg")}
 .top{padding:5px 0}
 .card{transition:border-color .2s,box-shadow .2s}
@@ -32,11 +36,7 @@ html{scrollbar-color:#3a6581 #101e2d}body{background-attachment:fixed}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 @media(min-width:1000px) and (orientation:landscape){.shell{padding-inline:30px}.nav button{padding-inline:18px;min-height:48px}.button{min-height:48px}.card{padding:22px}}
 
-/* Cinematic but accessible tablet-focused player imagery */
-.hero::before{content:"";position:absolute;inset:0;background:url("./assets/footballer.svg") right 6% bottom -38px/auto 116% no-repeat;opacity:.95;pointer-events:none;z-index:1;filter:drop-shadow(0 11px 14px #0007)}
-.hero>div{max-width:74%;position:relative;z-index:2}
-@media(max-width:1050px){.hero::before{opacity:.65;right:-60px}.hero>div{max-width:82%}}
-@media(max-width:640px){.hero::before{opacity:.26;background-size:auto 85%;right:-100px}.hero>div{max-width:100%}}
+.hero>div{position:relative;z-index:2}
 details.item{cursor:pointer}details.item>summary{padding:3px 0;list-style-position:inside}details.item[open]{background:#1a3951;border-color:#589c94}
 details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
 /* Keep a long career's destinations discoverable on smaller screens. */
@@ -86,7 +86,7 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 @media(max-width:740px){.draw-card-grid{gap:6px}.draw-card{min-height:105px}.draw-card-back small{font-size:7px}.draw-card-back b{font-size:19px}.draw-card-back em{font-size:10px}.draw-card-back,.draw-card-front{padding:3px}.draw-card-front .clubcrest{width:26px;height:31px;flex-basis:31px;font-size:8px}.draw-card-front strong{font-size:9px}.draw-card-front small,.draw-card-front em{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.draw-card-inner{transition:none}}
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。球场插画为原创本地 SVG，不依赖外部图片网络。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=ballon-dor-fair-v7-20261111" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=age-retirement-20261111" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.

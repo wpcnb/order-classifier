@@ -14,17 +14,22 @@ if(result.status!==0||!line)throw Error("Horizon worker failed: "+String(result.
 const data=JSON.parse(line.slice("STRESS_1000_JSON=".length));
 const faults=Object.entries(data.integrity||{}).filter(([,count])=>count!==0);
 const compact={years,runs,completedRuns:data.completedRuns,completedSeasons:data.completedSeasons,
- playerSeasons:data.playerSeasons,exceptions:data.exceptions,integrityFailures:faults,
+ playerSeasons:data.playerSeasons,retiredRuns:data.retiredRuns,automaticRetirements:data.automaticRetirements,exceptions:data.exceptions,integrityFailures:faults,
  unexpectedDraws:data.draws.unexpected,missingDraws:data.draws.missingOptions,
  luckyJumps:data.moves.skips,maxSaveBytes:data.storage.max,
  lastSeasonTiers:data.milestones.finalTiers,elapsedMillis:data.perf.millis};
 console.log("LONG_HORIZON_AUDIT_JSON="+JSON.stringify(compact));
 assert.equal(compact.completedRuns,runs);
-assert.equal(compact.completedSeasons,runs*years);
-assert.equal(compact.playerSeasons,runs*years*2);
+// Both default players start aged 16 and finish their age-39 season. A
+// 30-year request therefore ends after 24 played seasons, at age 40.
+const playableYears=Math.min(years,24),expectRetirement=years>24;
+assert.equal(compact.completedSeasons,runs*playableYears);
+assert.equal(compact.playerSeasons,runs*playableYears*2);
+assert.equal(compact.retiredRuns,expectRetirement?runs:0);
+assert.equal(compact.automaticRetirements,expectRetirement?runs*2:0);
 assert.equal(compact.exceptions.length,0);
 assert.equal(faults.length,0);
 assert.equal(compact.unexpectedDraws,0);
 assert.equal(compact.missingDraws,0);
 assert(compact.maxSaveBytes<5000000,"Browser save exceeds 5MB at "+years+" years");
-console.log("PASS: "+runs+" shared dual-career saves across "+years+" years");
+console.log("PASS: "+runs+" shared dual-career saves across up to "+years+" years ("+playableYears+" played seasons each)");

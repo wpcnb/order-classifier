@@ -26,6 +26,8 @@ jobs:
           node-version: "22"
       - name: Dual-career regression tests
         run: node football-legacy/tests/smoke.cjs
+      - name: Player aging and retirement regressions
+        run: node football-legacy/tests/player-aging.cjs
       - name: Match-strategy regression tests
         run: node football-legacy/tests/match-strategy.cjs
       - name: Yellow and red card regression tests
