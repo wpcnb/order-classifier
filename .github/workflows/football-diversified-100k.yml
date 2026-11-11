@@ -1,0 +1,71 @@
+name: Football Dynasty diversified 100k scenario audit
+on:
+  pull_request:
+    paths:
+      - "football-legacy/tests/audit-100000.cjs"
+      - "football-legacy/tests/stress-diversified.cjs"
+      - ".github/workflows/football-diversified-100k.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scenario-100k:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run 100000 mixed scenarios on actual game logic
+        run: node football-legacy/tests/audit-100000.cjs | tee audit-100000.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diversified-audit-100k
+          path: audit-100000.log
+          retention-days: 30
+  varied-careers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        scenario: [0,1,2,3,4,5,6,7,8,9,10,11]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run 25 real dual-career saves per varied scenario
+        env:
+          STRESS_SCENARIO: ${{ matrix.scenario }}
+          STRESS_RUNS: "25"
+        run: |
+          set -o pipefail
+          node football-legacy/tests/stress-diversified.cjs | tee diversified-career-${{ matrix.scenario }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diversified-career-${{ matrix.scenario }}
+          path: diversified-career-${{ matrix.scenario }}.log
+          retention-days: 30
+  aggregate:
+    if: always()
+    needs: [scenario-100k, varied-careers]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: diversified-*
+          path: diversified-results
+          merge-multiple: true
+      - name: Check all 100k scenarios and career outcomes
+        run: node football-legacy/tests/audit-100000-summary.cjs diversified-results | tee diversified-summary.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diversified-summary
+          path: diversified-summary.log
+          retention-days: 30
