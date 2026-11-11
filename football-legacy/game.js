@@ -131,8 +131,8 @@ function compactWorld(world){
 function restoreWorld(world){
  for(const [id,w] of Object.entries(world||{})){
   if(!DB[id])continue;
-  const names=DB[id].teams.map(t=>t.name);
-  w.rounds=makeRR(names);
+  const names=CHINA_DIVISIONS.includes(id)?chineseMembers(id,duoGames?.wang?.year):DB[id].teams.map(t=>t.name);
+  w.rounds=chinaLeagueRounds(id,names);
   w.total=w.rounds.length;
  }
  return world||{};
@@ -150,7 +150,7 @@ function duoPayload(){
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
   awards:shared.awards||{},national:shared.national||{},
   offseasonYears:(shared.offseasonYears||[]).slice(-3),
-  clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
+  clubRatings:shared.clubRatings||{},chineseMembership:shared.chineseMembership||{},chineseMoves:shared.chineseMoves||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
  };
  const packed={};
@@ -204,8 +204,81 @@ function save(){
 }
 function notify(s){const t=$("toast");t.textContent=s;t.classList.remove("hidden");clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.add("hidden"),3400)}
 function titleResult(d){return d.home+" "+d.hs+" : "+d.as+" "+d.away}
+// Chinese domestic pyramid is separate from the six international career tiers.
+// Clubs move between these divisions; a player may follow the club or transfer.
+const CHINA_DIVISIONS=["CHN","CHN1","CHN2"];
+function chineseMembers(id,year=duoGames?.wang?.year??g?.year??2026){
+ const recorded=sharedUniverse?.chineseMembership?.[year]?.[id];
+ return Array.isArray(recorded)?recorded.slice():DB[id].teams.map(t=>t.name);
+}
+function chineseClubDivision(club,year){
+ for(const id of CHINA_DIVISIONS)if(chineseMembers(id,year).includes(club))return id;
+ return null;
+}
+function chinaLeagueRounds(id,names){
+ if(id!=="CHN2"||names.length!==24)return makeRR(names);
+ // China League Two season model: north/south 12-team groups for 22 rounds,
+ // then eight simulated promotion/relegation group rounds (30 total).
+ // Stage-two allocation here is seeded by strength before kickoff; it is a
+ // game approximation, not a claim about official real-world round-two qualifiers.
+ const north=names.slice(0,12),south=names.slice(12);
+ const northRounds=makeRR(north),southRounds=makeRR(south);
+ const rounds=Array.from({length:22},(_,i)=>northRounds[i].concat(southRounds[i]));
+ const n=north.slice().sort((a,b)=>power(b)-power(a)),t=south.slice().sort((a,b)=>power(b)-power(a));
+ const groups=[[...n.slice(0,4),...t.slice(0,4)],[...n.slice(4,8),...t.slice(4,8)],[...n.slice(8,12),...t.slice(8,12)]];
+ const groupRounds=groups.map(group=>makeRR(group).slice(0,8));
+ for(let i=0;i<8;i++)rounds.push(groupRounds.flatMap(g=>g[i]));
+ return rounds;
+}
+function chineseSeasonTable(id){
+ const player=DUO_IDS.map(who=>duoGames[who]).find(x=>x.player.leagueId===id&&!x.player.youth);
+ return player?.season.leagueTable||duoGames.wang.season.world?.[id]?.table||duoGames.vini.season.world?.[id]?.table||null;
+}
+function chineseSeasonTransition(year){
+ if(!sharedUniverse||!duoGames)return;
+ sharedUniverse.chineseMembership=sharedUniverse.chineseMembership||{};
+ sharedUniverse.chineseMoves=sharedUniverse.chineseMoves||{};
+ const target=year+1;
+ if(sharedUniverse.chineseMembership[target])return;
+ const current=Object.fromEntries(CHINA_DIVISIONS.map(id=>[id,chineseMembers(id,year)]));
+ const finish=next=>{sharedUniverse.chineseMembership[target]=next;};
+ // Academy-only years do not manufacture first-team CSL relegation tables.
+ if(DUO_IDS.every(id=>duoGames[id].player.youth)){finish(current);return}
+ const tables=Object.fromEntries(CHINA_DIVISIONS.map(id=>[id,chineseSeasonTable(id)]));
+ if(CHINA_DIVISIONS.some(id=>!tables[id]||Object.keys(tables[id]).length!==current[id].length)){finish(current);return}
+ const orders=Object.fromEntries(CHINA_DIVISIONS.map(id=>[id,sortedTable(tables[id]).map(t=>t.name)]));
+ const cslOut=orders.CHN.slice(-2),cslIn=orders.CHN1.slice(0,2);
+ const l1Out=orders.CHN1.slice(-2),l2Candidates=orders.CHN2.filter(x=>{
+  const parent=x.replace(/B队$/,"");
+  return !x.endsWith("B队")||!current.CHN1.includes(parent)&&!cslOut.includes(parent)
+ });
+ const l2In=l2Candidates.slice(0,2);
+ let next={
+  CHN:current.CHN.filter(x=>!cslOut.includes(x)).concat(cslIn),
+  CHN1:current.CHN1.filter(x=>!cslIn.includes(x)&&!l1Out.includes(x)).concat(cslOut,l2In),
+  CHN2:current.CHN2.filter(x=>!l2In.includes(x)).concat(l1Out)
+ };
+ // 2026 model includes the extra 1.5-place promotion/relegation playoff:
+ // 14th in League One vs third eligible League Two team, over two legs.
+ let playoff=null;
+ if(year>=2028||year===2026){
+  const l1Play=orders.CHN1[orders.CHN1.length-3],l2Play=l2Candidates[2];
+  if(l1Play&&l2Play&&l1Play!==l2Play){
+   const [a,b]=simulateScore(l2Play,l1Play),[c,d]=simulateScore(l1Play,l2Play);
+   const goingUp=a+d>b+c||(a+d===b+c&&Math.random()<.5);
+   playoff={challenger:l2Play,defender:l1Play,legs:[[a,b],[c,d]],winner:goingUp?l2Play:l1Play};
+   if(goingUp){next.CHN1=next.CHN1.filter(x=>x!==l1Play).concat(l2Play);
+    next.CHN2=next.CHN2.filter(x=>x!==l2Play).concat(l1Play)}
+  }
+ }
+ for(const id of CHINA_DIVISIONS)if(new Set(next[id]).size!==next[id].length)throw Error("中国联赛升降级出现重复俱乐部:"+id);
+ const all=CHINA_DIVISIONS.flatMap(id=>next[id]);
+ if(new Set(all).size!==all.length||all.length!==current.CHN.length+current.CHN1.length+current.CHN2.length)throw Error("中国联赛球队出现跨级重复或丢失");
+ finish(next);
+ sharedUniverse.chineseMoves[target]={fromYear:year,superDown:cslOut,superUp:cslIn,oneDown:l1Out,twoUp:l2In,playoff};
+}
 function makeRR(names){const a=names.slice();if(a.length%2)a.push(null);const n=a.length,first=[],rotate=a.slice();for(let r=0;r<n-1;r++){const matches=[];for(let i=0;i<n/2;i++){let x=rotate[i],y=rotate[n-1-i];if(!x||!y)continue;const flip=(r+i)%2===1;matches.push({home:flip?y:x,away:flip?x:y})}first.push(matches);rotate.splice(1,0,rotate.pop())}return first.concat(first.map(round=>round.map(f=>({home:f.away,away:f.home}))))}
-function leagueCalendar(id,club,year){let teams=DB[id].teams.map(z=>z.name+(club.endsWith("青训")?"青训":""));if(!teams.includes(club))teams[teams.length-1]=club;let rr=makeRR(teams);if(year===2026&&id==="ENG"&&club==="曼联"){rr=MANU_26.map(([date,opp,ha,gf,ga],idx)=>{let j=rr.findIndex(r=>r.some(f=>f.home===(ha==="H"?club:opp)&&f.away===(ha==="H"?opp:club)));if(j<0)throw Error("曼联完整赛程生成失败:"+opp+ha);const round=rr.splice(j,1)[0];round._date=date;round._manu={gf,ga,opp,ha};return round}).concat(rr);return rr.slice(0,38).map((round,i)=>({round:i+1,date:MANU_26[i][0],fixtures:round,verified:i<9?{gf:MANU_26[i][3],ga:MANU_26[i][4]}:null}))}const monthDates=[9,16,23,30];return rr.map((round,i)=>({round:i+1,date:new Date(Date.UTC(year,7,22+i*7)).toISOString().slice(0,10),fixtures:round,verified:null}))}
+function leagueCalendar(id,club,year){let teams=(CHINA_DIVISIONS.includes(id)?chineseMembers(id,year):DB[id].teams.map(z=>z.name)).map(name=>name+(club.endsWith("青训")?"青训":""));if(!teams.includes(club))teams[teams.length-1]=club;let rr=chinaLeagueRounds(id,teams);if(year===2026&&id==="ENG"&&club==="曼联"){rr=MANU_26.map(([date,opp,ha,gf,ga],idx)=>{let j=rr.findIndex(r=>r.some(f=>f.home===(ha==="H"?club:opp)&&f.away===(ha==="H"?opp:club)));if(j<0)throw Error("曼联完整赛程生成失败:"+opp+ha);const round=rr.splice(j,1)[0];round._date=date;round._manu={gf,ga,opp,ha};return round}).concat(rr);return rr.slice(0,38).map((round,i)=>({round:i+1,date:MANU_26[i][0],fixtures:round,verified:i<9?{gf:MANU_26[i][3],ga:MANU_26[i][4]}:null}))}const monthDates=[9,16,23,30];return rr.map((round,i)=>({round:i+1,date:new Date(Date.UTC(year,7,22+i*7)).toISOString().slice(0,10),fixtures:round,verified:null}))}
 function makeUefaDraw(clubs,preset=[]){
  // Eight distinct opponents, eight matchdays with 18 fixtures each, four home and four away per club.
  const ids=Array.from({length:36},(_,i)=>"S"+i);
@@ -461,7 +534,7 @@ function linkSharedWorld(){
   const occupied=new Set([a.player.leagueId,b.player.leagueId]);
   const common=a.season.world||b.season.world||{};
   for(const id of occupied)delete common[id];
-  for(const [id,db] of Object.entries(DB))if(!occupied.has(id)&&!common[id]){const names=db.teams.map(t=>t.name),rounds=makeRR(names);common[id]={played:0,total:rounds.length,rounds,table:Object.fromEntries(names.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]))}}
+  for(const [id,db] of Object.entries(DB))if(!occupied.has(id)&&!common[id]){const names=CHINA_DIVISIONS.includes(id)?chineseMembers(id,a.year):db.teams.map(t=>t.name),rounds=chinaLeagueRounds(id,names);common[id]={played:0,total:rounds.length,rounds,table:Object.fromEntries(names.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]))}}
   a.season.world=b.season.world=common;
   // Both Chinese internationals play the same national team fixture list.
   if(a.player.country===b.player.country){const na=a.season.events.filter(ev=>ev.kind==="national"),nb=b.season.events.filter(ev=>ev.kind==="national");if(na.length===nb.length)for(let i=0;i<na.length;i++){nb[i].home=na[i].home;nb[i].away=na[i].away;nb[i].date=na[i].date}}
@@ -712,7 +785,7 @@ function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0,mode="leagu
 function createWorld(season){
  const leagues={};const occupied=new Set(duoGames?DUO_IDS.map(id=>duoGames[id].player.leagueId):[g.player.leagueId]);for(const [id,db]of Object.entries(DB)){
   if(occupied.has(id))continue;
-  const names=db.teams.map(t=>t.name),rounds=makeRR(names);
+  const names=CHINA_DIVISIONS.includes(id)?chineseMembers(id,g.year):db.teams.map(t=>t.name),rounds=chinaLeagueRounds(id,names);
   leagues[id]={played:0,total:rounds.length,rounds,table:Object.fromEntries(names.map(name=>[name,{name,p:0,w:0,d:0,l:0,gf:0,ga:0,points:0}]))};
  }
  season.world=leagues;
@@ -1309,7 +1382,7 @@ function applyPlayerTransfer(o,automatic=false){
 }
 function transfer(i){if(!g?.offers?.[i])return;applyPlayerTransfer(g.offers[i])}
 function nextSeason(){if(!g||g.season.stage!=="review")return;
- if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
+ if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review")){notify("同一时间线：请先完成两人当前赛季");return}if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}chineseSeasonTransition(duoGames.wang.year);syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){notify("已达到40岁，请在家族页面选择退役方向");page="family";save();render();return}let movedByDraw=false;
  if(p.forcedMove&&p.transferDraw?.selected){
   if(!applyPlayerTransfer(p.transferDraw.selected,true))return;
@@ -1325,6 +1398,12 @@ if(g.mode==="coach")return nextCoachSeason();const p=g.player;if(p.age>=40){noti
  }
  if(!movedByDraw&&!p.forcedMove&&!p.forcedSameTier&&!p.youth&&p.transferDraw?.selected){if(!applyPlayerTransfer(p.transferDraw.selected,true))return}
  delete p.transferDraw;
+ const nextDomestic=CHINA_DIVISIONS.includes(p.leagueId)?chineseClubDivision(p.club,g.year+1):null;
+ if(nextDomestic&&nextDomestic!==p.leagueId){
+  log(p.club+"随俱乐部从"+DB[p.leagueId].name+"升降级至"+DB[nextDomestic].name);
+  (p.transferHistory||(p.transferHistory=[])).push({year:g.year,from:p.club,to:p.club,reason:"俱乐部联赛升降级",fromLeague:p.leagueId,toLeague:nextDomestic});
+  p.leagueId=nextDomestic;
+ }
  const graduating=p.youth&&p.age+1>=ACADEMY_GRADUATION_AGE;
  if(graduating){
   // After two academy seasons the player reaches the SAME original age-18
