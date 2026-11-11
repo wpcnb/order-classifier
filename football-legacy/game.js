@@ -621,38 +621,34 @@ function reconcileEuropeanHonors(){
    if(h.type!=="team"||!["欧冠冠军","欧联冠军"].includes(h.name))continue;
    const history=x.history?.findLast(m=>m.year===h.year&&m.generation===h.generation);
    const club=history?.club||x.player.club,type=h.name.replace("冠军",""),key=europeanFinalKey(h.year,type);
-   (claimsBySeason[key]||(claimsBySeason[key]=[])).push({id,x,h,club,history});
+   (claimsBySeason[key]||(claimsBySeason[key]=[])).push({id,x,h,club});
   }
  }
  let changed=false;
  for(const [key,claims] of Object.entries(claimsBySeason)){
   if(claims.length<2||new Set(claims.map(c=>c.club)).size<2)continue;
-  const recorded=sharedUniverse.europeFinals?.[key];
-  const score=c=>Number(c.history?.average||0)*10+Math.min(c.history?.goals||0,60)/5;
-  const retained=recorded?.winner?claims.find(c=>c.club===recorded.winner)||null:
-   claims.slice().sort((a,b)=>score(b)-score(a)||a.club.localeCompare(b.club))[0];
-  const winnerClub=recorded?.winner||retained.club;
-  // A genuine unified result takes priority even when neither legacy claim
-  // matches it. Never overwrite the real shared winner with a heuristic.
-  if(!recorded?.winner){
-   sharedUniverse.europeFinals[key]={key,year:retained.h.year,type:retained.h.name.replace("冠军",""),
-    winner:winnerClub,legacy:true,claimClubs:claims.map(c=>c.club)};
-  }
+  const recorded=sharedUniverse.europeFinals?.[key],verified=recorded?.winner||null;
+  // Never invent a winner, delete a legacy trophy, or rewrite historic match data.
+  // A record of the conflict is not a new official championship declaration.
   for(const c of claims){
-   if(c===retained)continue;
-   c.x.honors=c.x.honors.filter(h=>h!==c.h);
-   c.x.logs=c.x.logs||[];
-   c.x.logs.unshift({year:c.h.year,week:0,description:"旧版欧冠/欧联冠军重复记录已校正："+(c.h.year+1)+"年"+c.h.name+
-    "统一登记为"+winnerClub+"。旧版独立决赛无法还原。"});
+   const disputed=!verified||c.club!==verified;
+   if(c.h.legacyDisputed!==disputed||c.h.legacyConflictKey!==key){
+    c.h.legacyDisputed=disputed;
+    c.h.legacyConflictKey=key;
+    changed=true;
+   }
+  }
+  const corrections=sharedUniverse.europeTitleCorrections||(sharedUniverse.europeTitleCorrections=[]);
+  if(!corrections.some(entry=>entry.key===key)){
+   corrections.push({key,year:claims[0].h.year,competition:claims[0].h.name,
+    winner:verified,conflictingClubs:claims.map(c=>c.club),
+    reason:verified?"保留旧档冲突奖杯并标注；统一赛事冠军有独立证据":"旧档同届冠军相互矛盾，保留原记录，真实冠军待核实"});
    changed=true;
   }
-  sharedUniverse.europeTitleCorrections=sharedUniverse.europeTitleCorrections||[];
-  if(!sharedUniverse.europeTitleCorrections.some(c=>c.key===key))sharedUniverse.europeTitleCorrections.push({
-   key,year:claims[0].h.year,competition:claims[0].h.name,winner:winnerClub,
-   conflictingClubs:claims.map(c=>c.club),reason:recorded?.winner?"保留同届统一赛程冠军，清除矛盾旧奖杯":"旧版独立欧战决赛重复；按历史赛季数据确定单一归属"});
  }
  return changed;
 }
+
 function runSharedDay(date,focusId=null,focusChoice="balanced"){
  const original=activeDuo;
  let total=0;
@@ -1319,7 +1315,7 @@ function duoHonorsPage(){
  const years=Object.values(sharedUniverse?.awards||{}).sort((a,b)=>b.year-a.year);
  return '<section class="hero"><div><div class="cap">TROPHY CABINET · ONE SHARED WORLD</div><h1>双星荣誉陈列室</h1><p>联赛、杯赛、欧战、国家队冠军和金球奖集中记录，按赛季回顾两人的全部荣誉。</p></div></section>'+
  renderHonorsSummary()+
- (sharedUniverse?.europeTitleCorrections?.length?'<section class="card gap"><h3>旧档重复欧战冠军校正</h3><p class="muted">旧档曾独立模拟同届欧战；仅保留一份冠军声明，无法根据旧赛果推断真实统一决赛。</p><div class="list">'+sharedUniverse.europeTitleCorrections.slice(-8).reverse().map(c=>'<div class="item">'+(c.year+1)+'年 '+E(c.competition)+' · '+E(c.conflictingClubs.join(" / "))+' → 保留：'+E(c.winner)+'</div>').join("")+'</div></section>':'')+
+ (sharedUniverse?.europeTitleCorrections?.length?'<section class="card gap"><h3>旧档欧战冠军冲突（原记录保留）</h3><p class="muted">旧档同届欧战曾分别模拟出不同冠军。原奖杯和历史不删除；缺少统一赛果时不推测冠军，相关记录均标记争议。</p><div class="list">'+sharedUniverse.europeTitleCorrections.slice(-8).reverse().map(c=>'<div class="item">'+(c.year+1)+'年 '+E(c.competition)+' · '+E(c.conflictingClubs.join(" / "))+' · '+(c.winner?'经统一赛事核实：'+E(c.winner):'真实冠军未核实')+'</div>').join("")+'</div></section>':'')+
  '<section class="card gap"><h2>历届世界金球奖得主</h2><div class="list">'+(years.length?years.map(v=>'<div class="item row"><span>'+E(String(v.year+1))+'年 · '+E(v.winner.name)+' · '+E(v.winner.club)+'</span><strong class="gold">'+v.winner.points+'分</strong></div>').join(""):'<p class="muted">首次赛季结束后开始记录。</p>')+'</div><button class="button gap" data-page="awards">查看历届金球奖完整30人榜</button></section>';
 }
 function endSeason(){
@@ -1775,7 +1771,7 @@ function duoAwardsPage(){
  return '<section class="card"><h2>同一届金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>';
 }
 function duoHistoryPage(){
- return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player;return '<section class="card"><h2>'+E(p.name)+'</h2><div class="grid3">'+metric("一线队进球",p.career.goals)+metric("一线队助攻",p.career.assists)+metric("一线队出场",p.career.apps)+'</div><h3 class="gap">转会历程</h3><div class="list">'+((p.transferHistory||[]).map(t=>'<div class="item">'+t.year+' · '+E(t.from)+' → '+E(t.to)+' · '+E(t.reason)+'</div>').join("")||'<p class="muted">暂无转会</p>')+'</div><h3 class="gap">赛季记录</h3><div class="list">'+x.history.map(h=>'<div class="item">'+h.year+' · '+(h.age<18?'青训 · ':'')+E(h.club)+' · '+h.goals+'球 '+h.assists+'助</div>').join("")+'</div><h3 class="gap">青训履历（与成年数据分开）</h3><div class="grid3">'+metric("青训出场",p.academyCareer?.apps||0)+metric("青训进球",p.academyCareer?.goals||0)+metric("青训助攻",p.academyCareer?.assists||0)+'</div><p class="muted small">'+(p.academyHonors||[]).map(h=>E(h.year+"年 "+h.name)).join(" · ")+'</p><h3 class="gap">个人奖杯</h3>'+x.honors.map(h=>badge(h.year+" "+h.name)).join("")+'</section>'}).join("")+'</div>';
+ return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player;return '<section class="card"><h2>'+E(p.name)+'</h2><div class="grid3">'+metric("一线队进球",p.career.goals)+metric("一线队助攻",p.career.assists)+metric("一线队出场",p.career.apps)+'</div><h3 class="gap">转会历程</h3><div class="list">'+((p.transferHistory||[]).map(t=>'<div class="item">'+t.year+' · '+E(t.from)+' → '+E(t.to)+' · '+E(t.reason)+'</div>').join("")||'<p class="muted">暂无转会</p>')+'</div><h3 class="gap">赛季记录</h3><div class="list">'+x.history.map(h=>'<div class="item">'+h.year+' · '+(h.age<18?'青训 · ':'')+E(h.club)+' · '+h.goals+'球 '+h.assists+'助</div>').join("")+'</div><h3 class="gap">青训履历（与成年数据分开）</h3><div class="grid3">'+metric("青训出场",p.academyCareer?.apps||0)+metric("青训进球",p.academyCareer?.goals||0)+metric("青训助攻",p.academyCareer?.assists||0)+'</div><p class="muted small">'+(p.academyHonors||[]).map(h=>E(h.year+"年 "+h.name)).join(" · ")+'</p><h3 class="gap">个人奖杯</h3>'+x.honors.map(h=>badge(h.year+" "+h.name+(h.legacyDisputed?"（旧档争议）":""))).join("")+'</section>'}).join("")+'</div>';
 }
 function topNav(){const tabs=[["dashboard","双人生涯"],["world","统一联赛 / 射手榜"],["transfer","升降档抽签 / 转会"],["honors","冠军与荣誉"],["awards","统一金球奖"],["career","两人履历"],["save","共同存档"]];return '<nav class="nav">'+tabs.map(([key,name])=>'<button data-page="'+key+'" class="'+(page===key?"active":"")+'">'+name+'</button>').join("")+'</nav>'}
 function render(){const a=$("app");if(!g){a.innerHTML=startPage();return}const pages={dashboard:duoDashboard,world:duoWorldPage,transfer:duoTransferPage,honors:duoHonorsPage,awards:duoAwardsPage,career:duoHistoryPage,save:savePage};a.innerHTML=duoTop()+topNav()+(pages[page]||duoDashboard)()}
