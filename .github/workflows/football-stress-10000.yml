@@ -1,0 +1,62 @@
+name: Football Dynasty 10000-game audit
+
+on:
+  pull_request:
+    paths:
+      - "football-legacy/tests/stress-10000.cjs"
+      - ".github/workflows/football-stress-10000.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stress:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'analysis/stress-10000-seasons-disciplinary-20261111'
+    name: "10000-game audit shard ${{ matrix.shard }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 40
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Simulate 100 independent dual-player careers for 10 years
+        env:
+          STRESS_SHARD: ${{ matrix.shard }}
+          STRESS_RUNS: "100"
+          STRESS_YEARS: "10"
+        run: |
+          set -o pipefail
+          node football-legacy/tests/stress-10000.cjs | tee audit-shard-${{ matrix.shard }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-10000-shard-${{ matrix.shard }}
+          path: audit-shard-${{ matrix.shard }}.log
+          retention-days: 30
+
+  aggregate:
+    if: always()
+    needs: stress
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: audit-10000-shard-*
+          path: audit-results
+          merge-multiple: true
+      - name: Aggregate 10000 games and detect integrity failures
+        run: node football-legacy/tests/stress-10000-summary.cjs audit-results | tee audit-10000-summary.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-10000-summary
+          path: audit-10000-summary.log
+          retention-days: 30
