@@ -1018,6 +1018,24 @@ function refreshSuspensionSummary(p){
  p.suspension=Math.max(0,...Object.values(p.discipline||{}).map(x=>x.ban||0));
  p.yellowCards=p.discipline?.league?.yellow||0;
 }
+// Game estimate based on the last five actual player fixtures. A missed match
+// contributes zero minutes so a period of rest reduces the recorded workload.
+function recordRecentMatchMinutes(p,minutes){
+ const previous=Array.isArray(p.recentMatchMinutes)?p.recentMatchMinutes:[];
+ const valid=previous.filter(Number.isFinite).map(n=>C(n,0,90)).slice(-4);
+ p.recentMatchMinutes=[...valid,C(Number.isFinite(minutes)?minutes:0,0,90)];
+}
+function injuryRiskFor(p,minutes=90){
+ const recent=Array.isArray(p.recentMatchMinutes)?p.recentMatchMinutes:[];
+ const load=recent.filter(Number.isFinite).slice(-5).reduce((sum,n)=>sum+C(n,0,90),0)/90;
+ const age=Number.isFinite(p.age)?p.age:25,fitness=Number.isFinite(p.stamina)?p.stamina:70;
+ const fullMatchRisk=.008+Math.max(0,44-fitness)*.0015+Math.max(0,age-29)*.0006+Math.max(0,load-3)*.002;
+ return C(fullMatchRisk,.005,.075)*C(Number.isFinite(minutes)?minutes:0,0,90)/90;
+}
+function injuryDuration(random=Math.random){
+ const kind=C(random(),0,.999999),bounds=kind<.58?[1,2]:kind<.88?[3,7]:kind<.98?[8,15]:[16,30];
+ return bounds[0]+Math.floor(C(random(),0,.999999)*(bounds[1]-bounds[0]+1));
+}
 function offseasonRecovery(p){
  const before={injury:Math.max(0,p.injuryMatches||0),fitness:p.stamina||0};
  // Summer rest heals most fatigue and a portion of injury, but serious injuries persist.
@@ -1025,6 +1043,7 @@ function offseasonRecovery(p){
  p.injuryMatches=Math.max(0,before.injury-healed);
  p.stamina=C(before.fitness+R(20,38),0,95);
  p.trainingUsed=false;
+ p.recentMatchMinutes=[];
  if(p.discipline)for(const record of Object.values(p.discipline)){
   record.yellow=0; // accumulated bookings reset; bans carry through.
  }
@@ -1102,15 +1121,17 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  }if(rating>=8.7&&Math.random()<.15)p.points++;p.form=percent(p.form+(rating-6.6)*2.2);p.coachTrust=percent(p.coachTrust+(rating-6.3)*1.5);p.fame=percent(p.fame+(rating>8?2:0))}
  if(injuredBefore){p.injuryMatches--;if(p.injuryMatches===0)log(p.name+"伤愈归队。")}
  if(suspendedBefore){disciplinary.ban--;if(disciplinary.ban===0)log(p.name+"在本项赛事停赛期满。")}
+ let newInjury=0;
+ recordRecentMatchMinutes(p,minutesPlayed);
  if(played){
   const loss=Math.round((R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30))*minutesPlayed/90);
   p.stamina=percent(p.stamina-loss+(ev.kind==="league"?5:3));
-  const injuryRisk=.008+Math.max(0,44-p.stamina)*.0020+(p.age>=30?.006:0);
-  if(Math.random()<injuryRisk){p.injuryMatches=R(1,p.age>=30?7:5);p.injuryHistory=(p.injuryHistory||0)+1;log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
+  const injuryRisk=injuryRiskFor(p,minutesPlayed);
+  if(Math.random()<injuryRisk){newInjury=injuryDuration();p.injuryMatches=newInjury;p.injuryHistory=(p.injuryHistory||0)+1;log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
  }else{p.stamina=percent(p.stamina+R(4,9))}
  refreshSuspensionSummary(p);p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
  eventResult={...ev,home,away,hs,as,played,goals,assists,rating,real:false,
-  injury:p.injuryMatches||0,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,redMinute:matchCards.redMinute||null,redMinuteSource:matchCards.redCard?"simulation":null,minutesPlayed,cupWin,
+  injury:p.injuryMatches||0,newInjury,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,redMinute:matchCards.redMinute||null,redMinuteSource:matchCards.redCard?"simulation":null,minutesPlayed,cupWin,
   missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  s.index++;s.completed++;g.live=null;
  if(!batch){if(s.index>=s.events.length)endSeason();else{save();page="report";render()}}

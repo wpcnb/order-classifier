@@ -34,6 +34,8 @@ jobs:
         run: node football-legacy/tests/role-promotion.cjs
       - name: Yellow and red card regression tests
         run: node football-legacy/tests/discipline.cjs
+      - name: Injury workload and recovery regression tests
+        run: node football-legacy/tests/injury-context.cjs
 
       - name: Shared fixture scoring and dismissal regression tests
         run: node football-legacy/tests/shared-contributions.cjs
