@@ -37,7 +37,7 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
  if(Object.hasOwn(PLAYER_STYLES,d.styles?.[id]))openingStyles[id]=d.styles[id];
  }}catch(e){}
 }
-function persistOpening(){try{localStorage.setItem(OPENING_STORE,JSON.stringify({leagues:openingLeagues,decks:openingDecks,drawn:drawnClubs,indices:openingSelectedIndex,names:duoDraft,styles:openingStyles}))}catch(e){}}
+function persistOpening(){try{localStorage.setItem(OPENING_STORE,JSON.stringify({leagues:openingLeagues,decks:openingDecks,drawn:drawnClubs,indices:openingSelectedIndex,names:duoDraft,styles:openingStyles}));return true}catch(e){return false}}
 function duoPlayerTemplate(id){
  const base=DUO_TEMPLATES[id],style=PLAYER_STYLES[openingStyles[id]]||PLAYER_STYLES.default;
  return {...base,stats:Object.fromEntries(Object.entries(base.stats).map(([key,value])=>[key,C(value+(style.adjust[key]||0),1,99)]))};
@@ -62,6 +62,8 @@ function flipOpeningCard(id,index){
  const options=openingCards(id);
  if(!Number.isInteger(index)||index<0||index>=options.length)return;
  const club=options[index],other=DUO_IDS.find(x=>x!==id);
+ const previousDraw=drawnClubs[id],previousIndex=openingSelectedIndex[id];
+ const previousOtherDeck=openingDecks[other]?openingDecks[other].slice():openingDecks[other];
  drawnClubs[id]=club;openingSelectedIndex[id]=index;
  // The second player's deck is refreshed without the first player's club.
  if(!drawnClubs[other]&&openingLeagues[other]===openingLeagues[id]&&openingDecks[other]?.includes(club)){
@@ -70,7 +72,10 @@ function flipOpeningCard(id,index){
   if(replacements.length)otherCards[at]=replacements[R(0,replacements.length-1)];
   else openingDecks[other]=shuffleDraw(openingPool(other)).slice(0,10);
  }
- persistOpening();
+ if(!persistOpening()){
+  drawnClubs[id]=previousDraw;openingSelectedIndex[id]=previousIndex;openingDecks[other]=previousOtherDeck;
+  notify("无法保存抽卡结果，请先清理浏览器存储空间再选择。");return;
+ }
  const el=document.querySelector('[data-action="flipOpeningCard"][data-id="'+id+'"][data-i="'+index+'"]');
  if(el)el.classList.add("revealed");
  notify((duoDraft[id]||DUO_TEMPLATES[id].name)+" 抽中 "+club);
@@ -264,15 +269,17 @@ let storageWarningShown=false;
 function save(){
  if(ageMigrationBlocked){
   if(!storageWarningShown){storageWarningShown=true;notify("无法备份自动退役前的旧存档，已保留原档；请先导出并清理存储空间")}
-  return;
+  return false;
  }
  try{
   const payload=duoPayload();
-  if(!payload)return;
+  if(!payload)return false;
   localStorage.setItem(STORE,JSON.stringify(payload));
   storageWarningShown=false;
+  return true;
  }catch(e){
   if(!storageWarningShown){storageWarningShown=true;notify("本机浏览器存储容量不足，请先导出存档，不要清除当前数据")}
+  return false;
  }
 }
 function notify(s){const t=$("toast");t.textContent=s;t.classList.remove("hidden");clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.add("hidden"),3400)}
@@ -517,7 +524,9 @@ function buildDuoGame(){
  if(incompatibleLegacySave){notify("检测到旧版不兼容联赛存档，请先保留原始备份再重新开局");return}
  if(!DUO_IDS.every(id=>DB[openingLeagues[id]]?.teams.some(t=>t.name===drawnClubs[id]))){notify("请先为两名球员分别抽取青训球队");return}
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
- duoGames={wang,vini};localStorage.removeItem?.(OPENING_STORE);sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";save();render();
+ duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";
+ if(!save()){duoGames=null;g=null;sharedUniverse=null;render();notify("无法保存新生涯，已保留开局抽卡；请先清理浏览器存储空间。");return}
+ try{localStorage.removeItem?.(OPENING_STORE)}catch(e){}render();
 }
 function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
@@ -1483,15 +1492,19 @@ function decidePromotion(id,accept){
  if(!duoGames||!DUO_IDS.includes(id))return;
  const x=duoGames[id],d=ensurePromotionDraw(x);
  if(!d||d.accepted||d.declined||accept&&!d.selected)return;
+ const beforeAccepted=d.accepted,beforeDeclined=d.declined;
  if(accept)d.accepted=true;
  else d.declined=true;
- save();render();
+ if(!save()){d.accepted=beforeAccepted;d.declined=beforeDeclined;notify("无法保存转会决定，请先导出存档并清理浏览器空间。");return}
+ render();
 }
 function flipPromotionCard(id,index){
  if(!duoGames||!DUO_IDS.includes(id))return;
  const x=duoGames[id],d=ensurePromotionDraw(x);
  if(!d||d.selected||!Number.isInteger(index)||index<0||index>=d.options.length)return;
- const o=d.options[index];d.selected={...o};d.selectedIndex=index;save();
+ const o=d.options[index],previousSelected=d.selected,previousIndex=d.selectedIndex;
+ d.selected={...o};d.selectedIndex=index;
+ if(!save()){d.selected=previousSelected;d.selectedIndex=previousIndex;notify("无法保存抽卡结果，请先导出存档并清理浏览器空间。");return}
  const el=document.querySelector('[data-action="flipPromotionCard"][data-id="'+id+'"][data-i="'+index+'"]');
  if(el){el.classList.add("revealed");el.setAttribute("aria-label","已抽中"+o.club)}
  notify(x.player.name+" 抽中 "+o.club+(o.tier===d.level+1?" · 幸运跳级！":""));
@@ -1611,19 +1624,25 @@ function requestLateralOffers(id){
  const p=x.player,current=transferLevel(p.leagueId,p.club),ov=overall(p),a=p.transferAssessment||{};
  const pool=Object.entries(DB).filter(([league])=>league!=="BRA").flatMap(([league,l])=>l.teams.map(t=>({id:league,club:t.name,power:power(t.name),tier:transferLevel(league,t.name)}))).filter(o=>o.club!==p.club&&o.tier===current&&(!a.poor||o.power<power(p.club)));
  if(!pool.length){notify("目前没有符合条件的同档球队");return}
+ const previousOffers=x.offers,previousYear=x.lateralOffersYear;
  x.offers=shuffleDraw(pool).slice(0,6).map(o=>({...o,move:"同级转会",wage:Math.round((o.power*480+ov*270+(p.fame||0)*140)*(.85+Math.random()*.5)/1000)*1000,years:R(2,5)}));
  x.lateralOffersYear=x.year;
- save();render();
+ if(!save()){x.offers=previousOffers;x.lateralOffersYear=previousYear;notify("无法保存同档报价，请先导出存档并清理浏览器空间。");return}
+ render();
 }
 function acceptLateralOffer(id,index){
  if(!duoGames||!DUO_IDS.includes(id))return;
  const x=duoGames[id],reason=lateralTransferReason(x),o=x.offers?.[index];
  if(reason){notify(reason);return}
  if(!Number.isInteger(index)||!o||o.club===x.player.club||transferLevel(o.id,o.club)!==transferLevel(x.player.leagueId,x.player.club)||!DB[o.id]?.teams.some(t=>t.name===o.club)){notify("该同档报价已不可用");return}
+ const previousPlayer=JSON.parse(JSON.stringify(x.player)),previousOffers=x.offers,previousLogs=(x.logs||[]).slice();
  const previous=g,previousId=activeDuo;activeDuo=id;g=x;
  let moved=false;
  try{moved=applyPlayerTransfer(o,false,true);if(moved){x.player.sameTierMoveYear=x.year;delete x.player.transferDraw}}finally{g=previous;activeDuo=previousId}
- if(moved){save();render();notify(x.player.name+"已同档转会至"+o.club)}
+ if(moved){
+  if(!save()){x.player=previousPlayer;x.offers=previousOffers;x.logs=previousLogs;render();notify("无法保存同档转会，已保留原俱乐部和报价；请先导出存档并清理浏览器空间。");return}
+  render();notify(x.player.name+"已同档转会至"+o.club)
+ }
 }
 function lateralOfferPanel(id){
  const x=duoGames[id],reason=lateralTransferReason(x);

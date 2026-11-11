@@ -32,6 +32,8 @@ jobs:
         run: node football-legacy/tests/player-profiles.cjs
       - name: Same-tier transfers and training focus
         run: node football-legacy/tests/lateral-training.cjs
+      - name: Card and transfer storage failure handling
+        run: node football-legacy/tests/card-persistence.cjs
       - name: Match-strategy regression tests
         run: node football-legacy/tests/match-strategy.cjs
       - name: Role-aware promotion regression tests
