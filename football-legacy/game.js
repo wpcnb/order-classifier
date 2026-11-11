@@ -1333,7 +1333,8 @@ function flipPromotionCard(id,index){
 function promotionDrawCard(id){
  const x=duoGames[id],d=ensurePromotionDraw(x);if(!d)return "";
  const high=d.direction!=="down"&&d.level+1<TRANSFER_LEVELS.length?TRANSFER_LEVELS[d.level+1]:null;
- const desc=high?"9张"+TRANSFER_LEVELS[d.level]+" + 1张"+high+"幸运跳级":"10张"+TRANSFER_LEVELS[d.level];
+ const targetName=d.level===0?"中国职业联赛（中超／中甲／中乙）":TRANSFER_LEVELS[d.level];
+ const desc=high?"9张"+targetName+" + 1张"+high+"幸运跳级":"10张"+targetName;
  return '<section class="item promotion-draw"><div class="row"><h3>'+E(x.player.name)+' · 十张球队盲抽卡</h3><span class="chip">'+E(TRANSFER_LEVELS[d.level])+'</span></div>'+
  '<p class="muted small">'+E(desc)+'。十张卡位置随机，你亲自翻开一张；结果即时保存且不可重新抽。'+(high?"跳级机会10%。":"")+'</p>'+
  '<div class="draw-card-grid">'+d.options.map((o,i)=>{
@@ -1807,9 +1808,9 @@ function duoTransferPage(){
  (missing.length?'<p class="gold"><b>等待 '+missing.map(id=>E(duoGames[id].player.name)).join("、")+' 完成升降档抽签</b></p>':'')+
  '<div class="flex"><button class="button primary" data-action="simBoth">'+(DUO_IDS.every(id=>duoGames[id].season.stage==="review")?"确认抽签并开始下一赛季":"同步模拟本赛季")+'</button><button class="button" data-page="honors">查看双人冠军与金球奖</button></div></div>'+
  '<div class="grid2 gap">'+DUO_IDS.map(id=>{
-  const x=duoGames[id],p=x.player,r=x.lastReview?.performance||p.transferAssessment,level=transferLevel(p.leagueId,p.club);
+  const x=duoGames[id],p=x.player,r=x.lastReview?.performance||p.transferAssessment,level=transferLevel(p.leagueId,p.club),levelLabel=level===0?"中国职业联赛起点档":TRANSFER_LEVELS[level];
   const n=clubSeasonNumbers(x.season);
-  return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(DB[p.leagueId].name)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
+  return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(DB[p.leagueId].name)+' · '+E(levelLabel)+'</p>'+
    promotionDrawCard(id)+
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
