@@ -63,8 +63,30 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 
 /* Season promotion wheel stays legible with 2-6 team names. */
 .promotion-draw{margin-top:14px;border-color:#92784f;background:linear-gradient(145deg,#172c43,#243724)}.promotion-wheel{max-width:290px}.promotion-draw .wheel-label{width:90px;margin-left:-45px;text-shadow:0 1px #fff8}.promotion-draw .wheel-box{margin:10px auto}.promotion-draw .chip{background:#503e22;color:#ffe1a7;border-color:#886e3c}
+
+/* Ten-card blind draw: compact on mobile, accessible focus, genuine card flip. */
+.draw-card-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0 8px}
+.draw-card{padding:0;min-height:145px;aspect-ratio:3/4;position:relative;border:0;border-radius:13px;background:transparent;color:var(--txt);perspective:900px;cursor:pointer;min-width:0}
+.draw-card:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.draw-card:disabled{opacity:1;cursor:default}
+.draw-card-inner{position:relative;display:block;width:100%;height:100%;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.2,.7,.2,1);border-radius:13px;box-shadow:0 7px 15px #0005}
+.draw-card.revealed .draw-card-inner{transform:rotateY(180deg)}
+.draw-card-back,.draw-card-front{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:13px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:7px;text-align:center;overflow:hidden}
+.draw-card-back{border:2px solid #d9ba73;background:linear-gradient(145deg,#154d44,#12283f 70%,#1d4250);color:#ffe9a2;gap:7px}
+.draw-card-back:before{content:"";position:absolute;inset:5px;border:1px solid #a5caae70;border-radius:8px;pointer-events:none}
+.draw-card-back b{font-size:clamp(22px,3vw,34px);line-height:1}
+.draw-card-back small{font-size:9px;letter-spacing:.6px;line-height:1.4}
+.draw-card-back em{font-size:13px;font-style:normal;font-weight:850}
+.draw-card-front{transform:rotateY(180deg);border:2px solid #ffda80;background:linear-gradient(150deg,#19483e,#183750 70%);gap:6px}
+.draw-card-front .clubcrest{width:42px;height:48px;flex-basis:48px;font-size:11px}
+.draw-card-front strong{font-size:clamp(10px,1.2vw,13px);line-height:1.2;overflow-wrap:anywhere}
+.draw-card-front small{font-size:10px;color:#d1e3f2}
+.draw-card-front em{font-size:10px;color:var(--gold);font-style:normal;font-weight:800}
+.draw-card:not(:disabled):hover .draw-card-back{filter:brightness(1.15)}
+@media(max-width:740px){.draw-card-grid{gap:6px}.draw-card{min-height:105px}.draw-card-back small{font-size:7px}.draw-card-back b{font-size:19px}.draw-card-back em{font-size:10px}.draw-card-back,.draw-card-front{padding:3px}.draw-card-front .clubcrest{width:26px;height:31px;flex-basis:31px;font-size:8px}.draw-card-front strong{font-size:9px}.draw-card-front small,.draw-card-front em{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.draw-card-inner{transition:none}}
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。球场插画为原创本地 SVG，不依赖外部图片网络。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=discipline-yellow-red-20261111" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。球场插画为原创本地 SVG，不依赖外部图片网络。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=ten-card-club-lottery-20261111" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.
