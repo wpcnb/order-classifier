@@ -43,6 +43,8 @@ jobs:
 
       - name: Shared fixture scoring and dismissal regression tests
         run: node football-legacy/tests/shared-contributions.cjs
+      - name: Red-card score consistency
+        run: node football-legacy/tests/red-score.cjs
 
       - name: Dual-player interaction display regression tests
         run: node football-legacy/tests/duo-interactions.cjs
