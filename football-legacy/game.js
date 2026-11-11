@@ -2107,13 +2107,14 @@ function duoSharedStory(a,b){
  const other=b.season?.results||[],matches=a.season?.results||[];
  for(let i=matches.length-1;i>=0;i--){
   const m=matches[i];
-  if(!m.played||!["league","cup","europe","europeKO"].includes(m.kind)||!m.date||!m.home||!m.away||!Number.isFinite(m.hs)||!Number.isFinite(m.as))continue;
+  if(!m.played||!["league","cup","europe","europeKO","national"].includes(m.kind)||!m.date||!m.home||!m.away||!Number.isFinite(m.hs)||!Number.isFinite(m.as))continue;
   const n=other.findLast(t=>t.played&&t.kind===m.kind&&t.date===m.date&&t.competition===m.competition&&t.stage===m.stage&&t.home===m.home&&t.away===m.away&&t.hs===m.hs&&t.as===m.as);
-  if(!n||![m.home,m.away].includes(clubA)||![m.home,m.away].includes(clubB))continue;
-  const same=clubA===clubB;
+  const sideA=m.kind==="national"?a.player.country:clubA,sideB=m.kind==="national"?b.player.country:clubB;
+  if(!n||![m.home,m.away].includes(sideA)||![m.home,m.away].includes(sideB))continue;
+  const same=sideA===sideB;
   const val=x=>Number.isFinite(x)?String(x):"—";
   const player=(x,r)=>E(x.player.name)+" "+val(r.goals)+"球 "+val(r.assists)+"助";
-  return '<section class="card gap"><h2>'+(same?'双人同队':'双人交锋')+'</h2><p class="muted small">本赛季共同出场 · '+E(m.date)+' · '+E(m.competition||"比赛")+'</p><p><b>'+E(m.home)+' '+m.hs+' : '+m.as+' '+E(m.away)+'</b></p><p>'+player(a,m)+'　｜　'+player(b,n)+'</p></section>';
+  return '<section class="card gap"><h2>'+(m.kind==="national"?(same?'国家队携手':'国家队交锋'):(same?'双人同队':'双人交锋'))+'</h2><p class="muted small">本赛季共同出场 · '+E(m.date)+' · '+E(m.competition||"比赛")+'</p><p><b>'+E(m.home)+' '+m.hs+' : '+m.as+' '+E(m.away)+'</b></p><p>'+player(a,m)+'　｜　'+player(b,n)+'</p></section>';
  }
  return "";
 }
