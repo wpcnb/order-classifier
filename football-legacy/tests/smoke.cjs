@@ -128,6 +128,7 @@ fixturePlayer.offers=[{club:"乌德勒支",id:"NED",tier:1,wage:42000,years:3,mo
  {club:"阿尔梅勒城",id:"NED",tier:1,wage:37000,years:3,move:"升级"}];
 forcedFixture.duoGames.vini.offers=[];forcedFixture.duoGames.vini.player.forcedMove=false;
 forcedFixture.duoGames.vini.player.forcedSameTier=false;
+forcedFixture.duoGames.vini.player.transferAssessment={...forcedFixture.duoGames.vini.player.transferAssessment,maxTier:0,qualified:false};
 delete forcedFixture.duoGames.vini.player.transferDraw;
 const forced=harness([[SAVE,JSON.stringify(forcedFixture)]]);
 forced.page("transfer");
