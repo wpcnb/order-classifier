@@ -881,6 +881,16 @@ function offseasonRecovery(p){
  refreshSuspensionSummary(p);
  return {injuryBefore:before.injury,injuryAfter:p.injuryMatches,fitnessBefore:before.fitness,fitnessAfter:p.stamina};
 }
+// Share national-team knockout shootout outcomes across both player careers.
+// The decision is stored in national match data, already persisted in compact saves.
+function sharedNationalKnockoutWin(ev,home,away,our,their,random=Math.random){
+ if(our!==their)return our>their;
+ const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away;
+ const entry=sharedUniverse?.national?.[key];
+ if(!entry)return random()<.5;
+ if(typeof entry.penaltyWin!=="boolean")entry.penaltyWin=random()<.5;
+ return entry.penaltyWin;
+}
 function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return coachMatch(ev,choice,batch);const p=g.player,s=g.season;let isOut=(ev.kind==="cup"&&!s.cup.active)||((ev.kind==="europe"||ev.kind==="europeKO")&&(!s.uefa||s.uefa.completed))||(ev.kind==="national"&&(p.age<18||s.national&&!s.national.active));let eventResult=null;
  if(isOut){p.trainingUsed=false;s.index++;s.completed++;g.live=null;if(!batch){save();render()}return}
  const sharedMatch=findSharedUefa(ev);
@@ -913,7 +923,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  if(ev.kind==="national"){s.nationalApps++;if(played)p.career.national++;const n=s.national;
  if(n){n.results.push({stage:ev.stage,home,away,hs,as});if(n.knockout){
   if(ev.nationalIndex<=2){n.groupPlayed++;n.groupPoints+=our>their?3:our===their?1:0;if(n.groupPlayed===3){if(n.groupPoints>=4){n.stage="knockout";log(p.country+" "+n.name+"小组赛出线！")}else{n.active=false;n.stage="eliminated";log(p.country+" "+n.name+"小组赛出局。")}}}
-  else{const pen=our===their,win=our>their||(pen&&Math.random()<.5);if(pen)log(p.country+n.name+ev.stage+(win?"通过点球大战晋级。":"点球大战遗憾出局。"));if(!win){n.active=false;n.stage="eliminated";log(p.country+" "+n.name+ev.stage+"出局。")}else if(ev.stage==="决赛"){n.active=false;n.stage="champion";award(ev.competition+"冠军","national")}}}
+  else{const pen=our===their,win=sharedNationalKnockoutWin(ev,home,away,our,their);if(pen)log(p.country+n.name+ev.stage+(win?"通过点球大战晋级。":"点球大战遗憾出局。"));if(!win){n.active=false;n.stage="eliminated";log(p.country+" "+n.name+ev.stage+"出局。")}else if(ev.stage==="决赛"){n.active=false;n.stage="champion";award(ev.competition+"冠军","national")}}}
  }}
  if(ev.kind==="europeKO"){if(sharedMatch)processSharedUefaKO(ev);
  else simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals,"europe");
@@ -1026,7 +1036,9 @@ function finalizeSharedSeason(){
  settleSharedUefaWinners(year);
  if(reconcileEuropeanHonors())save();
  const original=activeDuo,originalGame=g;
- const roster=duoGames.wang.npcs.filter(n=>n.realPerson&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
+ // Later generations remain eligible for annual awards after original real-person seeds retire.
+ // Keep 100 jurors × 67 points = 6700 even in 2048+ seasons.
+ const roster=duoGames.wang.npcs.filter(n=>Number.isFinite(n.ov)&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
  return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating||6.3},year,awardTeamHonours(n.club,year))}});
  for(const id of DUO_IDS){const x=duoGames[id],p=x.player,s=x.season,r=s.ratings,avg=r.length?r.reduce((a,b)=>a+b,0)/r.length:6.2,honors=x.honors.filter(h=>h.year===year).length;
