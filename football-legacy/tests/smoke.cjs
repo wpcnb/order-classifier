@@ -367,10 +367,18 @@ for(const [id,club] of [["wang","巴黎圣日耳曼"],["vini","巴塞罗那"]]){
 const corrected=harness([[SAVE,JSON.stringify(oldTwoWinner)]]);
 assert.equal(corrected.state.sharedUniverse.europeFinals["2048:欧冠"].winner,"曼城",
  "Historic double claims must not overwrite a real recorded UEFA winner");
-assert.equal(["wang","vini"].reduce((n,id)=>n+corrected.state.duoGames[id].honors.filter(h=>h.name==="欧冠冠军"&&h.year===2048).length,0),0,
- "Both contradictory titles must be removed when true champion is third club");
+const disputedClaims=["wang","vini"].flatMap(id=>corrected.state.duoGames[id].honors.filter(h=>h.name==="欧冠冠军"&&h.year===2048));
+assert.equal(disputedClaims.length,2,"Preserve both original historic claims");
+assert(disputedClaims.every(h=>h.legacyDisputed),"Mark both claims disputed when unified winner is third club");
 assert.equal(corrected.state.sharedUniverse.europeTitleCorrections.length,1);
-log("Historic double champions corrected without replacing a shared final winner");
+const unknownWinner=JSON.parse(JSON.stringify(oldTwoWinner));
+delete unknownWinner.sharedUniverse.europeFinals["2048:欧冠"];
+unknownWinner.sharedUniverse.europeTitleCorrections=[];
+const unresolved=harness([[SAVE,JSON.stringify(unknownWinner)]]);
+assert(!unresolved.state.sharedUniverse.europeFinals["2048:欧冠"],"Never invent a unified champion without verified result");
+assert.equal(unresolved.state.sharedUniverse.europeTitleCorrections[0].winner,null);
+assert(["wang","vini"].every(id=>unresolved.state.duoGames[id].honors.some(h=>h.year===2048&&h.legacyDisputed)));
+log("Conflicting old UEFA trophies remain intact and disputed; a missing winner is never invented");
 const separateCups=harness([[SAVE,x.stored.get(SAVE)]]);
 for(const [id,club,leagueId,rank] of [["wang","巴黎圣日耳曼","FRA",1],["vini","巴塞罗那","ESP",6]]){
  const xx=separateCups.api.duo()[id];xx.year=2048;
