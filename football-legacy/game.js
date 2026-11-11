@@ -928,6 +928,15 @@ function calcRating(outcome,goals,assists,win,context={}){
  const rating=6.47+(outcome?.15:0)+resultBonus+involvement+strengthBonus+competitionBonus+C(context.seasonForm||0,-1,1)*.58+(Math.random()-.5)*1.10;
  return Math.round(C(rating,4.6,9.8)*10)/10;
 }
+// Only use the actual team score already simulated for this match. This is a
+// small role-sensitive rating adjustment, not a claim that tackles or saves
+// were simulated. Attacking positions preserve their existing rating exactly.
+function roleAdjustedRating(rating,position,goalsAgainst){
+ if(!["CDM","CB","LB","RB","GK"].includes(position)||!Number.isFinite(goalsAgainst))return rating;
+ const factor=position==="CDM"?.5:1;
+ const impact=goalsAgainst===0?.25:-Math.min(.35,Math.max(0,goalsAgainst-1)*.12);
+ return Math.round(C(rating+impact*factor,4.6,9.8)*10)/10;
+}
 // Allocate actual team goals to the player and teammates; no invented personal goals.
 // A scorer's probability is a share of the team's actual goals, not extra goals.
 function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced",minutes=90){
@@ -1064,7 +1073,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  if(priorCup){hs=priorCup.hs;as=priorCup.as;our=ownHome?hs:as;their=ownHome?as:hs}
  const contribution=played?capSharedContributions(p,ev,home,away,our,playerMatchContribution(p,ev,oppStrength,our,choice,minutesPlayed)):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
- let rating=played?calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}):0;
+ let rating=played?roleAdjustedRating(calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}),p.position,their):0;
  if(matchCards.redCard)rating=Math.max(4.6,Math.round((rating-.4)*10)/10);
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
  if(ev.kind==="europe"){const e=s.uefa;
@@ -1268,15 +1277,25 @@ function transferLevel(id,club){
  // South American clubs are never mislabeled as "European non-top-five".
  return 0;
 }
-function clubSeasonNumbers(s){
+function clubSeasonNumbers(s,club=null){
  const played=(s.results||[]).filter(x=>x.played&&x.kind!=="national");
- const n={apps:played.length,goals:0,assists:0,avg:0},ratings=[];
- for(const match of played){n.goals+=match.goals||0;n.assists+=match.assists||0;if(match.rating>0)ratings.push(match.rating)}
+ const n={apps:played.length,goals:0,assists:0,avg:0,cleanSheets:0,matchesWithScore:0},ratings=[];
+ for(const match of played){
+  n.goals+=match.goals||0;n.assists+=match.assists||0;if(match.rating>0)ratings.push(match.rating);
+  const against=club&&match.home===club?match.as:club&&match.away===club?match.hs:null;
+  if(Number.isFinite(against)&&against>=0){n.matchesWithScore++;if(against===0)n.cleanSheets++}
+ }
  n.avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:0;return n;
 }
 function transferQualified(t,n,ov,position="LW"){
- // xT-inspired role adjustment: creators may progress through assists, not only
- // finishing. Goalkeepers/defenders require separate metrics and are exempt.
+ // Midfielders and defenders can qualify through strong ratings and their
+ // club's real simulated clean sheets, with no fabricated tackles or saves.
+ const nonOffense=["CM","CDM","CB","LB","RB","GK"].includes(position);
+ if(nonOffense){
+  const known=n.matchesWithScore||0,clean=n.cleanSheets||0;
+  const fraction=position==="CM"?.20:.28;
+  return n.apps>=t.apps&&n.avg>=t.avg+.22&&ov>=t.ov&&known>=Math.ceil(n.apps*.7)&&clean>=Math.max(4,Math.ceil(known*fraction));
+ }
  const creator=["CAM","CM","CDM"].includes(position);
  const goalsTarget=creator?Math.max(2,t.g-3):t.g;
  const assistsTarget=creator?t.a: t.a;
@@ -1287,7 +1306,7 @@ function transferQualified(t,n,ov,position="LW"){
  );
 }
 function seasonPerformance(){
- const p=g.player,n=clubSeasonNumbers(g.season),tier=transferLevel(p.leagueId,p.club),ov=overall(p);
+ const p=g.player,n=clubSeasonNumbers(g.season,p.club),tier=transferLevel(p.leagueId,p.club),ov=overall(p);
  const offense=["ST","LW","RW","CAM"].includes(p.position),exempt=p.youth||!offense||n.apps<15;
  const expectedOutput=n.goals+n.assists;
  const roleFactor=p.position==="ST"?1.12:p.position==="CAM"?.88:1;
@@ -1310,18 +1329,20 @@ function seasonPerformance(){
  const performanceStandard=[16,18,20,23,25][tier]??25;
  const roleAdjustedOutput=expectedOutput/(p.position==="CAM"?.90:p.position==="ST"?1.12:1);
  const scoutingChance=[.69,.62,.58,.50,.44][tier]??0;
- const qualified=!!gate&&transferQualified(gate,n,ov,p.position)&&n.avg>=ratingStandard&&roleAdjustedOutput>=performanceStandard&&(p.scoutingRoll??(p.scoutingRoll=Math.random()))<scoutingChance;
- const maxTier=!p.youth&&!poor&&!exempt&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
- const comment=p.youth?"中超青训阶段：16—17岁参加青年联赛，18岁自动进入本俱乐部一线队；青年数据不计入成年赛季。":p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":exempt?"出场不足或非进攻位置，不按进球助攻处罚":
+ const qualified=!!gate&&transferQualified(gate,n,ov,p.position)&&n.avg>=ratingStandard&&(!offense||roleAdjustedOutput>=performanceStandard)&&(p.scoutingRoll??(p.scoutingRoll=Math.random()))<scoutingChance;
+ const eligible=!p.youth&&n.apps>=15;
+ const maxTier=eligible&&!poor&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
+ const comment=p.youth?"青训阶段：16—17岁参加青年联赛，18岁自动进入本俱乐部一线队；青年数据不计入成年赛季。":p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":n.apps<15?"出场不足，不按进球助攻处罚":!offense?(maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"根据评分、出场和球队零封考核，不按进球助攻处罚"):
   p.forcedMove?"连续两个赛季未达标，必须降至较低一级球队":
   tier===0&&poor&&p.poorStreak>=2?"中超已是起步最低档，留队或同级转会，不会假装降档":
   poor?"本赛季低于留队标准，累计不达标"+p.poorStreak+"季":
   tier===TRANSFER_LEVELS.length-1?"已达到最高的世界传奇豪门档次":
   maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"尚未达到下一档转会门槛";
- const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:gate?.g??null,assistsTarget:gate?.a??null,
+ const roleCleanTarget=gate&&!offense?Math.max(4,Math.ceil(n.matchesWithScore*(p.position==="CM"?.20:.28))):null;
+ const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:offense?gate?.g??null:null,assistsTarget:offense?gate?.a??null:null,roleCleanTarget,
   tier,maxTier,poor,exempt,offense,expectedByTier:Number(expectedByTier.toFixed(1)),performanceRatio:Number(performanceRatio.toFixed(2)),scoutingChance,poorStreak:p.poorStreak,forcedMove:p.forcedMove,forcedSameTier:p.forcedSameTier,trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment};
  p.transferAssessment={...assessment,year:g.year};
- if(!exempt&&!poor&&maxTier>tier)p.points=Math.min(15,(p.points||0)+2);
+ if(eligible&&!poor&&maxTier>tier)p.points=Math.min(15,(p.points||0)+2);
  return assessment;
 }
 function generateOffers(){

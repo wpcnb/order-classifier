@@ -30,6 +30,8 @@ jobs:
         run: node football-legacy/tests/player-aging.cjs
       - name: Match-strategy regression tests
         run: node football-legacy/tests/match-strategy.cjs
+      - name: Role-aware promotion regression tests
+        run: node football-legacy/tests/role-promotion.cjs
       - name: Yellow and red card regression tests
         run: node football-legacy/tests/discipline.cjs
 
