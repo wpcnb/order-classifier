@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Five quick-play upgrades - ten focused checks
+        run: node football-legacy/tests/quick-five.cjs
       - name: Dual-career regression tests
         run: node football-legacy/tests/smoke.cjs
       - name: Player aging and retirement regressions
