@@ -30,7 +30,7 @@ for(let y=2026;y<=2028;y++){
  click("simBoth");
  assert.equal(a.duo().wang.year,y);
  assert.equal(a.duo().vini.year,y);
- if(y<2028)click("simBoth");
+ // Next iteration advances the shared calendar by one year.
 }
 assert.equal(a.chineseMembers("CHN1",2028).length,18,"2028 League One expansion");
 assert.equal(a.chineseMembers("CHN2",2028).length,24,"League Two remains 24 clubs");
