@@ -263,7 +263,7 @@ function hydratePayload(data){
  if(reconcileEuropeanHonors())save();
  if(DUO_IDS.every(id=>duoGames[id].season.stage==="playing"&&duoGames[id].season.index===0))
   setupSharedUefaSeason();
- if(overdue.length)save();
+ if(overdue.length){finalizeRetiredSeasonIfReady();save()}
 }
 let storageWarningShown=false;
 function save(){
@@ -590,13 +590,14 @@ function sharedLeagueRound(ev,redScore=null){
  s.leagueTable=data.table;
  return data.rounds[ev.round].find(f=>f.home===ev.home&&f.away===ev.away)||null;
 }
-function recordPlayerRetirement(id,automatic=false){
+function recordPlayerRetirement(id,automatic=false,completedSeasonYear=null){
  if(!duoGames||!DUO_IDS.includes(id))return;
  const x=duoGames[id],p=x.player;
  if(p.retired)return;
  const partial=x.season.stage==="playing"?{year:x.year,apps:x.season.apps||0,goals:x.season.goals||0,assists:x.season.assists||0,results:(x.season.results||[]).map(m=>({...m}))}:null;
  p.retired=true;p.retiredAt={year:x.year,age:p.age,club:p.club,league:DB[p.leagueId]?.name,automatic};
- x.retirementSummary={at:{...p.retiredAt},career:{...p.career},academy:{...(p.academyCareer||{})},
+ const completed=x.season.stage==="review"?(completedSeasonYear??x.year):null;
+ x.retirementSummary={at:{...p.retiredAt},completedSeasonYear:completed,career:{...p.career},academy:{...(p.academyCareer||{})},
   honors:x.honors.map(h=>({...h})),history:x.history.map(h=>({...h})),transfers:(p.transferHistory||[]).map(t=>({...t})),partialSeason:partial};
  delete p.transferDraw;p.forcedMove=false;p.forcedSameTier=false;x.offers=[];
  x.season.stage="retired";
@@ -605,7 +606,7 @@ function retirePlayer(id){
  if(!duoGames||!DUO_IDS.includes(id)||duoGames[id].player.retired)return;
  const p=duoGames[id].player;
  if(!confirm("确定让 "+p.name+" 在"+p.age+"岁退役？退役后不可重新参赛，另一人的生涯会继续。"))return;
- recordPlayerRetirement(id);save();page="career";render();notify(p.name+"已退役，另一名球员可以继续比赛");
+ recordPlayerRetirement(id);const settled=finalizeRetiredSeasonIfReady();save();page="career";render();if(settled)notify(p.name+"已退役，另一名球员可以继续比赛");
 }
 function nextSharedDate(){
  const dates=DUO_IDS.map(id=>{const x=duoGames[id];return x.season.stage==="playing"?x.season.events[x.season.index]?.date:null}).filter(Boolean);
@@ -1287,9 +1288,28 @@ function awardCandidateScore(x,year,teamBonus=0,random=()=>R(-8,8)){
  return (x.ov||76)*.58+attack+(rating-6.5)*15+apps*.12+
   C(teamBonus,0,32)+quality*14+random();
 }
+// A retired player remains eligible for the season they actually played.
+// Retired players' old season totals are retained while the other career
+// continues, so require a real played result in the retirement year.
+function awardSeasonParticipant(x,year){
+ const p=x.player;
+ return !p.youth&&(!p.retired||(p.retiredAt?.year===year&&(x.season.results||[]).some(m=>m.played&&m.kind!=="national")));
+}
+function hasCompletedCurrentSeason(x){
+ return x.season.stage==="review"||x.retirementSummary?.completedSeasonYear===x.year||
+  (x.history||[]).some(h=>h.year===x.year&&!h.manager&&(!h.generation||h.generation===x.generation));
+}
+// Manual and legacy-save retirements may be the last state transition needed
+// for a shared year to end. Never advance past a failed award settlement.
+function finalizeRetiredSeasonIfReady(){
+ if(!duoGames||!DUO_IDS.some(id=>duoGames[id].player.retired)||!DUO_IDS.every(id=>duoGames[id].player.retired||duoGames[id].season.stage==="review"))return true;
+ if(!DUO_IDS.some(id=>hasCompletedCurrentSeason(duoGames[id])))return true;
+ const previousActive=activeDuo,previousGame=g;
+ try{finalizeSharedSeason();return true}catch(e){activeDuo=previousActive;g=previousGame;notify("赛季奖项暂时无法结算，请先导出存档并检查赛季数据");return false}
+}
 function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired))return;
- if(DUO_IDS.every(id=>duoGames[id].player.retired))return;
+ if(DUO_IDS.every(id=>duoGames[id].player.retired)&&!DUO_IDS.some(id=>hasCompletedCurrentSeason(duoGames[id])))return;
  const year=duoGames.wang.year;
  if(duoGames.vini.year!==year||sharedUniverse.awards[year])return;
  settleSharedUefaWinners(year);
@@ -1301,7 +1321,7 @@ function finalizeSharedSeason(){
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
  return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating??6.3,teamBonus:awardTeamHonours(n.club,year),score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating??6.3},year,awardTeamHonours(n.club,year))}});
  for(const id of DUO_IDS){const x=duoGames[id],p=x.player,s=x.season,r=s.ratings,avg=r.length?r.reduce((a,b)=>a+b,0)/r.length:6.2,honors=x.honors.filter(h=>h.year===year).length;
- if(p.youth||p.retired)continue;
+ if(!awardSeasonParticipant(x,year))continue;
  nominees.push({id:"DUO_"+id,name:p.name,club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),
  rating:avg,teamBonus:awardTeamHonours(p.club,year),
  score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},year,awardTeamHonours(p.club,year))})}
@@ -1313,12 +1333,12 @@ function finalizeSharedSeason(){
  const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,averageRating:Number((x.rating??6.5).toFixed(2)),teamBonus:x.teamBonus,points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id]})).sort((a,b)=>b.points-a.points||b.firstPlaceVotes-a.firstPlaceVotes||a.name.localeCompare(b.name));
  if(ranked.reduce((a,b)=>a+b.points,0)!==6700)throw Error("双人统一金球奖计票错误");
  const awardData={year,model:7,rankings:ranked,ballots,winner:ranked[0],totalPoints:6700};sharedUniverse.awards[year]=awardData;
- const leagues=new Set(DUO_IDS.filter(id=>!duoGames[id].player.retired).map(id=>duoGames[id].player.leagueId));
+ const leagues=new Set(DUO_IDS.filter(id=>awardSeasonParticipant(duoGames[id],year)).map(id=>duoGames[id].player.leagueId));
  for(const id of leagues){
  const entries=duoGames.wang.npcs.filter(n=>DB[id].teams.some(t=>t.name===n.club)&&n.pos!=="GK").map(n=>({id:n.id,goals:n.goals||0,assists:n.assists||0,apps:n.apps||0}));
- for(const who of DUO_IDS){const x=duoGames[who];if(!x.player.youth&&!x.player.retired&&x.player.leagueId===id&&x.season.leagueApps>=12)entries.push({id:who,goals:x.season.leagueGoals||0,assists:x.season.leagueAssists||0,apps:x.season.leagueApps})}
+ for(const who of DUO_IDS){const x=duoGames[who];if(awardSeasonParticipant(x,year)&&x.player.leagueId===id&&x.season.leagueApps>=12)entries.push({id:who,goals:x.season.leagueGoals||0,assists:x.season.leagueAssists||0,apps:x.season.leagueApps})}
  const goals=entries.slice().sort((a,b)=>b.goals-a.goals||b.assists-a.assists||a.apps-b.apps),assists=entries.slice().sort((a,b)=>b.assists-a.assists||b.goals-a.goals||a.apps-b.apps);
- for(const who of DUO_IDS){const x=duoGames[who];if(x.player.youth||x.player.retired||x.player.leagueId!==id)continue;
+ for(const who of DUO_IDS){const x=duoGames[who];if(!awardSeasonParticipant(x,year)||x.player.leagueId!==id)continue;
  activeDuo=who;g=x;
  if(goals[0]?.id===who&&goals[0].goals>=9)award(DB[id].name+"金靴奖","individual");
  if(assists[0]?.id===who&&assists[0].assists>=7)award(DB[id].name+"助攻王","individual");
@@ -1326,6 +1346,7 @@ function finalizeSharedSeason(){
  for(const id of DUO_IDS){const x=duoGames[id],key="DUO_"+id,place=ranked.findIndex(r=>r.id===key),personal={...awardData,rank:place>=0?place+1:null,playerNominated:place>=0,playerPoints:place>=0?points[key]:0};
  x.ballonHistory.push(personal);x.awardViewIndex=x.ballonHistory.length-1;
  if(place===0){activeDuo=id;g=x;award("金球奖（法国足球规则）","individual")}
+ if(x.player.retired&&x.retirementSummary?.at?.year===year)x.retirementSummary.honors=x.honors.map(h=>({...h}));
  }
  activeDuo=original;g=originalGame;
 }
@@ -1657,14 +1678,14 @@ function trainingFocusPanel(id){
  return '<details class="item gap"><summary>成长偏向（默认自动）</summary><p class="muted small">训练和休息会自动安排，选择偏向后优先训练该能力；达到潜力上限或需要休息时自动调整。</p><label class="field">'+E(x.player.name)+'的训练方向<select data-training-focus="'+id+'"><option value="auto" '+(focus==="auto"?"selected":"")+'>自动安排</option>'+Object.entries(STATS).map(([key,label])=>'<option value="'+key+'" '+(focus===key?"selected":"")+'>'+E(label)+'</option>').join("")+'</select></label></details>';
 }
 function nextSeason(){if(!g||(g.season.stage!=="review"&&!g.player.retired))return;
- if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired)){notify("同一时间线：请先完成仍在参赛球员的当前赛季");return}if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
+ if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired)){notify("同一时间线：请先完成仍在参赛球员的当前赛季");return}if(!finalizeRetiredSeasonIfReady())return;if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.player.retired){g.year++;g.season={...g.season,stage:"retired",events:[],index:0,completed:0,world:null,leagueRounds:[],results:[],uefa:null,national:null};return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;
  const previousClub=p.club,previousLeague=p.leagueId,previousYear=g.year;
  // A player finishes their age-39 season and retires when turning 40.
  // A loaded legacy player already aged 40+ retires during hydration instead.
  if(duoGames&&p.age>=39){
-  g.year++;p.age=Math.max(40,p.age);recordPlayerRetirement(activeDuo,true);
+  g.year++;p.age=Math.max(40,p.age);recordPlayerRetirement(activeDuo,true,previousYear);
   g.season={...g.season,stage:"retired",events:[],index:0,completed:0,world:null,leagueRounds:[],results:[],uefa:null,national:null};
   log(p.name+"年满"+p.age+"岁，正式退役。另一名球员仍可继续职业生涯。");return;
  }

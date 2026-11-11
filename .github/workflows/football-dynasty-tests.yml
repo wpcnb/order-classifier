@@ -28,6 +28,8 @@ jobs:
         run: node football-legacy/tests/smoke.cjs
       - name: Player aging and retirement regressions
         run: node football-legacy/tests/player-aging.cjs
+      - name: Retirement and shared-award settlement regressions
+        run: node football-legacy/tests/retirement-awards.cjs
       - name: Custom player styles
         run: node football-legacy/tests/player-profiles.cjs
       - name: Same-tier transfers and training focus
