@@ -31,5 +31,8 @@ jobs:
       - name: Yellow and red card regression tests
         run: node football-legacy/tests/discipline.cjs
 
+      - name: Shared national and long-career awards regressions
+        run: node football-legacy/tests/national-awards.cjs
+
       - name: Baseline 100-season simulation
         run: node football-legacy/tests/balance-100.cjs
