@@ -56,13 +56,16 @@ jobs:
     needs: [scenario-100k, varied-careers]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           pattern: diversified-*
           path: diversified-results
           merge-multiple: true
       - name: Check all 100k scenarios and career outcomes
-        run: node football-legacy/tests/audit-100000-summary.cjs diversified-results | tee diversified-summary.log
+        run: |
+          set -o pipefail
+          node football-legacy/tests/audit-100000-summary.cjs diversified-results | tee diversified-summary.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
