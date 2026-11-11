@@ -10,7 +10,7 @@ function run(seed){
  for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
  vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
  function click(action,id){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id}})}})}
- function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}}}
+ function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.accepted&&!d.declined){if(!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}click("acceptDraw",id)}}}
  click("flipOpeningCard","wang");while(timers.length)timers.shift()();
  click("flipOpeningCard","vini");while(timers.length)timers.shift()();
  click("preset");assert(ctx.window.__bench.state(),"Cannot initialize benchmark");
@@ -51,7 +51,7 @@ for(let trial=0;trial<runs;trial++){
    const beforeClubs=Object.fromEntries(keys.map(id=>[id,{club:oldState[id].player.club,level:app.level(oldState[id].player),transferCount:oldState[id].player.transferHistory?.length||0,draw:oldState[id].player.transferDraw,forcedSameTier:!!oldState[id].player.forcedSameTier}]));
    for(const id of keys){
     const d=oldState[id].player.transferDraw;
-    if(d?.options?.length&&!d.selected){inc(summary.draws,d.direction==="down"?"down":"up");if(d.options.some(o=>app.level({leagueId:o.id,club:o.club})!==d.level))summary.draws.unexpected++}
+    if(d?.options?.length&&!d.selected){inc(summary.draws,d.direction==="down"?"down":"up");{const a=d.options.map(o=>app.level({leagueId:o.id,club:o.club})),normal=a.filter(t=>t===d.level).length,lucky=a.filter(t=>t===d.level+1).length,expected=d.direction==="up"&&d.level<5;if(a.length!==10||normal!==(expected?9:10)||lucky!==(expected?1:0))summary.draws.unexpected++}}
     if((oldState[id].player.forcedMove||(!oldState[id].player.forcedSameTier&&oldState[id].player.transferAssessment?.maxTier>beforeClubs[id].level))&&!d?.options?.length&&oldState[id].season.stage==="review")summary.draws.missingOptions++;
    }
    app.drawPromotions();

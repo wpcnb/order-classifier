@@ -10,7 +10,7 @@ function run(seed){
  for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
  vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
  function click(action,id){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id}})}})}
- function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}}}
+ function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.accepted&&!d.declined){if(!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}click("acceptDraw",id)}}}
  click("flipOpeningCard","wang");while(timers.length)timers.shift()();
  click("flipOpeningCard","vini");while(timers.length)timers.shift()();
  click("preset");assert(ctx.window.__bench.state(),"Cannot initialize benchmark");
