@@ -10,9 +10,9 @@ function run(seed){
  for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
  vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
  function click(action,id){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id}})}})}
- function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.selected){click("spinPromotion",id);while(timers.length)timers.shift()()}}}
- click("spinClub","wang");while(timers.length)timers.shift()();
- click("spinClub","vini");while(timers.length)timers.shift()();
+ function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}}}
+ click("flipOpeningCard","wang");while(timers.length)timers.shift()();
+ click("flipOpeningCard","vini");while(timers.length)timers.shift()();
  click("preset");assert(ctx.window.__bench.state(),"Cannot initialize benchmark");
  return {click,drawPromotions,state:ctx.window.__bench.state,level:ctx.window.__bench.level,ratings:ctx.window.__bench.ratings,storage};
 }
@@ -44,7 +44,7 @@ console.log("BALANCE_RESULT_JSON="+JSON.stringify(result));
 // Long-run balance guardrails: no fabricated promotion for lateral CSL moves,
 // no automatic rocket launch to legendary clubs, and no routine superhuman scoring.
 assert.equal(seasons.length,200,"Ten trials × ten shared seasons × two players");
-assert(moves.every(m=>m.new-m.old<=1),"Promotion must never skip a tier");
+assert(moves.every(m=>m.new-m.old<=2),"Promotion can jump two tiers only via the lucky card");
 assert(moves.every(m=>m.new!==m.old||m.kind==="same"),"Same-tier club changes are not upgrades");
 assert(seasons.filter(p=>p.level>0).length>=20,"Young careers should have some European breakouts by year ten");
 assert(seasons.filter(p=>p.level===5).length<=70,"Legendary club should not be an automatic destination");
