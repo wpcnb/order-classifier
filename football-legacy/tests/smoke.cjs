@@ -236,6 +236,12 @@ assert.equal(retirementFixture.state.duoGames.vini.player.retired||false,false);
 retirementFixture.click("simBoth");
 assert.equal(retirementFixture.state.duoGames.vini.season.stage,"review","The surviving player must finish the season");
 const afterOne=retirementFixture.state.duoGames.vini.year;
+const survivorDraw=retirementFixture.state.duoGames.vini.player.transferDraw;
+if(survivorDraw?.options?.length&&!survivorDraw.accepted&&!survivorDraw.declined){
+ retirementFixture.click("simBoth");
+ assert.equal(retirementFixture.state.duoGames.vini.year,afterOne,"Unresolved transfer decision must stop year advance");
+ retirementFixture.click("declineDraw",{id:"vini"});
+}
 retirementFixture.click("simBoth");
 assert.equal(retirementFixture.state.duoGames.vini.year,afterOne+1,"The surviving player must reach the following year");
 assert.equal(retirementFixture.state.duoGames.wang.year,afterOne+1,"Retired player's world year must stay synchronized");
