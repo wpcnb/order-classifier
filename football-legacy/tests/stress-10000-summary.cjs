@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),assert=require("node:assert/strict");
 const folder=process.argv[2]||".";
-const files=fs.readdirSync(folder).filter(x=>/^audit-shard-\\d+\\.log$/.test(x));
+const files=fs.readdirSync(folder).filter(x=>/^audit-shard-\d+\.log$/.test(x));
 const summaries=[];
 for(const f of files){
  const match=fs.readFileSync(path.join(folder,f),"utf8").match(/^STRESS_10000_JSON=(.+)$/m);
