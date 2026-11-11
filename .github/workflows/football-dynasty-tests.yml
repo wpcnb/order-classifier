@@ -28,13 +28,36 @@ jobs:
         run: node football-legacy/tests/smoke.cjs
       - name: Player aging and retirement regressions
         run: node football-legacy/tests/player-aging.cjs
+      - name: Retirement and shared-award settlement regressions
+        run: node football-legacy/tests/retirement-awards.cjs
+      - name: Custom player styles
+        run: node football-legacy/tests/player-profiles.cjs
+      - name: Same-tier transfers and training focus
+        run: node football-legacy/tests/lateral-training.cjs
+      - name: Card and transfer storage failure handling
+        run: node football-legacy/tests/card-persistence.cjs
       - name: Match-strategy regression tests
         run: node football-legacy/tests/match-strategy.cjs
+      - name: Role-aware promotion regression tests
+        run: node football-legacy/tests/role-promotion.cjs
       - name: Yellow and red card regression tests
         run: node football-legacy/tests/discipline.cjs
+      - name: Injury workload and recovery regression tests
+        run: node football-legacy/tests/injury-context.cjs
+
+      - name: Shared fixture scoring and dismissal regression tests
+        run: node football-legacy/tests/shared-contributions.cjs
+      - name: Red-card score consistency
+        run: node football-legacy/tests/red-score.cjs
+
+      - name: Dual-player interaction display regression tests
+        run: node football-legacy/tests/duo-interactions.cjs
 
       - name: Shared national and long-career awards regressions
         run: node football-legacy/tests/national-awards.cjs
+
+      - name: Club qualification and retired-player integrity
+        run: node football-legacy/tests/world-integrity.cjs
 
       - name: Baseline 100-season simulation
         run: node football-legacy/tests/balance-100.cjs

@@ -85,8 +85,27 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 .draw-card:not(:disabled):hover .draw-card-back{filter:brightness(1.15)}
 @media(max-width:740px){.draw-card-grid{gap:6px}.draw-card{min-height:105px}.draw-card-back small{font-size:7px}.draw-card-back b{font-size:19px}.draw-card-back em{font-size:10px}.draw-card-back,.draw-card-front{padding:3px}.draw-card-front .clubcrest{width:26px;height:31px;flex-basis:31px;font-size:8px}.draw-card-front strong{font-size:9px}.draw-card-front small,.draw-card-front em{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.draw-card-inner{transition:none}}
+
+/* Compact mobile-first career and opening layouts. */
+.duo-overview{border:1px solid var(--line);border-radius:16px;background:#10283c;padding:12px 15px}
+.duo-overview-title{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.duo-overview-players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.duo-compact{border:1px solid #304e6e;border-radius:10px;background:#102740;padding:8px 10px;min-width:0}
+.duo-compact summary{cursor:pointer;line-height:1.4;font-size:13px;overflow-wrap:anywhere}
+.duo-compact p{margin:8px 0}.duo-compact .button{margin-top:6px}
+.nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;overflow:visible}
+.nav button{min-width:0;padding:8px 5px;white-space:nowrap}
+.opening-names{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opening-names .field{margin-top:0}.opening-names input{min-width:0}
+.career-hero::before{display:none}.career-hero{min-height:0}
+.career-hero>div{padding:20px 24px}.career-hero h1{font-size:clamp(24px,3vw,36px)}
+.hero-match{background:linear-gradient(90deg,#071d30f2,#081e31cc),url("./assets/matchday.webp") center 52%/cover no-repeat}
+.transfer-hero{background:linear-gradient(90deg,#0d2436f5,#122a3de8),url("./assets/signing.webp") center/cover no-repeat}
+.hero-awards::before{background-image:url("./assets/trophy.webp")}
+@media(max-width:640px){.opening-hero::before{aspect-ratio:3.4/1;background-position:center 35%}.opening-hero{min-height:0}.opening-hero>div{padding:12px 15px}.opening-hero h1{font-size:23px;margin:4px 0}.opening-hero p{margin-bottom:0;font-size:13px}.duo-overview{padding:10px}.duo-compact{padding:7px}.career-hero>div{padding:16px}.nav{position:sticky;top:0;z-index:10}.nav-picker{display:none}}
+
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=age-retirement-20261111" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">平板优先 · 长期生涯</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./game.js?v=mobile-duo-20261112" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.
@@ -100,13 +119,7 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
    else button.removeAttribute('aria-current');
   });
   nav.setAttribute('aria-label','游戏页面');
-  if(nav.previousElementSibling&&nav.previousElementSibling.classList.contains('nav-picker'))return;
-  var label=document.createElement('label');label.className='nav-picker';
-  var caption=document.createElement('span');caption.textContent='前往';
-  var select=document.createElement('select');select.setAttribute('aria-label','前往游戏页面');
-  buttons.forEach(function(button){var option=document.createElement('option');option.value=button.dataset.page;option.textContent=button.textContent;option.selected=button.classList.contains('active');select.appendChild(option)});
-  select.addEventListener('change',function(){var target=buttons.find(function(button){return button.dataset.page===select.value});if(target)target.click()});
-  label.appendChild(caption);label.appendChild(select);nav.parentNode.insertBefore(label,nav);
+
  }
  if(appNode){new MutationObserver(improveNavigation).observe(appNode,{childList:true,subtree:true});improveNavigation()}
  function showRecovery(){
