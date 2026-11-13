@@ -78,9 +78,9 @@ function creatorModeChooser(){
  if(!FS)return "";
  const locked=DUO_IDS.some(id=>drawnClubs[id]);
  return '<section class="card creator-modes"><h2>选择你的双人开局</h2><div class="creator-choice">'+
- [["preset","经典双星","保留原始王楚淇与维尼修斯模板"],["quick","快速造星","随机身份与隐藏潜能"],["custom","自定义造星","国籍、年龄、身高及人物外观"]].map(([mode,label,desc])=>
+ [["preset","经典双星","保留原始王楚淇与维尼修斯模板"],["quick","快速造星","随机男性球员、身高按位置生成"],["custom","自定义造星","男性球员，国籍、年龄、身高及外貌自选"]].map(([mode,label,desc])=>
   '<button type="button" class="creator-mode-btn '+(creatorMode===mode?'selected':'')+'" data-action="creatorMode" data-mode="'+mode+'" '+(locked?'disabled':'')+' aria-pressed="'+(creatorMode===mode)+'"><b>'+label+'</b><small>'+desc+'</small></button>'
- ).join("")+'</div><p class="muted small gap">全新虚构球员的潜能在首次翻牌时随机确定并存档，刷新不会重抽。经典双星保持原设定。</p></section>';
+ ).join("")+'</div><p class="muted small gap">全新虚构球员的潜能在首次翻牌时确定并存档，刷新不会重抽。男子职业赛事目前只生成男性球员；原有存档保持不变。</p></section>';
 }
 function creatorSelect(id,key,label,options,selected,locked){
  return '<label class="field">'+label+'<select data-creator-field="'+key+'" data-creator-id="'+id+'" '+(locked?'disabled':'')+'>'+
@@ -88,7 +88,7 @@ function creatorSelect(id,key,label,options,selected,locked){
 }
 function creatorForm(id){
  if(!FS||creatorMode==="preset")return openingPlayerStyle(id);
- const draft=creatorLocked[id]||creatorDrafts[id]||FS.draftDefaults(),locked=!!drawnClubs[id];
+ const draft=FS.validate(creatorLocked[id]||creatorDrafts[id]||FS.draftDefaults()),locked=!!drawnClubs[id];
  const picture=FS.avatar(draft),title=creatorMode==="quick"?"随机球员档案":"自定义球员档案";
  const optionNames=Object.fromEntries(FS.COUNTRIES.map(country=>[country,country]));
  const yearChoices=Object.fromEntries(Array.from({length:24},(_,i)=>[String(i+16),String(i+16)+" 岁"]));
@@ -97,7 +97,7 @@ function creatorForm(id){
  creatorSelect(id,"country","游戏国籍",optionNames,draft.country,locked)+
  creatorSelect(id,"age","开局年龄（16～39）",yearChoices,draft.age,locked)+
  creatorSelect(id,"height","身高（150～210cm）",heightChoices,draft.height,locked)+
- creatorSelect(id,"gender","性别",FS.GENDER,draft.gender,locked)+
+ '<div class="field creator-fixed-gender"><span class="muted small">性别 · 当前男子赛事</span><strong>男（固定）</strong></div>'+
  creatorSelect(id,"heritage","族裔／地区背景（可选）",FS.HERITAGE,draft.heritage,locked)+
  creatorSelect(id,"skin","肤色",Object.fromEntries(Object.entries(FS.TONE).map(([k,v])=>[k,v.label])),draft.skin,locked)+
  creatorSelect(id,"hair","发型",FS.HAIR,draft.hair,locked)+
@@ -107,7 +107,7 @@ function creatorForm(id){
  '<p class="muted small">初始能力与隐藏潜能随机生成，实际潜能值不会提前展示。</p>'+
  (locked?'<p class="gold small">人物和潜能已锁定，不可重新抽取</p>':'<p class="muted small">翻开球队卡后，人物与潜能一起锁定保存。</p>')+
  '</div></div>'+controls+
- '<p class="muted small">性别、国籍、族裔背景及肤色不影响能力或潜力。男女及不同性别球员均使用架空混合赛事规则，不代表现实赛事资格。</p></section>';
+ '<p class="muted small">当前仅模拟男子职业赛事，新球员性别固定为男性。快速模式身高依位置生成；手动身高仍可选150～210cm。国籍、族裔背景及肤色不决定能力和潜力。</p></section>';
 }
 
 function chooseAcademy(id,league){
