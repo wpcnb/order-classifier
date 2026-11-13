@@ -1075,7 +1075,10 @@ function allocateAvailable(points,values,keys,limit){
 }
 function autoPoints(){const p=g.player,weights=WEIGHTS[p.position],keys=Object.keys(STATS),sorted=keys.map((k,i)=>({k,w:weights[i],score:p.stats[k]})).sort((a,b)=>b.w-a.w||a.score-b.score).map(x=>x.k);if(Object.hasOwn(STATS,p.trainingFocus))sorted.unshift(sorted.splice(sorted.indexOf(p.trainingFocus),1)[0]);p.points=allocateAvailable(p.points,p.stats,sorted,p.potential);if(p.parentCoach){const c=p.parentCoach;c.points=allocateAvailable(c.points,c.skills,["training","tactics","motivation","scouting"],100)}}
 function automaticPrep(){
- if(g.mode==="coach")return coachPreparation();const p=g.player;if(p.autoPoints)autoPoints();
+ if(g.mode==="coach")return coachPreparation();const p=g.player;
+ // Deep mode is authoritative even for v10 saves whose old focus handler re-enabled auto flags.
+ if(duoGames&&duoOperationMode(p)==="deep")return;
+ if(p.autoPoints)autoPoints();
  if(!p.autoTraining||p.trainingUsed)return;
  if(p.injuryMatches>0||p.stamina<64){p.stamina=C(p.stamina+(p.injuryMatches>0?13:20)+Math.round((p.parentCoach?.skills?.motivation||0)/30),0,100)}
  else{
@@ -2480,12 +2483,13 @@ let careerPace="season";
 try{const storedPace=localStorage.getItem(CAREER_PACE_KEY);if(["day","week","season"].includes(storedPace))careerPace=storedPace}catch(e){}
 function quickCareerAdvance(){
  if(!duoGames||DUO_IDS.every(id=>duoGames[id].player.retired))return;
+
+ const allReview=DUO_IDS.every(id=>duoGames[id].player.retired||duoGames[id].season.stage==="review");
+ if(allReview){notify("请先完成赛季转会决定");return}
  if(careerPace!=="day"){
   const manual=DUO_IDS.filter(id=>!duoGames[id].player.retired&&duoOperationMode(duoGames[id].player)==="deep");
   if(manual.length&&!confirm("深度生涯快进会跳过手动训练机会："+manual.map(id=>duoGames[id].player.name).join("、")+"。本次仍要快进吗？"))return;
  }
- const allReview=DUO_IDS.every(id=>duoGames[id].player.retired||duoGames[id].season.stage==="review");
- if(allReview){notify("请先完成赛季转会决定");return}
  if(careerPace==="day")sharedAdvanceDates(1);
  else if(careerPace==="week")sharedAdvanceDates(7);
  else sharedAdvanceDates(400);
