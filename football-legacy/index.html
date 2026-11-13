@@ -204,8 +204,42 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
  .opening-development{padding:10px}
  .body-effects span{font-size:10px}
 }
+
+/* v10 original mobile onboarding: choose identity, tradeoffs, then blind draw. */
+.v10-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:13px 0}
+.v10-progress span{min-width:0;font-size:11px;line-height:1.4;padding:9px 7px;min-height:48px;background:#0e2b3d;border:1px solid #395266;border-radius:10px;color:#c4d7e4;text-align:center}
+.v10-progress span.active{border:2px solid #e5c377;background:#184347;color:#fff0ba;font-weight:800}
+.v10-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v10-card{min-width:0;padding:14px;border:1px solid #446979;border-radius:14px;background:linear-gradient(135deg,#123747,#102437)}
+.v10-card h3{font-size:17px;margin:0 0 12px;color:#f2f7ec}
+.v10-card .field{margin:10px 0;min-width:0}
+.v10-card select{width:100%;max-width:100%;font-size:16px;min-height:44px}
+.v10-card p{overflow-wrap:anywhere}
+.v10-card .opening-development{margin-top:5px}
+.v10-card .creator-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.v10-lottery{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #2e5267}
+.v10-lottery span{display:grid;gap:5px;font-size:12px;color:#bcdddc}
+.v10-lottery b{font-size:17px;color:#f4e4b9}
+.v10-lottery button{flex:0 0 auto;min-height:44px}
+.v10-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin:18px 0}
+.v10-actions .button,.v10-primary{min-height:48px}
+.v10-data{display:flex;flex-wrap:wrap;gap:7px}
+.v10-data span{font-size:12px;border:1px solid #365e71;padding:6px 8px;border-radius:9px;background:#092e40}
+@media(max-width:720px){
+ .v10-two{grid-template-columns:1fr;gap:10px}
+ .v10-card{padding:12px}
+ .v10-card .creator-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .v10-progress span{font-size:10px;padding:8px 3px;min-height:52px}
+ .v10-actions .v10-primary{flex:1}
+ .v10-lottery b{font-size:16px}
+}
+@media(max-width:365px){
+ .v10-card .creator-form-grid{grid-template-columns:1fr}
+ .v10-lottery{align-items:stretch;flex-direction:column}
+ .v10-lottery button{width:100%}
+}
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">版本 v9.0.0 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./body-path.js?v=9.0.0" defer></script><script src="./career-depth.js?v=9.0.0" defer></script><script src="./free-star.js?v=9.0.0" defer></script><script src="./game.js?v=9.0.0" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双星时代</small></div></div><span class="chip">版本 v10.0.0 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./body-path.js?v=9.0.0" defer></script><script src="./career-depth.js?v=9.0.0" defer></script><script src="./free-star.js?v=9.0.0" defer></script><script src="./v10-core.js?v=10.0.0" defer></script><script src="./v10-ui.js?v=10.0.0" defer></script><script src="./game.js?v=10.0.0" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.

@@ -22,8 +22,8 @@ function harness(loaded=[]){
  get draft(){return JSON.parse(storage.get("football-dynasty-opening-v3")||"null")}};
 }
 check("版本号和加载顺序",()=>{
- assert.match(html,/版本 v9\.0\.0 · 更新时间 2026-11-13/);
- assert(html.indexOf("free-star.js?v=9.0.0")<html.indexOf("game.js?v=9.0.0"));
+ assert.match(html,/版本 v10\.0\.0 · 更新时间 2026-11-13/);
+ assert(html.indexOf("free-star.js?v=9.0.0")<html.indexOf("game.js?v=10.0.0"));
 });
 check("隐藏潜能四档概率区间",()=>{
  assert.equal(F.rollPotential(()=>0),65);assert.equal(F.rollPotential(()=>.45),84);

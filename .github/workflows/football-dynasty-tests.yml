@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: v10 - ten feature families, 100 independent samples each
+        run: node football-legacy/tests/v10-100x.cjs
       - name: v9 body encounters and career balance - ten focused checks
         run: node football-legacy/tests/v9-body-balance.cjs
       - name: v8.1.0 body tradeoffs and player development - ten checks
