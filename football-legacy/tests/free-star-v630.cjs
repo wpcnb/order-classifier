@@ -22,8 +22,8 @@ function harness(loaded=[]){
  get draft(){return JSON.parse(storage.get("football-dynasty-opening-v3")||"null")}};
 }
 check("版本号和加载顺序",()=>{
- assert.match(html,/版本 v8\.0\.0 · 更新时间 2026-11-13/);
- assert(html.indexOf("free-star.js?v=6.3.0")<html.indexOf("game.js?v=8.0.0"));
+ assert.match(html,/版本 v8\.0\.1 · 更新时间 2026-11-13/);
+ assert(html.indexOf("free-star.js?v=8.0.1")<html.indexOf("game.js?v=8.0.1"));
 });
 check("隐藏潜能四档概率区间",()=>{
  assert.equal(F.rollPotential(()=>0),65);assert.equal(F.rollPotential(()=>.45),84);
@@ -34,10 +34,11 @@ check("国籍、肤色、性别、族裔均不影响随机能力",()=>{
  const second=F.generatedProfile({country:"巴西",skin:"deep",gender:"female",heritage:"african",position:"ST"},()=>.37);
  assert.equal(first.potential,second.potential);
  assert.equal(JSON.stringify(first.stats),JSON.stringify(second.stats));
+ assert.equal(first.gender,"male");assert.equal(second.gender,"male");
 });
 check("年龄身高限制及自由人物档案校验",()=>{
  const p=F.validate({country:"日本",age:99,height:999,gender:"female",skin:"deep",position:"GK"});
- assert.equal(p.age,39);assert.equal(p.height,210);assert.equal(p.country,"日本");assert.equal(p.position,"GK");
+ assert.equal(p.age,39);assert.equal(p.height,210);assert.equal(p.country,"日本");assert.equal(p.position,"GK");assert.equal(p.gender,"male");
 });
 check("本地头像相同设定稳定，肤色独立改变",()=>{
  const p=F.generatedProfile(F.draftDefaults(),()=>.25);
@@ -48,6 +49,8 @@ check("快速造星不要求多余按钮且年龄有效",()=>{
  const h=harness();h.click("creatorMode",{mode:"quick"});
  assert.match(h.html,/随机球员档案/);assert.equal(h.draft.mode,"quick");
  assert(h.draft.creatorDrafts.wang.age>=16&&h.draft.creatorDrafts.wang.age<=24);
+ assert.equal(h.draft.creatorDrafts.wang.gender,"male");
+ assert(h.draft.creatorDrafts.wang.height>=165);
 });
 check("经典双星预设仍是16岁青训与固定模板",()=>{
  const h=harness();h.click("flipOpeningCard",{id:"wang",i:0});h.flush();
@@ -68,6 +71,7 @@ check("自定义两人的年龄、国籍与外貌按角色分别保存",()=>{
  const draft=custom.draft;
  assert.equal(draft.creatorDrafts.wang.age,24);assert.equal(draft.creatorDrafts.wang.skin,"deep");
  assert.equal(draft.creatorDrafts.vini.age,17);
+ assert.equal(draft.creatorDrafts.wang.gender,"male");assert.equal(draft.creatorDrafts.vini.gender,"male");
 });
 check("翻球队卡时只生成一次隐藏潜能并且刷新不可重抽",()=>{
  custom.click("flipOpeningCard",{id:"wang",i:3});custom.flush();
@@ -80,7 +84,7 @@ check("翻球队卡时只生成一次隐藏潜能并且刷新不可重抽",()=>{
  custom.click("flipOpeningCard",{id:"vini",i:1});custom.flush();custom.click("preset");
  const a=custom.saved.duoGames.wang.player,b=custom.saved.duoGames.vini.player;
  assert.equal(a.age,24);assert.equal(a.youth,false);assert.equal(a.heightCm,186);
- assert.equal(a.country,"日本");assert.equal(a.gender,"female");assert.equal(a.position,"ST");
+ assert.equal(a.country,"日本");assert.equal(a.gender,"male");assert.equal(a.position,"ST");
  assert.equal(b.age,17);assert.equal(b.youth,true);assert.equal(b.country,"法国");
  assert.equal(a.freeStarHidden,true);assert.notEqual(a.potential,undefined);
  assert.match(custom.html,/潜能未知/);assert.doesNotMatch(custom.html,new RegExp("成长潜力 "+a.potential+" \/ 100"));
