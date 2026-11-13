@@ -274,7 +274,7 @@ function duoPayload(){
   europeFinals:shared.europeFinals||{},
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
-  awards:shared.awards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
+  awards:shared.awards||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
   offseasonYears:(shared.offseasonYears||[]).slice(-3),npcOffseasonYears:(shared.npcOffseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -1412,6 +1412,38 @@ function finalizeRetiredSeasonIfReady(){
  const previousActive=activeDuo,previousGame=g;
  try{finalizeSharedSeason();return true}catch(e){activeDuo=previousActive;g=previousGame;notify("赛季奖项暂时无法结算，请先导出存档并检查赛季数据");return false}
 }
+
+/* v8: one winner per league/year for newly completed seasons.
+   Existing historic honours are deliberately preserved unchanged. */
+function settleLeagueYouthAwards(year){
+ if(!duoGames||!sharedUniverse)return;
+ const ledger=sharedUniverse.leagueYouthAwards||(sharedUniverse.leagueYouthAwards={});
+ const leagues=new Set(DUO_IDS.filter(id=>!duoGames[id].player.youth&&duoGames[id].player.leagueId).map(id=>duoGames[id].player.leagueId));
+ for(const leagueId of leagues){
+  const key=year+":"+leagueId;
+  if(Object.hasOwn(ledger,key))continue;
+  const league=DB[leagueId];if(!league)continue;
+  const candidates=[];
+  for(const n of duoGames.wang.npcs||[]){
+   if(n.age>21||n.age<16||!league.teams.some(t=>t.name===n.club)||Number(n.apps||0)<12||Number(n.rating||0)<7.2)continue;
+   candidates.push({id:n.id,name:n.name,score:n.rating*10+(n.goals||0)*1.1+(n.assists||0)*.8+(n.apps||0)*.1});
+  }
+  for(const id of DUO_IDS){
+   const x=duoGames[id],p=x.player,a=x.season.leagueRatings||[];
+   if(p.youth||p.retired||p.leagueId!==leagueId||p.age>21||p.age<16||x.season.leagueApps<12||!a.length)continue;
+   const avg=a.reduce((z,v)=>z+v,0)/a.length;
+   if(avg<7.2)continue;
+   candidates.push({id:"DUO_"+id,name:p.name,score:avg*10+(x.season.leagueGoals||0)*1.1+(x.season.leagueAssists||0)*.8+x.season.leagueApps*.1});
+  }
+  candidates.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+  const winner=candidates[0];
+  ledger[key]={year,leagueId,winnerId:winner?.id||null,winner:winner?.name||null,score:winner?Number(winner.score.toFixed(2)):null};
+  if(!winner?.id.startsWith("DUO_"))continue;
+  const id=winner.id.slice(4),before=g,beforeId=activeDuo;
+  activeDuo=id;g=duoGames[id];award(league.name+"最佳年轻球员","individual");g=before;activeDuo=beforeId;
+ }
+}
+
 function finalizeSharedSeason(){
  if(!duoGames||!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired))return;
  if(DUO_IDS.every(id=>duoGames[id].player.retired)&&!DUO_IDS.some(id=>hasCompletedCurrentSeason(duoGames[id])))return;
@@ -1448,6 +1480,7 @@ function finalizeSharedSeason(){
  if(goals[0]?.id===who&&goals[0].goals>=9)award(DB[id].name+"金靴奖","individual");
  if(assists[0]?.id===who&&assists[0].assists>=7)award(DB[id].name+"助攻王","individual");
  }}
+ settleLeagueYouthAwards(year);
  for(const id of DUO_IDS){const x=duoGames[id],key="DUO_"+id,place=ranked.findIndex(r=>r.id===key),personal={...awardData,rank:place>=0?place+1:null,playerNominated:place>=0,playerPoints:place>=0?points[key]:0};
  x.ballonHistory.push(personal);x.awardViewIndex=x.ballonHistory.length-1;
  if(place===0){activeDuo=id;g=x;award("金球奖（法国足球规则）","individual")}
@@ -1688,8 +1721,8 @@ function endSeason(){
   if(!duoGames&&p.position!=="GK"&&(s.leagueGoals||0)>=Math.max(9,goalKing?.goals||0))award(league.name+"金靴奖","individual");
   if(!duoGames&&(s.leagueAssists||0)>=Math.max(7,assistKing?.assists||0))award(league.name+"助攻王","individual");
   if(p.position==="GK"&&(s.leagueClean||0)>=Math.max(8,keeperKing?.clean||0))award(league.name+"金手套奖","individual");
-  if(leagueAvg>=7.8)award(league.name+"赛季最佳球员","individual");
-  if(p.age<=21&&leagueAvg>=7.2)award(league.name+"最佳年轻球员","individual");
+  if(!duoGames&&leagueAvg>=7.8)award(league.name+"赛季最佳球员","individual");
+  if(!duoGames&&p.age<=21&&leagueAvg>=7.2)award(league.name+"最佳年轻球员","individual");
  }
  if(s.uefa&&s.europeApps>=3){
   const euroNPC=g.npcs.filter(n=>s.uefa.table[n.club]);
@@ -2403,7 +2436,7 @@ function duoAwardsPage(){
  const y=duoGames.wang.year;
  const history=sharedUniverse?.awards||{},years=Object.keys(history).sort((a,b)=>b-a),chosen=history[g.awardWorldYear]||history[years[0]];
  if(!chosen)return '<section class="card"><h2>统一金球奖</h2><p>两人所在世界每年仅举办一次金球奖评选。完成本赛季后可同时查看两名球员、其他球星的统一排名。</p></section>';
- return '<section class="card"><h2>同一届金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>';
+ return '<section class="card"><h2>同一届金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><details class="item gap"><summary>v8.0 评奖依据与公平性说明</summary><p class="muted small">当前赛季使用第7代评分模型：进球、助攻、平均评分、个人综合能力、出场、联赛系数及球队实际冠军。冠军加分统一封顶32，之后由100名记者的十人选票产生唯一得主。此机制不承诺主角获奖，旧存档奖项不改写。旧版第6代更重视冠军和综合能力。</p></details><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>';
 }
 function partialRetirementHistory(x){
  const part=x.retirementSummary?.partialSeason,at=x.retirementSummary?.at;
