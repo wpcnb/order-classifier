@@ -48,6 +48,6 @@ test("game creator removes gender selection and declares male-only",()=>{
 test("homepage version and local asset cache reflect change",()=>{
  assert(html.includes("版本 v10.0.1 · 更新时间 2026-11-13"));
  assert(html.includes('free-star.js?v=9.0.0'));
- assert(html.includes('game.js?v=10.0.0'))
+ assert(html.includes('game.js?v=10.0.1'))
 });
 assert.equal(done,10);console.log("10/10 v8.0.1 men's career creator checks passed");
