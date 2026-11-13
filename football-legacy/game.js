@@ -2379,6 +2379,8 @@ function careerDepthOverview(){
   const lineup=CD.lineup(p,overall(p),power(p.club),()=>.5);
   return '<div class="card depth-player-card"><div class="row"><div class="depth-identity">'+creatorPortrait(p)+'<h2>'+E(p.name)+' · '+E(CD.ROLE_NAMES[p.position]||p.position)+'</h2></div><span class="chip">'+(p.retired?'已退役':E(trait.label))+'</span></div>'+
  '<p class="muted small">'+(p.freeStar?E(p.country)+' · '+p.heightCm+'cm · '+E(FS.GENDER[p.gender]||"自定义")+' · '+E(hiddenPotentialText(x)):"经典预设球员")+'</p>'+
+ (BP?'<div class="body-detail-summary"><p class="muted small"><b>生涯路线：</b>'+E(BP.PATHS[BP.sanitizedPath(p.careerPath)].name)+' · '+(Number.isFinite(p.heightCm)&&Number.isFinite(p.weightKg)?p.heightCm+'cm / '+p.weightKg+'kg':'旧档体格数据未完整记录')+'</p>'+
+ (Number.isFinite(p.heightCm)&&Number.isFinite(p.weightKg)?'<div class="body-effects">'+Object.entries(BP.label(p)).map(([key,val])=>'<span>'+E(({aerial:"空中",duel:"对抗",agility:"灵活",endurance:"体能"})[key])+' '+E(val)+'</span>').join("")+'</div>':'')+'</div>':'')+
     '<div class="grid2 depth-metrics"><div><span class="muted small">游戏估算身价</span><strong class="gold depth-number">'+(p.retired?'退役':value)+'</strong></div><div><span class="muted small">首发竞争</span><strong class="depth-number">'+(p.retired?'已结束':Math.round(lineup.starterChance*100)+'%')+'</strong></div></div>'+
     (p.retired?'<p class="muted small">查看履历了解完整生涯。</p>':
     '<div class="depth-goals"><b>本季目标 · '+complete+'/'+targets.length+'完成</b>'+targets.map(t=>'<div class="depth-goal"><span>'+E(t.label)+'</span><span>'+t.value+' / '+t.target+(t.done?' ✓':'')+'</span></div>').join("")+'</div>')+
@@ -2396,6 +2398,7 @@ function careerDepthDetails(id){
   (p.retired?'<p class="muted small">已退役，无法改造位置。</p>':
   '<label class="field">位置改造（可选，默认维持当前位置）<select data-position-target="'+id+'">'+current.map(pos=>'<option value="'+E(pos)+'" '+((p.positionTarget||p.position)===pos?'selected':'')+'>'+E(CD.ROLE_NAMES[pos])+(pos===p.position?'（当前）':'')+'</option>').join("")+'</select></label><p class="muted small">'+(p.positionTarget?'已完成 '+(p.positionProgress||0)+'/9 场；每次实际出场积累改造进度。':'选择其他位置后自动训练9次实际出场，不增加额外操作。')+'</p>')+
   '<p class="muted small">累计首发 '+(p.lineupCareer?.starts||0)+'场 · 替补出场 '+(p.lineupCareer?.substitutes||0)+'场</p>'+
+ (BP?'<p class="muted small">开局生涯路线：'+E(BP.PATHS[BP.sanitizedPath(p.careerPath)].name)+'。该路线只影响训练与出场概率，不保证上场或能力提升。</p>':'')+
   '<h3>历年身价（游戏估算）</h3>'+market+
   '<h3 class="gap">历史赛季目标</h3><div class="list">'+((p.goalHistory||[]).slice(-7).reverse().map(h=>'<p class="muted small">'+E(h.year)+'赛季 · '+h.completed+'/'+h.total+' 完成</p>').join("")||'<p class="muted small">完成首个赛季后记录。</p>')+'</div></details>';
 }
