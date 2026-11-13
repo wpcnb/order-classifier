@@ -67,3 +67,38 @@ jobs:
           })().catch(e=>console.log('BROWSER_FATAL='+String(e)));
           JS
           CHROME_BINARY="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)" node /tmp/hupu-second/inspect.cjs
+
+      - name: Navigate actual country, league and club setup in isolated browser
+        shell: bash
+        run: |
+          npm install --prefix /tmp/hupu-second puppeteer-core@24.20.0 --no-audit --no-fund --silent || { echo "PUPPETEER_UNAVAILABLE"; exit 0; }
+          cat >/tmp/hupu-second/navigate.cjs <<'JS'
+          const puppeteer=require('puppeteer-core'),sleep=n=>new Promise(r=>setTimeout(r,n));
+          (async()=>{
+            const browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BINARY||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            const page=await browser.newPage();await page.setViewport({width:390,height:820});
+            await page.goto('https://activity-static.hupu.com/shaper/published/app_2ad6d8a0e3/__ai_app.html?night=1',{waitUntil:'domcontentloaded',timeout:35000});
+            await sleep(3500);
+            const report=async label=>{
+              const obj=await page.evaluate(()=>({text:(document.body?.innerText||'').slice(0,16000),controls:[...document.querySelectorAll('button,select,input,[role="button"],a')].map(el=>({tag:el.tagName,txt:(el.innerText||el.textContent||el.getAttribute('aria-label')||'').trim().slice(0,65),type:el.getAttribute('type'),disabled:!!el.disabled})).filter(x=>x.txt).slice(0,50)}));
+              console.log('STATE_'+label+'='+JSON.stringify(obj));
+            };
+            const click=async (label,n=0)=>{
+              const result=await page.evaluate(({label,n})=>{
+                const list=[...document.querySelectorAll('button,[role="button"],a')].filter(el=>(el.innerText||el.textContent||'').includes(label));
+                if(!list[n])return {available:list.length};
+                list[n].click();return {available:list.length,clicked:(list[n].innerText||list[n].textContent||'').slice(0,80)};
+              },{label,n});
+              console.log('CLICK_'+label+'='+JSON.stringify(result));await sleep(1500);
+            };
+            await report('home');
+            await click('开始执教生涯');await report('after_start');
+            const text=await page.evaluate(()=>document.body?.innerText||'');
+            if(text.includes('中国')){await click('中国');await report('after_country');}
+            else if(text.includes('英格兰')){await click('英格兰');await report('after_country');}
+            if((await page.evaluate(()=>document.body?.innerText||'')).includes('中超')){await click('中超');await report('after_league');}
+            if((await page.evaluate(()=>document.body?.innerText||'')).includes('英超')){await click('英超');await report('after_league_alt');}
+            await browser.close();
+          })().catch(e=>console.log('NAV_ERROR='+String(e)));
+          JS
+          CHROME_BINARY="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)" node /tmp/hupu-second/navigate.cjs
