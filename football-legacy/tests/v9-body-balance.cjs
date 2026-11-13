@@ -9,7 +9,7 @@ test("v9 release, script order and reproducibility document",()=>{
  const html=read("index.html");
  assert(html.includes("版本 v10.0.1 · 更新时间 2026-11-13"));
  assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("career-depth.js?v=9.0.0"));
- assert(html.indexOf("career-depth.js?v=9.0.0")<html.indexOf("game.js?v=10.0.0"));
+ assert(html.indexOf("career-depth.js?v=9.0.0")<html.indexOf("game.js?v=10.0.1"));
  assert(read("V9_BALANCE_AUDIT.md").includes("200,000,000"));
 });
 test("old saves missing mass stay neutral without auto-writing derived weight",()=>{
