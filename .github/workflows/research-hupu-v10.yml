@@ -1,0 +1,58 @@
+name: Inspect Hupu reference game for v10
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/research-hupu-v10.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Fetch exact user-supplied Hupu game URL and inspect real DOM
+        shell: bash
+        run: |
+          set -u
+          url="https://activity-static.hupu.com/shaper/published/app_b0ed4d1269/index.html?night="
+          echo "REFERENCE_URL=$url"
+          curl --connect-timeout 12 --max-time 25 -L -sS -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/537.36' -o /tmp/hupu.html -w 'HTTP_STATUS=%{http_code} BYTES=%{size_download} REDIRECT_URL=%{url_effective}\n' "$url" || true
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Extract(HTMLParser):
+           def __init__(self): super().__init__(); self.skip=0; self.parts=[]
+           def handle_starttag(self,t,a):
+            if t in ('script','style'): self.skip+=1
+           def handle_endtag(self,t):
+            if t in ('script','style'): self.skip=max(0,self.skip-1)
+           def handle_data(self,t):
+            if not self.skip and t.strip():self.parts.append(t.strip())
+          p=Path('/tmp/hupu.html')
+          if p.exists():
+           content=p.read_text(errors='replace'); e=Extract();e.feed(content)
+           print('RAW_META_PREFIX='+content[:1400].replace('\n',' ')[:1400])
+           print('RAW_VISIBLE_TEXT='+' | '.join(e.parts)[:11000])
+          PY
+          browser="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$browser" ]; then echo "NO_CHROME_INSTALLED"; exit 0; fi
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=10000 --dump-dom "$url" >/tmp/dom.html 2>/tmp/chrome.txt || true
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Extract(HTMLParser):
+           def __init__(self): super().__init__();self.skip=0;self.parts=[]
+           def handle_starttag(self,t,a):
+            if t in ('script','style'):self.skip+=1
+           def handle_endtag(self,t):
+            if t in ('script','style'):self.skip=max(0,self.skip-1)
+           def handle_data(self,t):
+            if not self.skip and t.strip():self.parts.append(t.strip())
+          p=Path('/tmp/dom.html')
+          if p.exists():
+           s=p.read_text(errors='replace');e=Extract();e.feed(s)
+           print('CHROME_DOM_LENGTH=',len(s))
+           print('CHROME_TEXT='+' | '.join(e.parts)[:16000])
+          print('CHROME_LOG=',Path('/tmp/chrome.txt').read_text(errors='replace')[:2000] if Path('/tmp/chrome.txt').exists() else '')
+          PY
