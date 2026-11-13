@@ -1,0 +1,32 @@
+name: Football game public URL smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/football-pages-access-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check deployed game and scripts via real HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="https://wpcnb.github.io/order-classifier/football-legacy/"
+          for path in "" "index.html" "game.js?v=6.3.0" "free-star.js?v=6.3.0" "career-depth.js?v=6.2.0" "real-footballers.js?v=4.6.0" "shared-uefa.js?v=season-unified-v58"; do
+            url="${root}${path}"
+            echo "CHECK: ${url}"
+            status=$(curl -A "Mozilla/5.0" --connect-timeout 8 --max-time 18 -L -sS -o /tmp/live-response -w '%{http_code}' "$url")
+            bytes=$(wc -c </tmp/live-response)
+            echo "HTTP=${status}, bytes=${bytes}"
+            test "$status" = "200"
+            test "$bytes" -ge 800
+            if [[ "$path" = "" || "$path" = "index.html" ]]; then
+              grep -q "版本 v6.3.0" /tmp/live-response
+            fi
+          done
+          echo "SUCCESS: deployed game HTML and all essential JS files return 200"
