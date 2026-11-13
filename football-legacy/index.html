@@ -153,8 +153,42 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
  .career-depth-overview{grid-template-columns:1fr}
  .depth-player-card{padding:12px}
 }
+
+/* Free Star v6.3: a short setup path with expandable, thumb-sized customization. */
+.creator-modes{background:linear-gradient(145deg,#132b43,#0d2336);border:1px solid #355b72}
+.creator-modes h2{font-size:18px}
+.creator-choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.creator-mode-btn{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;min-height:76px;gap:7px;padding:11px 13px;border:1px solid #4c6478;background:#10283c;border-radius:12px;color:#e9f4ff;cursor:pointer}
+.creator-mode-btn small{font-size:11px;color:#b9c8d6;line-height:1.4}
+.creator-mode-btn.selected{border:2px solid #f4c76e;background:#18434a;box-shadow:0 0 0 2px #e7bb4724}
+.creator-mode-btn:disabled{cursor:not-allowed;opacity:.7}
+.creator-profile{border:1px solid #4b6c83;background:linear-gradient(120deg,#153749,#101f36);border-radius:14px;padding:13px;margin-top:10px}
+.creator-profile-head{display:grid;grid-template-columns:92px minmax(0,1fr);gap:12px;align-items:center}
+.creator-profile-head h3{margin:0 0 5px;font-size:18px}
+.creator-avatar{width:92px;max-width:100%}
+.creator-avatar svg{width:100%;height:auto;display:block;border-radius:13px}
+.creator-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:12px}
+.creator-form-grid .field{margin:0;min-width:0;font-size:12px}
+.creator-form-grid select{width:100%;min-width:0;padding:9px 7px;height:44px}
+.creator-inline-avatar{display:block;width:55px;min-width:55px}
+.creator-inline-avatar svg{display:block;width:100%;height:auto;border-radius:10px}
+.depth-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.depth-identity h2{overflow-wrap:anywhere}
+.creator-history-avatar .creator-inline-avatar{width:96px}
+@media(max-width:640px){
+ .creator-choice{grid-template-columns:1fr;gap:7px}
+ .creator-mode-btn{min-height:53px;padding:9px 11px;gap:3px}
+ .creator-profile{padding:10px}
+ .creator-profile-head{grid-template-columns:75px minmax(0,1fr);gap:9px}
+ .creator-avatar{width:75px}
+ .creator-profile-head h3{font-size:15px}
+ .creator-form-grid{gap:7px}
+ .creator-form-grid .field{font-size:11px}
+ .creator-inline-avatar{width:44px;min-width:44px}
+}
+
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">版本 v6.2.0 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./career-depth.js?v=6.2.0" defer></script><script src="./game.js?v=6.2.0" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">版本 v6.3.0 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./career-depth.js?v=6.2.0" defer></script><script src="./free-star.js?v=6.3.0" defer></script><script src="./game.js?v=6.3.0" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.
