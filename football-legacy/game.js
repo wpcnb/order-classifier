@@ -63,6 +63,53 @@ function openingPlayerStyle(id){
  const selected=openingStyles[id],locked=!!drawnClubs[id];
  return '<details class="item"><summary>能力风格：'+E((PLAYER_STYLES[selected]||PLAYER_STYLES.default).name)+'（可选）</summary><label class="field">选择能力风格<select data-duo-style="'+E(id)+'" '+(locked?'disabled':'')+'>'+Object.entries(PLAYER_STYLES).map(([key,style])=>'<option value="'+E(key)+'" '+(key===selected?'selected':'')+'>'+E(style.name)+'</option>').join("")+'</select></label><p class="muted small">风格是游戏估算，不会根据姓名自动识别真实身体或足球能力；游戏国籍默认中国。</p></details>';
 }
+
+function setCreatorMode(mode){
+ if(!FS||!["preset","quick","custom"].includes(mode))return;
+ if(DUO_IDS.some(id=>drawnClubs[id])){notify("已有球员完成抽卡，无法修改创建模式；原结果已锁定。");return}
+ const oldMode=creatorMode,oldDrafts={wang:creatorDrafts.wang,vini:creatorDrafts.vini};
+ creatorMode=mode;
+ if(mode==="quick")creatorDrafts={wang:FS.quickDraft(),vini:FS.quickDraft()};
+ if(mode==="custom")creatorDrafts={wang:FS.draftDefaults(),vini:FS.draftDefaults()};
+ if(!persistOpening()){creatorMode=oldMode;creatorDrafts=oldDrafts;notify("无法保存创建模式，请检查存储空间");return}
+ render();
+}
+function creatorModeChooser(){
+ if(!FS)return "";
+ const locked=DUO_IDS.some(id=>drawnClubs[id]);
+ return '<section class="card creator-modes"><h2>选择你的双人开局</h2><div class="creator-choice">'+
+ [["preset","经典双星","保留原始王楚淇与维尼修斯模板"],["quick","快速造星","随机身份与隐藏潜能"],["custom","自定义造星","国籍、年龄、身高及人物外观"]].map(([mode,label,desc])=>
+  '<button type="button" class="creator-mode-btn '+(creatorMode===mode?'selected':'')+'" data-action="creatorMode" data-mode="'+mode+'" '+(locked?'disabled':'')+' aria-pressed="'+(creatorMode===mode)+'"><b>'+label+'</b><small>'+desc+'</small></button>'
+ ).join("")+'</div><p class="muted small gap">全新虚构球员的潜能在首次翻牌时随机确定并存档，刷新不会重抽。经典双星保持原设定。</p></section>';
+}
+function creatorSelect(id,key,label,options,selected,locked){
+ return '<label class="field">'+label+'<select data-creator-field="'+key+'" data-creator-id="'+id+'" '+(locked?'disabled':'')+'>'+
+  Object.entries(options).map(([v,t])=>'<option value="'+E(v)+'" '+(v===String(selected)?'selected':'')+'>'+E(t)+'</option>').join("")+'</select></label>';
+}
+function creatorForm(id){
+ if(!FS||creatorMode==="preset")return openingPlayerStyle(id);
+ const draft=creatorLocked[id]||creatorDrafts[id]||FS.draftDefaults(),locked=!!drawnClubs[id];
+ const picture=FS.avatar(draft),title=creatorMode==="quick"?"随机球员档案":"自定义球员档案";
+ const optionNames=Object.fromEntries(FS.COUNTRIES.map(country=>[country,country]));
+ const yearChoices=Object.fromEntries(Array.from({length:24},(_,i)=>[String(i+16),String(i+16)+" 岁"]));
+ const heightChoices=Object.fromEntries(Array.from({length:61},(_,i)=>[String(i+150),String(i+150)+" cm"]));
+ const controls=creatorMode==="custom"?'<div class="creator-form-grid">'+
+ creatorSelect(id,"country","游戏国籍",optionNames,draft.country,locked)+
+ creatorSelect(id,"age","开局年龄（16～39）",yearChoices,draft.age,locked)+
+ creatorSelect(id,"height","身高（150～210cm）",heightChoices,draft.height,locked)+
+ creatorSelect(id,"gender","性别",FS.GENDER,draft.gender,locked)+
+ creatorSelect(id,"heritage","族裔／地区背景（可选）",FS.HERITAGE,draft.heritage,locked)+
+ creatorSelect(id,"skin","肤色",Object.fromEntries(Object.entries(FS.TONE).map(([k,v])=>[k,v.label])),draft.skin,locked)+
+ creatorSelect(id,"hair","发型",FS.HAIR,draft.hair,locked)+
+ creatorSelect(id,"position","场上位置",FS.POS,draft.position,locked)+
+ '</div>':'<p class="muted small">国籍 '+E(draft.country)+' · '+draft.age+'岁 · '+draft.height+'cm · '+E(FS.GENDER[draft.gender])+' · '+E(FS.POS[draft.position])+'。身份与外观已随机生成。</p>';
+ return '<section class="item creator-profile"><div class="creator-profile-head"><div class="creator-avatar">'+picture+'</div><div><h3>'+title+'</h3>'+
+ '<p class="muted small">初始能力与隐藏潜能随机生成，实际潜能值不会提前展示。</p>'+
+ (locked?'<p class="gold small">人物和潜能已锁定，不可重新抽取</p>':'<p class="muted small">翻开球队卡后，人物与潜能一起锁定保存。</p>')+
+ '</div></div>'+controls+
+ '<p class="muted small">性别、国籍、族裔背景及肤色不影响能力或潜力。男女及不同性别球员均使用架空混合赛事规则，不代表现实赛事资格。</p></section>';
+}
+
 function chooseAcademy(id,league){
  if(!DUO_IDS.includes(id)||!OPENING_LEAGUES.includes(league)||drawnClubs[id])return;
  openingLeagues[id]=league;openingDecks[id]=null;persistOpening();render();
@@ -102,15 +149,15 @@ function flipOpeningCard(id,index){
 }
 function openingCardPanel(id){
  const t=duoPlayerTemplate(id),leagueId=openingLeagues[id],league=DB[leagueId],deck=openingCards(id),picked=drawnClubs[id];
- return '<section class="card opening-draw"><div class="row"><h2>'+E(duoDraft[id]||t.name)+' · 选择青训球队</h2><span class="chip">'+E(league.name)+'</span></div>'+
- '<label class="field">青训联赛 <select data-opening-league="'+id+'" '+(picked?'disabled':'')+'>'+OPENING_LEAGUES.map(l=>'<option value="'+l+'" '+(l===leagueId?'selected':'')+'>'+E(DB[l].name)+'</option>').join('')+'</select></label>'+
- openingPlayerStyle(id)+
+ return '<section class="card opening-draw"><div class="row"><h2>'+E(duoDraft[id]||t.name)+' · '+(creatorMode==="preset"||creatorDrafts[id]?.age<18?"选择青训球队":"选择职业球队")+'</h2><span class="chip">'+E(league.name)+'</span></div>'+
+ '<label class="field">'+(creatorMode==="preset"?"青训联赛":"起始联赛")+' <select data-opening-league="'+id+'" '+(picked?'disabled':'')+'>'+OPENING_LEAGUES.map(l=>'<option value="'+l+'" '+(l===leagueId?'selected':'')+'>'+E(DB[l].name)+'</option>').join('')+'</select></label>'+
+ creatorForm(id)+
  '<p class="muted small">亲自翻开十张随机球队卡中的一张；球队选定后立即保存。</p>'+
  '<div class="draw-card-grid">'+deck.map((club,i)=>{
  const open=!!picked&&openingSelectedIndex[id]===i;
- return '<button type="button" class="draw-card '+(open?'revealed':'')+'" data-action="flipOpeningCard" data-id="'+id+'" data-i="'+i+'" '+(picked?'disabled':'')+' aria-label="'+(open?E("已抽中"+club):"第"+(i+1)+"张未翻开球队卡")+'"><span class="draw-card-inner"><span class="draw-card-back"><b>★</b><small>FOOTBALL<br>DYNASTY</small><em>'+String(i+1).padStart(2,"0")+'</em></span><span class="draw-card-front">'+clubShield(club)+'<strong>'+E(club)+'</strong><small>'+E(league.name)+' · 青训</small></span></span></button>';
+ return '<button type="button" class="draw-card '+(open?'revealed':'')+'" data-action="flipOpeningCard" data-id="'+id+'" data-i="'+i+'" '+(picked?'disabled':'')+' aria-label="'+(open?E("已抽中"+club):"第"+(i+1)+"张未翻开球队卡")+'"><span class="draw-card-inner"><span class="draw-card-back"><b>★</b><small>FOOTBALL<br>DYNASTY</small><em>'+String(i+1).padStart(2,"0")+'</em></span><span class="draw-card-front">'+clubShield(club)+'<strong>'+E(club)+'</strong><small>'+E(league.name)+(creatorMode==="preset"||creatorDrafts[id]?.age<18?' · 青训':' · 一线队')+'</small></span></span></button>';
  }).join('')+'</div><p class="gold"><b>'+(picked?'已抽中：'+E(picked):'请选择一张卡牌')+'</b></p>'+
- '<details class="item"><summary>查看球员模板</summary><p class="muted small">'+E(openingStyles[id]==="default"&&duoDraft[id]===t.name?t.reference:"根据所选风格调整的游戏估算，不代表该人物真实能力。")+' · 潜力 '+t.potential+'</p></details></section>';
+ (creatorMode==="preset"?'<details class="item"><summary>查看球员模板</summary><p class="muted small">'+E(openingStyles[id]==="default"&&duoDraft[id]===t.name?t.reference:"根据所选风格调整的游戏估算，不代表该人物真实能力。")+' · 潜力 '+t.potential+'</p></details>':'<p class="muted small">潜能：未知（随职业生涯通过球探逐步评估）。</p>')+'</section>';
 }
 
 const COUNTRIES=["中国","英格兰","西班牙","德国","法国","意大利","葡萄牙","荷兰","巴西","阿根廷","日本","韩国","沙特阿拉伯","澳大利亚","美国","加拿大","墨西哥","比利时","克罗地亚","摩洛哥","尼日利亚","塞内加尔","埃及","瑞士","奥地利","丹麦"];
@@ -2064,7 +2111,8 @@ function startPage(){
  return '<div class="hero opening-hero"><div><div class="cap">ONE SHARED FOOTBALL WORLD</div><h1>双星同场 · 青训起航</h1><p>两人分别选择联赛，亲手翻开球队卡。</p></div></div>'+
  (incompatibleLegacySave?'<section class="card gap"><h2>旧版存档需要手动处理</h2><p class="muted">'+E(incompatibleLegacySave)+'。原始存档仍留在本设备。</p><div class="flex"><button class="button" data-action="exportIncompatible">导出原始存档 JSON</button><button class="button goldbtn" data-action="archiveIncompatible">先备份旧档，再开始</button></div></section>':'')+
  '<section class="card gap"><h2>两名球员</h2><div class="opening-names">'+names+'</div><div class="flex">'+summary+'</div></section>'+
- (current?'<div class="gap">'+openingCardPanel(current)+'</div>':'<section class="card gap"><h2>两人球队已选好</h2><p>青年与成年比赛数据分别保存。</p><button class="button primary" data-action="preset">开始双人青训赛季</button></section>')+legacyArchiveButtons();
+ creatorModeChooser()+
+ (current?'<div class="gap">'+openingCardPanel(current)+'</div>':'<section class="card gap"><h2>两人球队已选好</h2><p>青年与成年比赛数据分别保存。</p><button class="button primary" data-action="preset">生成球员，开启双人生涯</button></section>')+legacyArchiveButtons();
 }
 const SAFETY_STORE=STORE+"-safety";
 const LEGACY_ARCHIVES=[
@@ -2348,7 +2396,7 @@ $("app").addEventListener("change",ev=>{if(ev.target.dataset.careerPace){const v
  }
  const styleId=ev.target.dataset.duoStyle;if(styleId&&DUO_IDS.includes(styleId)&&!drawnClubs[styleId]&&Object.hasOwn(PLAYER_STYLES,ev.target.value)){openingStyles[styleId]=ev.target.value;persistOpening();render();return}const leagueFor=ev.target.dataset.openingLeague;if(leagueFor){chooseAcademy(leagueFor,ev.target.value);return}if(ev.target.dataset.worldLeague){g.worldFocus=ev.target.value;save();render();return}const id=ev.target.dataset.duoName;if(id&&DUO_IDS.includes(id)&&!drawnClubs[id]){duoDraft[id]=String(ev.target.value||DUO_TEMPLATES[id].name).trim().slice(0,22)||DUO_TEMPLATES[id].name;persistOpening();}const trainee=ev.target.dataset.trainingFocus;if(duoGames&&DUO_IDS.includes(trainee)&&!duoGames[trainee].player.retired){const focus=ev.target.value;if(focus==="auto"||Object.hasOwn(STATS,focus)){const p=duoGames[trainee].player;p.trainingFocus=focus==="auto"?null:focus;p.autoPoints=true;p.autoTraining=true;save()}}});
 $("app").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b||b.disabled)return;const tab=b.dataset.page;if(tab){choosePage(tab);return}const action=b.dataset.action,key=b.dataset.key,i=Number(b.dataset.i||0);switch(action){
- case"exportLegacy":exportLegacy(key);break;case"exportIncompatible":exportLegacy(STORE);break;case"archiveIncompatible":archiveIncompatibleSave();break;case"preset":buildDuoGame();break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"requestLateralOffers":requestLateralOffers(b.dataset.id);break;case"acceptLateralOffer":{const id=b.dataset.id,select=DUO_IDS.includes(id)?document.querySelector('[data-lateral-offer="'+id+'"]'):null;if(select)acceptLateralOffer(id,Number(select.value));break}case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"quickCareerAdvance":quickCareerAdvance();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
+ case"exportLegacy":exportLegacy(key);break;case"exportIncompatible":exportLegacy(STORE);break;case"archiveIncompatible":archiveIncompatibleSave();break;case"preset":buildDuoGame();break;case"creatorMode":setCreatorMode(b.dataset.mode);break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"requestLateralOffers":requestLateralOffers(b.dataset.id);break;case"acceptLateralOffer":{const id=b.dataset.id,select=DUO_IDS.includes(id)?document.querySelector('[data-lateral-offer="'+id+'"]'):null;if(select)acceptLateralOffer(id,Number(select.value));break}case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"quickCareerAdvance":quickCareerAdvance();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
  case"nextMatch":simNext();break;case"play":break;
  case"simSeason":simBoth();break;case"simThree":simThree();break;case"addPoint":training(key);break;case"manualRecovery":manualRecovery();break;case"manualTraining":manualTraining(key);break;case"coachPoint":coachPoint(key);break;case"autoDistribute":autoPoints();save();render();break;
  case"awardYear":g.awardViewIndex=i;save();render();break;case"ballotCsv":exportBallotCsv();break;case"transfer":break;case"startCoach":notify("本版本专注双人生涯，不再开启转世或下一代");break;case"coachScout":scoutForCoach();break;case"coachSign":signCoachProspect(i);break;case"coachJob":coachTransfer(i);break;case"coachAdd":coachPointAlloc(key);break;case"coachChild":notify("本版本已取消下一代球员系统");break;case"worldSelect":g.worldFocus=b.dataset.id;save();render();break;case"nextSeason":nextSeason();break;case"retireCoach":retirePlayer(activeDuo);break;case"retireSolo":retirePlayer(activeDuo);break;
