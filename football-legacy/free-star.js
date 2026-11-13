@@ -3,7 +3,14 @@
    ability or potential. One locked draw per player and old preset remains intact. */
 const COUNTRIES=["中国","英格兰","西班牙","德国","法国","意大利","葡萄牙","荷兰","巴西","阿根廷","日本","韩国","沙特阿拉伯","澳大利亚","美国","加拿大","墨西哥","比利时","克罗地亚","摩洛哥","尼日利亚","塞内加尔","埃及","瑞士","奥地利","丹麦"];
 const POS={LW:"左边锋",RW:"右边锋",ST:"中锋",CAM:"前腰",CM:"中场",CDM:"后腰",CB:"中后卫",GK:"门将"};
+// Keep legacy labels only for rendering pre-v8.0.1 player saves. New men's
+// competition characters always use male, without changing old careers.
 const GENDER={male:"男",female:"女",nonbinary:"非二元性别",other:"其他／不透露"};
+const CURRENT_COMPETITION="mens";
+const QUICK_HEIGHT={
+ LW:[166,187],RW:[166,187],ST:[172,198],CAM:[167,190],
+ CM:[167,191],CDM:[172,193],CB:[180,201],GK:[183,203]
+};
 const HERITAGE={unspecified:"不指定",eastAsian:"东亚",southeastAsian:"东南亚",southAsian:"南亚",african:"非洲",european:"欧洲",latin:"拉丁美洲",westAsian:"西亚／北非",mixed:"混合背景",other:"其他／自述"};
 const TONE={fair:{label:"浅肤色",color:"#efd0b5"},light:{label:"中浅肤色",color:"#d9a67d"},medium:{label:"中等肤色",color:"#ae7553"},tan:{label:"中深肤色",color:"#885439"},deep:{label:"深肤色",color:"#573a2f"}};
 const HAIR={short:"短发",curly:"卷发",fade:"渐变短发",long:"长发",bald:"光头"};
@@ -21,17 +28,22 @@ function draftDefaults(){
  return {country:"中国",age:16,height:177,gender:"male",heritage:"unspecified",skin:"medium",hair:"short",position:"LW"};
 }
 function quickDraft(random=Math.random){
- return {country:pick(COUNTRIES,random),age:randint(16,24,random),height:randint(158,199,random),
- gender:pick(["male","female","nonbinary"],random),heritage:"unspecified",
+ const position=pick(Object.keys(POS),random),range=QUICK_HEIGHT[position];
+ return {country:pick(COUNTRIES,random),age:randint(16,24,random),
+ height:randint(range[0],range[1],random),
+ gender:"male",heritage:"unspecified",
  skin:pick(Object.keys(TONE),random),hair:pick(Object.keys(HAIR),random),
- position:pick(Object.keys(POS),random)};
+ position};
 }
 function validate(d){
  const base=draftDefaults(),v={...base};
  if(d&&COUNTRIES.includes(d.country))v.country=d.country;
  if(Number.isInteger(Number(d?.age)))v.age=clamp(Number(d.age),16,39);
  if(Number.isInteger(Number(d?.height)))v.height=clamp(Number(d.height),150,210);
- for(const [field,table] of [["gender",GENDER],["heritage",HERITAGE],["skin",TONE],["hair",HAIR],["position",POS]]){
+ // The current simulated competitions are men's leagues. Gender is not a
+ // randomized gameplay trait; keep non-male entries in existing completed saves.
+ v.gender="male";
+ for(const [field,table] of [["heritage",HERITAGE],["skin",TONE],["hair",HAIR],["position",POS]]){
   if(d&&Object.hasOwn(table,d[field]))v[field]=d[field];
  }
  return v;
@@ -91,5 +103,5 @@ function avatar(profile){
  '<path d="M69 115 Q81 122 94 115" fill="none" stroke="#5c382b" stroke-width="2.5" stroke-linecap="round"/>'+
  '<text x="136" y="165" font-size="16" text-anchor="end" fill="#ffffff" opacity=".7" font-family="sans-serif">'+number+'</text></svg>';
 }
-window.FreeStar=Object.freeze({COUNTRIES,POS,GENDER,HERITAGE,TONE,HAIR,draftDefaults,quickDraft,validate,rollPotential,generatedProfile,rating,potentialReport,avatar});
+window.FreeStar=Object.freeze({COUNTRIES,POS,GENDER,HERITAGE,TONE,HAIR,CURRENT_COMPETITION,QUICK_HEIGHT,draftDefaults,quickDraft,validate,rollPotential,generatedProfile,rating,potentialReport,avatar});
 })();
