@@ -1,0 +1,38 @@
+name: Football alternate game access diagnostics
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/football-alternate-access.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Diagnose alternate hosts and render game
+        shell: bash
+        run: |
+          set -u
+          hosts=(
+            "https://raw.githack.com/wpcnb/order-classifier/main/football-legacy/index.html"
+            "https://cdn.jsdelivr.net/gh/wpcnb/order-classifier@main/football-legacy/index.html"
+          )
+          browser="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          for url in "${hosts[@]}"; do
+            echo "===== CHECK ${url} ====="
+            code=$(curl -L -sS --connect-timeout 8 --max-time 18 -o /tmp/alternate-index -w '%{http_code}' "$url") || code="curl-error"
+            echo "HTTP: $code"
+            head -c 200 /tmp/alternate-index || true; echo
+            if [ -n "$browser" ]; then
+              timeout 35 "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=9000 --dump-dom "$url" >/tmp/alternate-dom 2>/tmp/alternate-error
+              result=$?
+              if [ "$result" = 0 ] && grep -q '双星同场' /tmp/alternate-dom && ! grep -q 'data-game-loading="1"' /tmp/alternate-dom; then
+                echo "BROWSER_GAME_BOOT: SUCCESS"
+              else
+                echo "BROWSER_GAME_BOOT: FAILURE code=$result"
+                tail -c 650 /tmp/alternate-error
+              fi
+            fi
+          done
