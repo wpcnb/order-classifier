@@ -1,0 +1,135 @@
+name: Research corrected Hupu game for v10
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/research-hupu-second-v10.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download corrected Hupu URL and identify actual game iframe
+        shell: bash
+        run: |
+          set -u
+          origin="https://activity-static.hupu.com/shaper/published/app_2ad6d8a0e3"
+          curl -LsS --connect-timeout 10 --max-time 25 -A 'Mozilla/5.0 (Linux; Android 12)' -o /tmp/wrapper.html -w 'WRAPPER_HTTP=%{http_code} BYTES=%{size_download} REDIRECT=%{url_effective}\n' "$origin/index.html?night=1" || true
+          curl -LsS --connect-timeout 10 --max-time 25 -A 'Mozilla/5.0 (Linux; Android 12)' -o /tmp/embedded.html -w 'EMBED_HTTP=%{http_code} BYTES=%{size_download} REDIRECT=%{url_effective}\n' "$origin/__ai_app.html?night=1" || true
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re
+          class V(HTMLParser):
+           def __init__(self):super().__init__();self.skip=0;self.items=[]
+           def handle_starttag(self,tag,attrs):
+            if tag in ('script','style'):self.skip+=1
+           def handle_endtag(self,tag):
+            if tag in ('script','style'):self.skip=max(0,self.skip-1)
+           def handle_data(self,data):
+            if not self.skip and data.strip():self.items.append(data.strip())
+          for name in ('wrapper','embedded'):
+           p=Path('/tmp/'+name+'.html')
+           if not p.exists():continue
+           s=p.read_text(errors='replace');v=V();v.feed(s)
+           print(name.upper()+'_TITLE=',re.findall(r'<title[^>]*>(.*?)</title>',s,re.I|re.S)[:3])
+           print(name.upper()+'_VISIBLE_TEXT=', ' | '.join(v.items)[:18000])
+           print(name.upper()+'_SCRIPT_SRCS=',re.findall(r'<script[^>]*src=[\x22\x27]([^\x22\x27]+)',s,re.I)[:30])
+           print(name.upper()+'_IFRAME_SRCS=',re.findall(r'(?:data-src|src)=[\x22\x27]([^\x22\x27]+)',s,re.I)[:30])
+          PY
+      - name: Render app and inspect first navigation screens
+        shell: bash
+        run: |
+          npm install --prefix /tmp/hupu-second puppeteer-core@24.20.0 --no-audit --no-fund --silent || { echo "PUPPETEER_FAILED"; exit 0; }
+          cat >/tmp/hupu-second/inspect.cjs <<'JS'
+          const puppeteer=require('puppeteer-core'),delay=ms=>new Promise(r=>setTimeout(r,ms));
+          (async()=>{
+            const browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BINARY||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            const origin='https://activity-static.hupu.com/shaper/published/app_2ad6d8a0e3/';
+            const urls=[origin+'index.html?night=1',origin+'__ai_app.html?night=1'];
+            for(const url of urls){
+              const page=await browser.newPage();await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+              try{
+                const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:35000});await delay(3500);
+                const info=await page.evaluate(()=>({title:document.title,text:(document.body?.innerText||'').slice(0,16000),buttons:[...document.querySelectorAll('button,a,[role=button]')].map(e=>({text:(e.innerText||e.textContent||'').trim().slice(0,90),tag:e.tagName})).filter(x=>x.text).slice(0,45),frames:[...document.querySelectorAll('iframe')].map(x=>x.src)}));
+                console.log('BROWSER_URL='+url);
+                console.log('BROWSER_HTTP='+response?.status());
+                console.log('BROWSER_BOOT='+JSON.stringify(info));
+                if(url.includes('__ai_app')){
+                  const targets=info.buttons.filter(x=>x.text.length<65).slice(0,7);
+                  console.log('BROWSER_INITIAL_CONTROLS='+JSON.stringify(targets));
+                }
+              }catch(e){console.log('BROWSER_ERROR='+url+' '+String(e));}
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>console.log('BROWSER_FATAL='+String(e)));
+          JS
+          CHROME_BINARY="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)" node /tmp/hupu-second/inspect.cjs
+
+      - name: Navigate actual country, league and club setup in isolated browser
+        shell: bash
+        run: |
+          npm install --prefix /tmp/hupu-second puppeteer-core@24.20.0 --no-audit --no-fund --silent || { echo "PUPPETEER_UNAVAILABLE"; exit 0; }
+          cat >/tmp/hupu-second/navigate.cjs <<'JS'
+          const puppeteer=require('puppeteer-core'),sleep=n=>new Promise(r=>setTimeout(r,n));
+          (async()=>{
+            const browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BINARY||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            const page=await browser.newPage();await page.setViewport({width:390,height:820});
+            await page.goto('https://activity-static.hupu.com/shaper/published/app_2ad6d8a0e3/__ai_app.html?night=1',{waitUntil:'domcontentloaded',timeout:35000});
+            await sleep(3500);
+            const report=async label=>{
+              const obj=await page.evaluate(()=>({text:(document.body?.innerText||'').slice(0,16000),controls:[...document.querySelectorAll('button,select,input,[role="button"],a')].map(el=>({tag:el.tagName,txt:(el.innerText||el.textContent||el.getAttribute('aria-label')||'').trim().slice(0,65),type:el.getAttribute('type'),disabled:!!el.disabled})).filter(x=>x.txt).slice(0,50)}));
+              console.log('STATE_'+label+'='+JSON.stringify(obj));
+            };
+            const click=async (label,n=0)=>{
+              const result=await page.evaluate(({label,n})=>{
+                const list=[...document.querySelectorAll('button,[role="button"],a')].filter(el=>(el.innerText||el.textContent||'').includes(label));
+                if(!list[n])return {available:list.length};
+                list[n].click();return {available:list.length,clicked:(list[n].innerText||list[n].textContent||'').slice(0,80)};
+              },{label,n});
+              console.log('CLICK_'+label+'='+JSON.stringify(result));await sleep(1500);
+            };
+            await report('home');
+            await click('开始执教生涯');await report('after_start');
+            const text=await page.evaluate(()=>document.body?.innerText||'');
+            if(text.includes('中国')){await click('中国');await report('after_country');}
+            else if(text.includes('英格兰')){await click('英格兰');await report('after_country');}
+            if((await page.evaluate(()=>document.body?.innerText||'')).includes('中超')){await click('中超');await report('after_league');}
+            if((await page.evaluate(()=>document.body?.innerText||'')).includes('英超')){await click('英超');await report('after_league_alt');}
+            await browser.close();
+          })().catch(e=>console.log('NAV_ERROR='+String(e)));
+          JS
+          CHROME_BINARY="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)" node /tmp/hupu-second/navigate.cjs
+
+      - name: Inspect philosophy and playing style choices without starting career
+        shell: bash
+        run: |
+          if [ ! -d /tmp/hupu-second/node_modules/puppeteer-core ]; then exit 0; fi
+          cat >/tmp/hupu-second/choices.cjs <<'JS'
+          const puppeteer=require('puppeteer-core'),sleep=n=>new Promise(r=>setTimeout(r,n));
+          (async()=>{
+            const browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BINARY||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            const page=await browser.newPage();await page.setViewport({width:390,height:820});
+            await page.goto('https://activity-static.hupu.com/shaper/published/app_2ad6d8a0e3/__ai_app.html?night=1',{waitUntil:'domcontentloaded',timeout:35000});await sleep(3000);
+            async function click(text){
+              const hit=await page.evaluate(x=>{const b=[...document.querySelectorAll('button,[role=button]')].find(el=>(el.innerText||el.textContent||'').includes(x));if(!b)return null;b.click();return (b.innerText||'').trim().slice(0,80)},text);
+              console.log('ACTION='+text+' => '+hit);await sleep(900);return !!hit;
+            }
+            async function show(label){
+              const out=await page.evaluate(()=>({text:(document.body?.innerText||'').slice(0,14500),buttons:[...document.querySelectorAll('button')].filter(x=>!x.disabled).map(x=>(x.innerText||'').trim()).filter(Boolean).slice(0,35)}));
+              console.log('SCREEN_'+label+'='+JSON.stringify(out));
+            }
+            await click('开始执教生涯');
+            await click('下一步：执教理念');await show('philosophy');
+            const next1=await page.evaluate(()=>[...document.querySelectorAll('button')].map(x=>(x.innerText||'').trim()).filter(x=>x.includes('下一步')||x.includes('继续')));
+            console.log('NEXT_PHILOSOPHY='+JSON.stringify(next1));
+            if(next1.length){await click(next1[0]);await show('play_style');}
+            const next2=await page.evaluate(()=>[...document.querySelectorAll('button')].map(x=>(x.innerText||'').trim()).filter(x=>x.includes('下一步')||x.includes('继续')));
+            console.log('NEXT_PLAY_STYLE='+JSON.stringify(next2));
+            if(next2.length){await click(next2[0]);await show('team_selection');}
+            await browser.close();
+          })().catch(e=>console.log('CHOICES_ERROR='+String(e)));
+          JS
+          CHROME_BINARY="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)" node /tmp/hupu-second/choices.cjs
