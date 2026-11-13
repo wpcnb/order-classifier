@@ -1,0 +1,23 @@
+name: Football v9 100-million-event balance audit
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "football-legacy/body-path.js"
+      - "football-legacy/career-depth.js"
+      - "football-legacy/tests/v9-100million-events.cjs"
+      - ".github/workflows/football-v9-calibration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  body-100m:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Exactly 100 million seeded matchup and path trials
+        run: node football-legacy/tests/v9-100million-events.cjs
