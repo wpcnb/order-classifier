@@ -2237,6 +2237,26 @@ function archiveIncompatibleSave(){
   incompatibleLegacySave="";render();notify("旧存档完整保存在单独的旧版备份中，可导出，现可开始新游戏");
  }catch(e){notify("备份失败。原始存档未被删除，请先导出 JSON 文件")}
 }
+
+function v10OpeningAction(action,id){
+ if(!V10||!V10UI)return;
+ const before={step:v10Step,leagues:{...openingLeagues},countries:{...v10Countries},decks:{...openingDecks}};
+ if(action==="v10Next"){
+  if(v10Persons.wang===v10Persons.vini)return notify("两名球员不能是同一个人物，请重新选择");
+  if(v10Step===1&&!DUO_IDS.every(x=>V10.findPerson(v10Persons[x],window.FOOTBALL_AWARD_REAL_PEOPLE)))return notify("球员姓名未能匹配人物名单");
+  v10Step=Math.min(3,v10Step+1);
+ }else if(action==="v10Back")v10Step=Math.max(1,v10Step-1);
+ else if(DUO_IDS.includes(id)&&!drawnClubs[id]){
+  if(action==="v10Country")v10Countries[id]=V10.chooseCountry();
+  else if(action==="v10League"){openingLeagues[id]=V10.chooseLeague();openingDecks[id]=null;}
+  else return;
+ }else return;
+ if(!persistOpening()){
+  v10Step=before.step;openingLeagues=before.leagues;v10Countries=before.countries;openingDecks=before.decks;
+  notify("本地空间不足，设置未保存；请先导出旧存档");
+ }
+ render();
+}
 function startPage(){
  if(V10&&V10UI){
   const legacy=incompatibleLegacySave?'<section class="card gap"><h2>旧版存档需要先备份</h2><p>'+E(incompatibleLegacySave)+'</p><button class="button" data-action="exportIncompatible">导出原始旧档 JSON</button><button class="button" data-action="archiveIncompatible">先备份旧档，再开始</button></section>':'';
@@ -2538,7 +2558,31 @@ function topNav(){
  return '<nav class="nav" aria-label="游戏页面">'+tabs.map(([key,name])=>'<button data-page="'+key+'" class="'+((page===key||key==="my"&&mine)?"active":"")+'">'+name+'</button>').join("")+'</nav>';
 }
 function render(){const a=$("app");if(!g){a.innerHTML=startPage();return}const pages={dashboard:duoDashboard,world:duoWorldPage,transfer:duoTransferPage,my:duoMyPage,honors:duoHonorsPage,awards:duoAwardsPage,career:duoHistoryPage,save:savePage};a.innerHTML=duoTop()+topNav()+(pages[page]||duoDashboard)()}
-$("app").addEventListener("change",ev=>{if(ev.target.dataset.careerPace){const value=ev.target.value;if(["day","week","season"].includes(value)){careerPace=value;try{localStorage.setItem(CAREER_PACE_KEY,value)}catch(e){}render()}return}
+$("app").addEventListener("change",ev=>{
+ if(V10){
+  const data=ev.target.dataset,id=data.v10Person||data.v10Height||data.v10Philosophy||data.v10Operation;
+  if(DUO_IDS.includes(id)&&!drawnClubs[id]){
+   const previous={persons:{...v10Persons},draft:{...duoDraft},height:{...v10Heights},
+    weight:{...openingWeights},position:{...openingPositions},philosophies:{...v10Philosophies},operations:{...v10Operations}};
+   if(data.v10Person){
+    const found=V10.findPerson(ev.target.value,window.FOOTBALL_AWARD_REAL_PEOPLE);
+    if(!found)return;
+    v10Persons[id]=found.name;duoDraft[id]=found.name;openingPositions[id]=found.position;
+   }else if(data.v10Height){
+    const oldHeight=v10Heights[id],newHeight=V10.allowedHeight(ev.target.value);
+    if(openingWeights[id]===V10.seedWeight(oldHeight))openingWeights[id]=V10.seedWeight(newHeight);
+    v10Heights[id]=newHeight;
+   }else if(data.v10Philosophy)v10Philosophies[id]=V10.scrubPhilosophy(ev.target.value);
+   else if(data.v10Operation)v10Operations[id]=V10.scrubOperation(ev.target.value);
+   if(!persistOpening()){
+    v10Persons=previous.persons;duoDraft=previous.draft;v10Heights=previous.height;
+    openingWeights=previous.weight;openingPositions=previous.position;
+    v10Philosophies=previous.philosophies;v10Operations=previous.operations;
+    notify("设置保存失败，已恢复原值");
+   }render();return
+  }
+ }
+ if(ev.target.dataset.careerPace){const value=ev.target.value;if(["day","week","season"].includes(value)){careerPace=value;try{localStorage.setItem(CAREER_PACE_KEY,value)}catch(e){}render()}return}
  const changePosition=ev.target.dataset.positionTarget;
  if(changePosition&&CD&&duoGames&&DUO_IDS.includes(changePosition)){
   const p=duoGames[changePosition].player,oldTarget=p.positionTarget,oldProgress=p.positionProgress;
@@ -2584,7 +2628,7 @@ $("app").addEventListener("change",ev=>{if(ev.target.dataset.careerPace){const v
  }
  const styleId=ev.target.dataset.duoStyle;if(styleId&&DUO_IDS.includes(styleId)&&!drawnClubs[styleId]&&Object.hasOwn(PLAYER_STYLES,ev.target.value)){openingStyles[styleId]=ev.target.value;persistOpening();render();return}const leagueFor=ev.target.dataset.openingLeague;if(leagueFor){chooseAcademy(leagueFor,ev.target.value);return}if(ev.target.dataset.worldLeague){g.worldFocus=ev.target.value;save();render();return}const id=ev.target.dataset.duoName;if(id&&DUO_IDS.includes(id)&&!drawnClubs[id]){duoDraft[id]=String(ev.target.value||DUO_TEMPLATES[id].name).trim().slice(0,22)||DUO_TEMPLATES[id].name;persistOpening();}const trainee=ev.target.dataset.trainingFocus;if(duoGames&&DUO_IDS.includes(trainee)&&!duoGames[trainee].player.retired){const focus=ev.target.value;if(focus==="auto"||Object.hasOwn(STATS,focus)){const p=duoGames[trainee].player;p.trainingFocus=focus==="auto"?null:focus;p.autoPoints=true;p.autoTraining=true;save()}}});
 $("app").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b||b.disabled)return;const tab=b.dataset.page;if(tab){choosePage(tab);return}const action=b.dataset.action,key=b.dataset.key,i=Number(b.dataset.i||0);switch(action){
- case"exportLegacy":exportLegacy(key);break;case"exportIncompatible":exportLegacy(STORE);break;case"archiveIncompatible":archiveIncompatibleSave();break;case"preset":buildDuoGame();break;case"creatorMode":setCreatorMode(b.dataset.mode);break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"requestLateralOffers":requestLateralOffers(b.dataset.id);break;case"acceptLateralOffer":{const id=b.dataset.id,select=DUO_IDS.includes(id)?document.querySelector('[data-lateral-offer="'+id+'"]'):null;if(select)acceptLateralOffer(id,Number(select.value));break}case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"quickCareerAdvance":quickCareerAdvance();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
+ case"v10Next":case"v10Back":case"v10League":case"v10Country":v10OpeningAction(action,b.dataset.id);break;case"exportLegacy":exportLegacy(key);break;case"exportIncompatible":exportLegacy(STORE);break;case"archiveIncompatible":archiveIncompatibleSave();break;case"preset":buildDuoGame();break;case"creatorMode":setCreatorMode(b.dataset.mode);break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"requestLateralOffers":requestLateralOffers(b.dataset.id);break;case"acceptLateralOffer":{const id=b.dataset.id,select=DUO_IDS.includes(id)?document.querySelector('[data-lateral-offer="'+id+'"]'):null;if(select)acceptLateralOffer(id,Number(select.value));break}case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"quickCareerAdvance":quickCareerAdvance();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
  case"nextMatch":simNext();break;case"play":break;
  case"simSeason":simBoth();break;case"simThree":simThree();break;case"addPoint":training(key);break;case"manualRecovery":manualRecovery();break;case"manualTraining":manualTraining(key);break;case"coachPoint":coachPoint(key);break;case"autoDistribute":autoPoints();save();render();break;
  case"awardYear":g.awardViewIndex=i;save();render();break;case"ballotCsv":exportBallotCsv();break;case"transfer":break;case"startCoach":notify("本版本专注双人生涯，不再开启转世或下一代");break;case"coachScout":scoutForCoach();break;case"coachSign":signCoachProspect(i);break;case"coachJob":coachTransfer(i);break;case"coachAdd":coachPointAlloc(key);break;case"coachChild":notify("本版本已取消下一代球员系统");break;case"worldSelect":g.worldFocus=b.dataset.id;save();render();break;case"nextSeason":nextSeason();break;case"retireCoach":retirePlayer(activeDuo);break;case"retireSolo":retirePlayer(activeDuo);break;
