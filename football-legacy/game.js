@@ -1030,7 +1030,7 @@ function previousClubRank(id,club,year){
  }
  return null;
 }
-function playerFit(){let p=g.player;return C(.20+overall(p)/155+(p.coachTrust-55)/450+(p.parentCoach?.skills?.motivation||0)/650-(p.stamina<40?.16:0)+(p.seasonForm||0)*.10,.26,.91)}
+function playerFit(){let p=g.player;return C(.20+overall(p)/155+(p.coachTrust-55)/450+(p.parentCoach?.skills?.motivation||0)/650-(p.stamina<40?.16:0)+(p.seasonForm||0)*.10+(BP?BP.appearancesBonus(p.careerPath):0),.26,.91)}
 function allocateAvailable(points,values,keys,limit){
  let n=0;while(points>0){const available=keys.filter(k=>values[k]<limit);if(!available.length)break;const key=available[n%available.length];values[key]++;points--;n++}return points
 }
@@ -1043,7 +1043,7 @@ function automaticPrep(){
   const weights=WEIGHTS[p.position],keys=Object.keys(STATS);
   const eligible=keys.filter(k=>p.stats[k]<p.potential);if(!eligible.length){p.stamina=C(p.stamina+10,0,100);p.trainingUsed=true;return}const focus=eligible.includes(p.trainingFocus)?p.trainingFocus:eligible.map(k=>({key:k,score:weights[keys.indexOf(k)]*(p.potential-p.stats[k])})).sort((a,b)=>b.score-a.score)[0].key;
   p.trainingProgress=p.trainingProgress||{};p.trainingProgress[focus]=(p.trainingProgress[focus]||0)+1;
-  const threshold=p.age<22?7:p.age<28?12:18;const coachBonus=(p.parentCoach?.skills?.training||0)>=55?1:0;
+  const baseThreshold=p.age<22?7:p.age<28?12:18,threshold=BP?BP.trainingThreshold(baseThreshold,p.careerPath):baseThreshold;const coachBonus=(p.parentCoach?.skills?.training||0)>=55?1:0;
   if(p.trainingProgress[focus]>=(threshold-coachBonus)&&p.stats[focus]<p.potential){p.stats[focus]++;p.trainingProgress[focus]=0}
   p.stamina=C(p.stamina-3,0,100)
  }
@@ -1060,7 +1060,7 @@ function manualTraining(key){
  const p=g?.player;if(!p||g.season.stage!=="playing"||p.trainingUsed||!STATS[key]){notify("本轮无法继续训练");return}
  if(p.stamina<23){notify("体能不足，请优先休息恢复");return}
  p.trainingProgress=p.trainingProgress||{};p.trainingProgress[key]=(p.trainingProgress[key]||0)+2;
- const threshold=p.age<22?7:p.age<28?12:18;
+ const baseThreshold=p.age<22?7:p.age<28?12:18,threshold=BP?BP.trainingThreshold(baseThreshold,p.careerPath):baseThreshold;
  if(p.trainingProgress[key]>=threshold&&p.stats[key]<p.potential){p.stats[key]++;p.trainingProgress[key]=0;notify(STATS[key]+"能力提升1点")}
  p.stamina=C(p.stamina-12,0,100);p.trainingUsed=true;log("进行了"+STATS[key]+"专项训练，体能消耗12点。");save();render()
 }
@@ -1094,8 +1094,8 @@ function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced",
  const shotBase=p.position==="ST"?.16:attacker?.125:p.position==="CAM"?.065:.018;
  const assistBase=p.position==="CAM"?.19:creator?.14:p.position==="ST"?.065:.035;
  const traitBonus=CD?CD.contributionModifiers(p,ev):{shoot:1,assist:1};
- const shoot=C((shotBase+advantage*.095+(p.stats.shoot-70)*.0016+(choice==="attack"?.018:0)+(p.seasonForm||0)*.055)*traitBonus.shoot,.005,.30);
- const assist=C((assistBase+advantage*.055+(p.stats.pass-70)*.0017+(choice==="creative"?.02:0)+(p.seasonForm||0)*.042)*traitBonus.assist,.008,.28);
+ const shoot=C((shotBase+advantage*.095+(p.stats.shoot-70)*.0016+(choice==="attack"?.018:0)+(p.seasonForm||0)*.055)*traitBonus.shoot*(BP?BP.contributionBonus(p,"shoot"):1),.005,.30);
+ const assist=C((assistBase+advantage*.055+(p.stats.pass-70)*.0017+(choice==="creative"?.02:0)+(p.seasonForm||0)*.042)*traitBonus.assist*(BP?BP.contributionBonus(p,"assist"):1),.008,.28);
  // Soft upper tail: historic 50+ goal club seasons should be very rare, not routine.
  const already=g?.season?.goals||0,created=g?.season?.assists||0;
  const finishingDiminish=already>45?.30:already>35?.50:already>25?.72:1;
@@ -1275,6 +1275,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  const contribution=played?capSharedContributions(p,ev,home,away,our,playerMatchContribution(p,ev,oppStrength,our,choice,minutesPlayed)):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
  let rating=played?roleAdjustedRating(calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}),p.position,their):0;
+ if(played&&BP)rating=Math.round(C(rating+BP.matchScoreBonus(p),4.6,9.8)*10)/10;
  if(played&&p.positionTarget)rating=Math.max(4.6,Math.round((rating-.10)*10)/10);
  if(matchCards.redCard)rating=Math.max(4.6,Math.round((rating-.4)*10)/10);
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
@@ -1312,7 +1313,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  recordRecentMatchMinutes(p,minutesPlayed);
  if(played&&CD){const positionUpdate=CD.progressPosition(p);if(positionUpdate?.completed)log(p.name+"位置改造成功："+CD.ROLE_NAMES[positionUpdate.from]+" → "+CD.ROLE_NAMES[positionUpdate.to]);}
  if(played){
-  const loss=Math.round((R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30))*minutesPlayed/90);
+  const loss=Math.round((R(8,17)+(choice==="attack"?4:choice==="creative"?2:0)-Math.round((p.stats.physical-60)/30))*minutesPlayed/90/(BP?BP.profile(p).endurance:1));
   p.stamina=percent(p.stamina-loss+(ev.kind==="league"?5:3));
   const injuryRisk=injuryRiskFor(p,minutesPlayed)*(CD?CD.injuryFactor(p):1);
   if(Math.random()<injuryRisk){newInjury=injuryDuration();p.injuryMatches=newInjury;p.injuryHistory=(p.injuryHistory||0)+1;log(p.name+"在"+(ev.competition||DB[p.leagueId].name)+"中受伤，预计缺阵"+p.injuryMatches+"场比赛。")}
@@ -2490,9 +2491,36 @@ $("app").addEventListener("change",ev=>{if(ev.target.dataset.careerPace){const v
   }render();return
  }
 
+
+ const pathId=ev.target.dataset.openingPath;
+ if(BP&&DUO_IDS.includes(pathId)&&!drawnClubs[pathId]&&Object.hasOwn(BP.PATHS,ev.target.value)){
+  const previous=openingPaths[pathId];openingPaths[pathId]=ev.target.value;
+  if(!persistOpening()){openingPaths[pathId]=previous;notify("无法保存生涯路线")}render();return
+ }
+ const weightId=ev.target.dataset.openingWeight;
+ if(BP&&DUO_IDS.includes(weightId)&&!drawnClubs[weightId]){
+  const weight=Number(ev.target.value);
+  if(Number.isInteger(weight)&&weight>=45&&weight<=125){
+   const previous=creatorMode==="preset"?openingWeights[weightId]:creatorDrafts[weightId];
+   if(creatorMode==="preset")openingWeights[weightId]=weight;
+   else creatorDrafts[weightId]=FS.validate({...creatorDrafts[weightId],weight});
+   if(!persistOpening()){if(creatorMode==="preset")openingWeights[weightId]=previous;else creatorDrafts[weightId]=previous;notify("无法保存球员体重")}
+  }render();return
+ }
+ const roleId=ev.target.dataset.creatorField==="_position"?ev.target.dataset.creatorId:null;
+ if(BP&&DUO_IDS.includes(roleId)&&!drawnClubs[roleId]&&Object.hasOwn(POS,ev.target.value)){
+  const previous=creatorMode==="preset"?openingPositions[roleId]:creatorDrafts[roleId];
+  if(creatorMode==="preset")openingPositions[roleId]=ev.target.value;
+  else creatorDrafts[roleId]=FS.validate({...creatorDrafts[roleId],position:ev.target.value});
+  if(!persistOpening()){if(creatorMode==="preset")openingPositions[roleId]=previous;else creatorDrafts[roleId]=previous;notify("无法保存开局位置")}
+  render();return
+ }
+
  const creatorId=ev.target.dataset.creatorId,creatorField=ev.target.dataset.creatorField;
  if(FS&&creatorMode==="custom"&&DUO_IDS.includes(creatorId)&&creatorField&&!drawnClubs[creatorId]&&Object.hasOwn(FS.draftDefaults(),creatorField)){
-  const before=creatorDrafts[creatorId],next=FS.validate({...before,[creatorField]:ev.target.value});
+  const before=creatorDrafts[creatorId],height=Number(ev.target.value);
+  const weightAuto=creatorField==="height"&&BP&&Number.isInteger(height)&&before.weight===BP.referenceWeight(before.height);
+  const next=FS.validate({...before,[creatorField]:ev.target.value,...(weightAuto?{weight:BP.referenceWeight(height)}:{})});
   creatorDrafts[creatorId]=next;
   if(!persistOpening()){creatorDrafts[creatorId]=before;notify("无法保存人物设定，已恢复原值");}
   render();return
