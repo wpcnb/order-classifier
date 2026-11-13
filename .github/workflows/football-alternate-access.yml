@@ -26,8 +26,14 @@ jobs:
             echo "HTTP: $code"
             head -c 200 /tmp/alternate-index || true; echo
             if [ -n "$browser" ]; then
-              timeout 35 "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=9000 --dump-dom "$url" >/tmp/alternate-dom 2>/tmp/alternate-error
+              timeout 35 "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=14000 --dump-dom "$url" >/tmp/alternate-dom 2>/tmp/alternate-error
               result=$?
+              echo "CONTENT-TYPE:"
+              curl -sSIL --connect-timeout 8 --max-time 12 "$url" | grep -i '^content-type:' | tail -1 || true
+              echo "DOM-SIZE:"
+              wc -c /tmp/alternate-dom
+              echo "DOM-INDICATORS:"
+              grep -oE 'data-game-loading="1"|双星同场|正在加载游戏|游戏未能完成加载|<title>[^<]*</title>' /tmp/alternate-dom | head -8 || true
               if [ "$result" = 0 ] && grep -q '双星同场' /tmp/alternate-dom && ! grep -q 'data-game-loading="1"' /tmp/alternate-dom; then
                 echo "BROWSER_GAME_BOOT: SUCCESS"
               else
