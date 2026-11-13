@@ -30,3 +30,21 @@ jobs:
             fi
           done
           echo "SUCCESS: deployed game HTML and all essential JS files return 200"
+      - name: Confirm browser renders live game, not just HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          browser="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$browser" ]; then
+            echo "No preinstalled Chromium found on runner"; exit 1
+          fi
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=12000 \
+            --dump-dom "https://wpcnb.github.io/order-classifier/football-legacy/?v=6.3.0" \
+            >/tmp/live-dom.html 2>/tmp/chrome-output.log || { cat /tmp/chrome-output.log; exit 1; }
+          echo "Rendered page length: $(wc -c </tmp/live-dom.html)"
+          if grep -q 'data-game-loading="1"' /tmp/live-dom.html; then
+            echo "Game still on loading fallback after 12 virtual seconds"; tail -40 /tmp/chrome-output.log; exit 1
+          fi
+          grep -q "双星同场" /tmp/live-dom.html
+          echo "Browser succeeded: actual game start screen rendered"
