@@ -77,3 +77,53 @@ jobs:
            instances=[m.start() for m in list(re.finditer(re.escape(p),s,re.I))[:4]]
            print('PATTERN',p,'COUNT',len(re.findall(re.escape(p),s,re.I)),'CONTEXTS',[s[max(0,i-75):i+110].replace('\\n',' ') for i in instances])
           PY
+
+      - name: Inspect actual embedded FM football manager page
+        shell: bash
+        run: |
+          url="https://activity-static.hupu.com/shaper/published/app_b0ed4d1269/__ai_app.html"
+          echo "APP_URL=$url"
+          curl --connect-timeout 12 --max-time 25 -L -sS -A 'Mozilla/5.0' -o /tmp/hupu-app.html -w 'GAME_HTTP_STATUS=%{http_code} BYTES=%{size_download}\n' "$url" || true
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          class Extract(HTMLParser):
+           def __init__(self): super().__init__();self.skip=0;self.items=[]
+           def handle_starttag(self,t,a):
+            if t in ('script','style'):self.skip+=1
+           def handle_endtag(self,t):
+            if t in ('script','style'):self.skip=max(0,self.skip-1)
+           def handle_data(self,t):
+            if not self.skip and t.strip():self.items.append(t.strip())
+          p=Path('/tmp/hupu-app.html')
+          if p.exists():
+           s=p.read_text(errors='replace');x=Extract();x.feed(s)
+           print('APP_HEAD=',s[:1700].replace('\\n',' '))
+           print('APP_STATIC_TEXT='+' | '.join(x.items)[:22000])
+           print('APP_SCRIPT_TAGS=',re.findall(r'<script[^>]*>',s,re.I)[:20])
+           for term in ('fm','战术','转会','赛季','阵容','球队','比赛','球员','新游戏','存档','状态','欧冠','联赛','工资','资金','薪资','续约','报名','登录'):
+            print('APP_WORD',term,'COUNT',s.count(term))
+          PY
+          browser="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          if [ -z "$browser" ]; then exit 0; fi
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=13000 --dump-dom "$url" >/tmp/game-dom.html 2>/tmp/game-chrome.txt || true
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Extract(HTMLParser):
+           def __init__(self):super().__init__();self.skip=0;self.items=[]
+           def handle_starttag(self,t,a):
+            if t in ('script','style'):self.skip+=1
+           def handle_endtag(self,t):
+            if t in ('script','style'):self.skip=max(0,self.skip-1)
+           def handle_data(self,t):
+            if not self.skip and t.strip():self.items.append(t.strip())
+          p=Path('/tmp/game-dom.html')
+          if p.exists():
+           s=p.read_text(errors='replace');x=Extract();x.feed(s)
+           print('APP_RENDERED_DOM_BYTES=',len(s))
+           print('APP_RENDERED_VISIBLE_TEXT='+' | '.join(x.items)[:26000])
+          p=Path('/tmp/game-chrome.txt')
+          if p.exists():print('APP_CHROME_ERRORS=',p.read_text(errors='replace')[-2400:])
+          PY
