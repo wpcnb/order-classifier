@@ -127,3 +127,35 @@ jobs:
           p=Path('/tmp/game-chrome.txt')
           if p.exists():print('APP_CHROME_ERRORS=',p.read_text(errors='replace')[-2400:])
           PY
+
+      - name: Inspect FM home navigations without submitting gameplay actions
+        shell: bash
+        run: |
+          npm install --prefix /tmp/hupuresearch puppeteer-core@24.20.0 --no-audit --no-fund --silent || { echo "PUPPETEER_INSTALL_FAILED"; exit 0; }
+          cat >/tmp/hupuresearch/inspect.cjs <<'JS'
+          const pp=require("puppeteer-core");
+          (async()=>{
+           const browser=await pp.launch({headless:true,executablePath:process.env.CHROME_BINARY||"/usr/bin/google-chrome",args:["--no-sandbox","--disable-dev-shm-usage"]});
+           const target="https://activity-static.hupu.com/shaper/published/app_b0ed4d1269/__ai_app.html";
+           for(const [mode,index] of [["full-manager",0],["light-manager",1],["story",0]]){
+            const page=await browser.newPage();await page.setViewport({width:390,height:800});
+            await page.goto(target,{waitUntil:"domcontentloaded",timeout:40000});
+            await new Promise(resolve=>setTimeout(resolve,4500));
+            const before=await page.evaluate(()=>document.body.innerText||"");
+            console.log("BEFORE_"+mode+"="+before.slice(0,8500).replace(/\n/g," | "));
+            const clicked=await page.evaluate(({mode,index})=>{
+             const labels=mode==="story"?["开启故事"]:["选择年代与球队"];
+             const els=[...document.querySelectorAll("button,[role=button],a")].filter(x=>labels.some(label=>(x.innerText||x.textContent||"").includes(label)));
+             const chosen=els[index]||null;if(chosen){chosen.click();return {count:els.length,label:(chosen.innerText||"").slice(0,80)}}
+             return {count:els.length};
+            },{mode,index});
+            console.log("CLICK_"+mode+"="+JSON.stringify(clicked));
+            await new Promise(resolve=>setTimeout(resolve,2500));
+            const after=await page.evaluate(()=>document.body.innerText||"");
+            console.log("AFTER_"+mode+"="+after.slice(0,14000).replace(/\n/g," | "));
+            await page.close();
+           }
+           await browser.close();
+          })().catch(e=>{console.log("BROWSER_NAV_ERROR="+String(e));process.exitCode=0;});
+          JS
+          CHROME_BINARY="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)" node /tmp/hupuresearch/inspect.cjs
