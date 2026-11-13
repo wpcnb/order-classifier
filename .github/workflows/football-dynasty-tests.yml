@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Career depth v6.2 - ten focused checks
+        run: node football-legacy/tests/career-depth-v620.cjs
       - name: Five quick-play upgrades - ten focused checks
         run: node football-legacy/tests/quick-five.cjs
       - name: Dual-career regression tests
