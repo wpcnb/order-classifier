@@ -1,0 +1,32 @@
+name: Inspect user QQ shortlink for v10
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/research-qq-shortlink-v10.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect exact QQ URL redirect and landing page, without signing in
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          for url in (
+            'http://uv.qq.com/rgJUD8aK&QZ1rH',
+            'https://uv.qq.com/rgJUD8aK&QZ1rH',
+            'https://uv.qq.com/rgJUD8aK',
+          ):
+            print('INPUT_URL='+url,flush=True)
+            proc=subprocess.run(['curl','-sSL','--compressed','-A','Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36','--connect-timeout','9','--max-time','18','-D','/tmp/qqheaders','-o','/tmp/qqbody','-w','STATUS=%{http_code} CONTENTTYPE=%{content_type} EFFECTIVE=%{url_effective} BYTES=%{size_download}\\n',url],capture_output=True,text=True,timeout=26)
+            print('CURL_RESULT='+proc.stdout.replace('\\n',' | '),flush=True)
+            print('CURL_ERROR='+proc.stderr[-400:],flush=True)
+            try:
+              h=open('/tmp/qqheaders').read();b=open('/tmp/qqbody','rb').read()
+              print('HEADERS='+str([line for line in h.splitlines() if line.lower().startswith(('http/','location:','content-type:'))])[:1600])
+              print('BODY_PREFIX='+b[:900].decode('utf-8','replace').replace('\\n',' '))
+            except Exception as e:print('BODY_ERROR='+str(e))
+          PY
