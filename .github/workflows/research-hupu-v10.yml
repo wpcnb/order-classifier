@@ -56,3 +56,24 @@ jobs:
            print('CHROME_TEXT='+' | '.join(e.parts)[:16000])
           print('CHROME_LOG=',Path('/tmp/chrome.txt').read_text(errors='replace')[:2000] if Path('/tmp/chrome.txt').exists() else '')
           PY
+
+      - name: Inspect embedded game structures, menus and browser boot dependencies
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re
+          s=Path('/tmp/hupu.html').read_text(errors='replace') if Path('/tmp/hupu.html').exists() else ''
+          print('SOURCE_LENGTH',len(s))
+          print('START_BODY_CONTEXT',s[s.find('<body'):s.find('<body')+4500][:4500])
+          print('END_BODY_CONTEXT',s[-5000:])
+          scripts=re.findall(r'<script([^>]*)>(.*?)</script>',s,re.S|re.I)
+          print('SCRIPT_COUNT',len(scripts))
+          for i,(attr,body) in enumerate(scripts):
+           print('SCRIPT',i,'ATTR',attr[:400],'INLINE_BYTES',len(body),'PREVIEW',body[:450])
+          pats=['赛季','球员','主教练','战术','转会','阵型','联赛','球队','属性','体力','赛程','比赛','生涯','战报','工资','合同','职位','引援','青训','存档','登录','api','localStorage','React','Vue','iframe','iframeSrc','getUserInfo','hupu']
+          for p in pats:
+           instances=[m.start() for m in list(re.finditer(re.escape(p),s,re.I))[:4]]
+           print('PATTERN',p,'COUNT',len(re.findall(re.escape(p),s,re.I)),'CONTEXTS',[s[max(0,i-75):i+110].replace('\\n',' ') for i in instances])
+          PY
