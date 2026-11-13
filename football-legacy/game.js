@@ -1077,7 +1077,7 @@ function autoPoints(){const p=g.player,weights=WEIGHTS[p.position],keys=Object.k
 function automaticPrep(){
  if(g.mode==="coach")return coachPreparation();const p=g.player;
  // Deep mode is authoritative even for v10 saves whose old focus handler re-enabled auto flags.
- if(duoGames&&duoOperationMode(p)==="deep")return;
+ if(duoGames&&p.careerOperationMode==="deep")return;
  if(p.autoPoints)autoPoints();
  if(!p.autoTraining||p.trainingUsed)return;
  if(p.injuryMatches>0||p.stamina<64){p.stamina=C(p.stamina+(p.injuryMatches>0?13:20)+Math.round((p.parentCoach?.skills?.motivation||0)/30),0,100)}
@@ -2758,7 +2758,7 @@ $("app").addEventListener("change",ev=>{
    const p=duoGames[trainee].player,previous={focus:p.trainingFocus,points:p.autoPoints,training:p.autoTraining};
    p.trainingFocus=focus==="auto"?null:focus;
    // Selecting a preferred stat is not permission to reactivate automation.
-   if(duoOperationMode(p)==="deep"){p.autoPoints=false;p.autoTraining=false}
+   if(p.careerOperationMode==="deep"){p.autoPoints=false;p.autoTraining=false}
    if(!save()){
     p.trainingFocus=previous.focus;p.autoPoints=previous.points;p.autoTraining=previous.training;
     notify("存档空间不足，训练偏向没有改变");
