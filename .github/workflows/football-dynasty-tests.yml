@@ -65,5 +65,7 @@ jobs:
       - name: Club qualification and retired-player integrity
         run: node football-legacy/tests/world-integrity.cjs
 
+      - name: v8 Ballon dOr historical/current paired 100-season comparison
+        run: node football-legacy/tests/award-v8-ab-100.cjs
       - name: Baseline 100-season simulation
         run: node football-legacy/tests/balance-100.cjs
