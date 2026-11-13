@@ -17,7 +17,7 @@ jobs:
         run: |
           set -euo pipefail
           root="https://wpcnb.github.io/order-classifier/football-legacy/"
-          for path in "" "index.html" "game.js?v=6.3.0" "free-star.js?v=6.3.0" "career-depth.js?v=6.2.0" "real-footballers.js?v=4.6.0" "shared-uefa.js?v=season-unified-v58"; do
+          for path in "" "index.html" "game.js?v=9.0.0" "free-star.js?v=9.0.0" "body-path.js?v=9.0.0" "career-depth.js?v=9.0.0" "real-footballers.js?v=4.6.0" "shared-uefa.js?v=season-unified-v58"; do
             url="${root}${path}"
             echo "CHECK: ${url}"
             status=$(curl -A "Mozilla/5.0" --connect-timeout 8 --max-time 18 -L -sS -o /tmp/live-response -w '%{http_code}' "$url")
@@ -26,7 +26,7 @@ jobs:
             test "$status" = "200"
             test "$bytes" -ge 800
             if [[ "$path" = "" || "$path" = "index.html" ]]; then
-              grep -q "版本 v6.3.0" /tmp/live-response
+              grep -q "版本 v9.0.0" /tmp/live-response
             fi
           done
           echo "SUCCESS: deployed game HTML and all essential JS files return 200"
@@ -40,7 +40,7 @@ jobs:
           fi
           "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --virtual-time-budget=12000 \
-            --dump-dom "https://wpcnb.github.io/order-classifier/football-legacy/?v=6.3.0" \
+            --dump-dom "https://wpcnb.github.io/order-classifier/football-legacy/?v=9.0.0" \
             >/tmp/live-dom.html 2>/tmp/chrome-output.log || { cat /tmp/chrome-output.log; exit 1; }
           echo "Rendered page length: $(wc -c </tmp/live-dom.html)"
           if grep -q 'data-game-loading="1"' /tmp/live-dom.html; then
