@@ -17,6 +17,7 @@ jobs:
           set -u
           hosts=(
             "https://raw.githack.com/wpcnb/order-classifier/main/football-legacy/index.html"
+            "https://rawcdn.githack.com/wpcnb/order-classifier/b33efd7befc3641df14cab2fa7223067e8c8c3b3/football-legacy/index.html"
             "https://cdn.jsdelivr.net/gh/wpcnb/order-classifier@main/football-legacy/index.html"
           )
           browser="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
@@ -30,6 +31,9 @@ jobs:
               result=$?
               echo "CONTENT-TYPE:"
               curl -sSIL --connect-timeout 8 --max-time 12 "$url" | grep -i '^content-type:' | tail -1 || true
+              echo "DOM-FIRST: "
+              head -c 350 /tmp/alternate-dom || true
+              echo
               echo "DOM-SIZE:"
               wc -c /tmp/alternate-dom
               echo "DOM-INDICATORS:"
