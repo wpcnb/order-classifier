@@ -188,8 +188,24 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 }
 
 .creator-fixed-gender{display:flex;flex-direction:column;gap:7px;padding:8px 12px;border-radius:10px;background:#122d3b;border:1px solid #426470;min-height:58px}.creator-fixed-gender strong{color:#daffed;font-size:14px}
+
+/* v8.1 body-tradeoff preview and each player's development priority. */
+.opening-development{border-color:#5b8275;background:linear-gradient(110deg,#102f37,#142a3f);margin-top:12px}
+.opening-development summary{cursor:pointer;color:#dfffcb;font-size:14px}
+.opening-development .creator-form-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:10px 0}
+.opening-development .field{min-width:0}
+.opening-development select{height:44px;width:100%}
+.body-effects{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.body-effects span{font-size:11px;line-height:1.4;padding:4px 7px;border:1px solid #3d6b75;border-radius:8px;background:#082e3a;color:#ccefe8}
+.body-detail-summary{padding:4px 0}
+.body-detail-summary p{margin-bottom:0}
+@media(max-width:640px){
+ .opening-development .creator-form-grid{grid-template-columns:1fr 1fr;gap:8px}
+ .opening-development{padding:10px}
+ .body-effects span{font-size:10px}
+}
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">版本 v8.0.1 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./career-depth.js?v=6.2.0" defer></script><script src="./free-star.js?v=8.0.1" defer></script><script src="./game.js?v=8.0.1" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双主角在线版</small></div></div><span class="chip">版本 v8.1.0 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./body-path.js?v=8.1.0" defer></script><script src="./career-depth.js?v=8.1.0" defer></script><script src="./free-star.js?v=8.1.0" defer></script><script src="./game.js?v=8.1.0" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.

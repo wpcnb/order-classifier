@@ -25,21 +25,23 @@ const randint=(a,b,random=Math.random)=>a+Math.min(b-a,Math.floor(Math.max(0,ran
 const pick=(items,random=Math.random)=>items[randint(0,items.length-1,random)];
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 function draftDefaults(){
- return {country:"中国",age:16,height:177,gender:"male",heritage:"unspecified",skin:"medium",hair:"short",position:"LW"};
+ return {country:"中国",age:16,height:177,weight:70,gender:"male",heritage:"unspecified",skin:"medium",hair:"short",position:"LW"};
 }
 function quickDraft(random=Math.random){
- const position=pick(Object.keys(POS),random),range=QUICK_HEIGHT[position];
+ const position=pick(Object.keys(POS),random),range=QUICK_HEIGHT[position],height=randint(range[0],range[1],random);
+ // Keep height and mass loosely coupled for believable quick-created footballers.
+ const weight=randint(Math.max(45,Math.round(22.5*(height/100)**2)-8),Math.min(125,Math.round(22.5*(height/100)**2)+10),random);
  return {country:pick(COUNTRIES,random),age:randint(16,24,random),
- height:randint(range[0],range[1],random),
- gender:"male",heritage:"unspecified",
- skin:pick(Object.keys(TONE),random),hair:pick(Object.keys(HAIR),random),
- position};
+ height,weight,gender:"male",heritage:"unspecified",
+ skin:pick(Object.keys(TONE),random),hair:pick(Object.keys(HAIR),random),position};
 }
 function validate(d){
  const base=draftDefaults(),v={...base};
  if(d&&COUNTRIES.includes(d.country))v.country=d.country;
  if(Number.isInteger(Number(d?.age)))v.age=clamp(Number(d.age),16,39);
  if(Number.isInteger(Number(d?.height)))v.height=clamp(Number(d.height),150,210);
+ const suggestedWeight=Math.round(22.5*(v.height/100)**2);
+ v.weight=Number.isInteger(Number(d?.weight))?clamp(Number(d.weight),45,125):clamp(suggestedWeight,45,125);
  // The current simulated competitions are men's leagues. Gender is not a
  // randomized gameplay trait; keep non-male entries in existing completed saves.
  v.gender="male";
