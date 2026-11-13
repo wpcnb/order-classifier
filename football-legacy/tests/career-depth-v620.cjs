@@ -13,7 +13,7 @@ const player=(extra={})=>({
 });
 test("首页版本号与更新日期可见，模块在游戏之前加载",()=>{
  assert.match(html,/版本 v10\.0\.1 · 更新时间 2026-11-13/);
- assert(html.indexOf('career-depth.js?v=9.0.0')<html.indexOf('game.js?v=10.0.0'));
+ assert(html.indexOf('career-depth.js?v=9.0.0')<html.indexOf('game.js?v=10.0.1'));
 });
 test("新旧存档的技术特质自动推断且稳定",()=>{
  const p=player();assert.equal(D.traitFor(p),"speed");
