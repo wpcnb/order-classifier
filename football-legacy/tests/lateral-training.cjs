@@ -47,7 +47,7 @@ function offerFor(x){return {id:"CHN",club:x.player.club==="上海申花"?"上�
 {
  const h=newGame(),d=h.api.duo(),w=d.wang.player,v=d.vini.player;
  assert.equal(w.trainingFocus,undefined);w.autoPoints=false;w.autoTraining=false;h.change({trainingFocus:"wang"},"shoot");
- assert.equal(w.trainingFocus,"shoot");assert.equal(v.trainingFocus,undefined);assert(w.autoPoints&&w.autoTraining,"selecting a focus enables automatic training and points even in legacy saves");
+ assert.equal(w.trainingFocus,"shoot");assert.equal(v.trainingFocus,undefined);assert(!w.autoPoints&&!w.autoTraining,"selecting a focus must preserve the manual flags already stored in legacy saves");
  const reload=harness([[SAVE,h.storage.get(SAVE)]]);assert.equal(reload.api.duo().wang.player.trainingFocus,"shoot");assert.equal(reload.api.duo().vini.player.trainingFocus,undefined);
  h.api.setActive("wang");w.potential=99;w.stamina=95;w.injuryMatches=0;w.autoPoints=false;w.autoTraining=true;w.trainingUsed=false;w.trainingProgress={};
  h.api.automaticPrep();assert.equal(w.trainingProgress.shoot,1);assert.equal(w.trainingUsed,true);
