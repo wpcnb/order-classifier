@@ -1907,6 +1907,7 @@ function duoTrainingCommand(id,action,skill){
    message=p.name+"：休息恢复完成，当前体能 "+p.stamina;
   }else if(action==="train"){
    if(!Object.hasOwn(STATS,skill)||p.stats[skill]>=p.potential){notify("该能力已达成长上限");return}
+   if((p.injuryMatches||0)>0){notify("伤病尚未恢复，不能安排专项训练");return}
    if(p.stamina<23){notify("体能低于23，建议先安排休息");return}
    p.trainingProgress=p.trainingProgress||{};
    p.trainingProgress[skill]=(p.trainingProgress[skill]||0)+2;
@@ -1932,7 +1933,7 @@ function trainingFocusPanel(id){
  const focus=Object.hasOwn(STATS,p.trainingFocus)?p.trainingFocus:"auto";
  const playing=x.season?.stage==="playing",canTrain=playing&&!p.trainingUsed;
  const settings='<label class="field">操作模式 <select data-career-operation="'+id+'"><option value="guided" '+(mode==="guided"?"selected":"")+'>轻松生涯 · 自动管理</option><option value="deep" '+(deep?"selected":"")+'>深度生涯 · 手动管理</option></select></label>'+
-  '<label class="field">训练偏向 <select data-training-focus="'+id+'"><option value="auto" '+(focus==="auto"?"selected":"")+'>'+(deep?"无固定偏向":"自动选择能力")+'</option>'+Object.entries(STATS).map(([key,label])=>
+  '<label class="field">'+(deep?"预设训练方向（需手动执行）":"训练偏向")+' <select data-training-focus="'+id+'"><option value="auto" '+(focus==="auto"?"selected":"")+'>'+(deep?"无固定偏向":"自动选择能力")+'</option>'+Object.entries(STATS).map(([key,label])=>
    '<option value="'+key+'" '+(focus===key?"selected":"")+'>'+E(label)+'</option>').join("")+'</select></label>';
  const details=deep?
   '<p class="muted small">手动模式不会自动分配成长点、训练或休息。每场比赛前每人最多一次专项训练或恢复；快进跳过的场次不会补练。</p>'+
@@ -1940,7 +1941,7 @@ function trainingFocusPanel(id){
   '<div class="list gap">'+Object.entries(STATS).map(([key,label])=>
    '<div class="item"><div class="row"><b>'+E(label)+' '+p.stats[key]+'</b><span class="muted small">进度 '+(p.trainingProgress?.[key]||0)+'</span></div>'+
    '<div class="flex"><button class="button outline" data-action="duoPoint" data-id="'+id+'" data-key="'+key+'" '+((p.points||0)<=0||p.stats[key]>=p.potential?"disabled":"")+'>加点 +1</button>'+
-   '<button class="button" data-action="duoTrain" data-id="'+id+'" data-key="'+key+'" '+(!canTrain||p.stamina<23||p.stats[key]>=p.potential?"disabled":"")+'>专项训练</button></div></div>').join("")+'</div>'+
+   '<button class="button" data-action="duoTrain" data-id="'+id+'" data-key="'+key+'" '+(!canTrain||p.stamina<23||(p.injuryMatches||0)>0||p.stats[key]>=p.potential?"disabled":"")+'>专项训练</button></div></div>').join("")+'</div>'+
   '<button class="button goldbtn gap" data-action="duoRecover" data-id="'+id+'" '+(!canTrain||p.stamina>=100?"disabled":"")+'>安排恢复 +25 体能</button>':
   '<p class="muted small">当前由系统自动分配成长点，并按照所选训练偏向安排训练和恢复。切换为深度模式后可手动操作，不额外赠送能力。</p>';
  return '<details class="item gap" open><summary><b>'+E(p.name)+' · 训练与成长（'+(deep?"深度":"轻松")+'）</b></summary>'+
