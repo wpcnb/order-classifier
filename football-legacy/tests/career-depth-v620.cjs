@@ -12,8 +12,8 @@ const player=(extra={})=>({
  position:"LW",age:24,potential:94,coachTrust:65,form:70,injuryHistory:0,retired:false,youth:false,...extra
 });
 test("首页版本号与更新日期可见，模块在游戏之前加载",()=>{
- assert.match(html,/版本 v9\.0\.0 · 更新时间 2026-11-13/);
- assert(html.indexOf('career-depth.js?v=9.0.0')<html.indexOf('game.js?v=9.0.0'));
+ assert.match(html,/版本 v10\.0\.0 · 更新时间 2026-11-13/);
+ assert(html.indexOf('career-depth.js?v=9.0.0')<html.indexOf('game.js?v=10.0.0'));
 });
 test("新旧存档的技术特质自动推断且稳定",()=>{
  const p=player();assert.equal(D.traitFor(p),"speed");
