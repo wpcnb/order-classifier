@@ -57,14 +57,14 @@ test("赛季结算奖励只发一次，历年身价不重复记录",()=>{
 });
 function harness(){
  const storage=new Map(),cache={},handlers={},timers=[];
- const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
+ const node=id=>cache[id]||(cache[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){(handlers[id+":"+type]||(handlers[id+":"+type]=[])).push(fn)},click(){}});
  const document={getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={},context={window,document,localStorage,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","career-depth.js"])vm.runInNewContext(read(file),context,{filename:file,timeout:4000});
  vm.runInNewContext(read("game.js"),context,{filename:"game.js",timeout:4000});
- const act=(action,more={})=>handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,...more}})}});
- return {act,change:(id,value)=>handlers["app:change"]({target:{dataset:{positionTarget:id},value}}),flush(){while(timers.length)timers.shift()()},get html(){return node("app").innerHTML},get state(){return JSON.parse(storage.get("football-dynasty-duo-v2-20261110")||"null")},get stored(){return storage}};
+ const act=(action,more={})=>handlers["app:click"][0]({target:{closest:()=>({disabled:false,dataset:{action,...more}})}});
+ return {act,change:(id,value)=>handlers["app:change"].forEach(fn=>fn({target:{dataset:{positionTarget:id},value}})),flush(){while(timers.length)timers.shift()()},get html(){return node("app").innerHTML},get state(){return JSON.parse(storage.get("football-dynasty-duo-v2-20261110")||"null")},get stored(){return storage}};
 }
 const h=harness();h.act("flipOpeningCard",{id:"wang",i:0});h.flush();h.act("flipOpeningCard",{id:"vini",i:0});h.flush();h.act("preset");
 test("实际双人开局加载职业深度模块，仍能保存原存档结构",()=>{
