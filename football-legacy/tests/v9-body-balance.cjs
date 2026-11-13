@@ -3,7 +3,7 @@ const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("nod
 const root=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(root,f),"utf8");
 const context={window:{},console};vm.runInNewContext(read("body-path.js"),context);vm.runInNewContext(read("career-depth.js"),context);
 const BP=context.window.BodyPath,CD=context.window.CareerDepth;
-const p=(h,w,pos="LW",careerPath="balanced")=>({heightCm:h,weightKg:w,position,careerPath,coachTrust:60,form:65,stats:{pace:80,shoot:80,pass:80,dribble:80,defense:80,physical:80,mental:80}});
+const p=(h,w,pos="LW",careerPath="balanced")=>({heightCm:h,weightKg:w,position:pos,careerPath,coachTrust:60,form:65,stats:{pace:80,shoot:80,pass:80,dribble:80,defense:80,physical:80,mental:80}});
 let checked=0;function test(name,fn){fn();checked++;console.log("✓ "+checked+"/10 "+name)}
 test("v9 release, script order and reproducibility document",()=>{
  const html=read("index.html");
