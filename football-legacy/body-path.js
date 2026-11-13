@@ -69,13 +69,14 @@ function encounterChance(p,kind){
  const b=profile(p),factor=kind==="goalkeeperReach"?b.goalkeeperReach:Number(b[kind]);
  return clamp(.5+(factor-1)*.8,.35,.65);
 }
-function simulateContests(p,random=Math.random){
+function simulateContests(p,random=Math.random,minutes=90){
  const pos=p?.position||"LW";
- const queue=pos==="GK"?["goalkeeperReach","agility","goalkeeperReach"]:
+ const fullQueue=pos==="GK"?["goalkeeperReach","agility","goalkeeperReach"]:
  ["CB","CDM"].includes(pos)?["duel","aerial","duel"]:
  pos==="ST"?["aerial","agility","duel"]:
  pos==="CM"?["agility","duel","aerial"]:
  ["agility","agility","duel"];
+ const queue=fullQueue.slice(0,clamp(Math.ceil(minutes/30),1,3));
  const byType={},events=[];
  let wins=0,expected=0;
  for(const kind of queue){
