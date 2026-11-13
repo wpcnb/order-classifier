@@ -1275,7 +1275,8 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  const contribution=played?capSharedContributions(p,ev,home,away,our,playerMatchContribution(p,ev,oppStrength,our,choice,minutesPlayed)):{goals:0,assists:0};
  let goals=contribution.goals,assists=contribution.assists;
  let rating=played?roleAdjustedRating(calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}),p.position,their):0;
- if(played&&BP)rating=Math.round(C(rating+BP.matchScoreBonus(p),4.6,9.8)*10)/10;
+ const bodyContests=played&&BP?BP.simulateContests(p,Math.random,minutesPlayed):null;
+ if(played&&BP)rating=Math.round(C(rating+BP.matchScoreBonus(p)+(bodyContests?.ratingDelta||0),4.6,9.8)*10)/10;
  if(played&&p.positionTarget)rating=Math.max(4.6,Math.round((rating-.10)*10)/10);
  if(matchCards.redCard)rating=Math.max(4.6,Math.round((rating-.4)*10)/10);
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
@@ -1321,7 +1322,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  refreshSuspensionSummary(p);p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
  eventResult={...ev,home,away,hs,as,played,started:played?started:null,entryMinute:played?entryMinute:null,lineupRole:played?(started?"首发":"替补"):null,goals,assists,rating,real:false,
   injury:p.injuryMatches||0,newInjury,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,redMinute:matchCards.redMinute||null,redMinuteSource:matchCards.redCard?"simulation":null,redScoreEffect,minutesPlayed,cupWin,
-  missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
+  missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null,bodyContests};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  s.index++;s.completed++;g.live=null;
  if(!batch){if(s.index>=s.events.length)endSeason();else{save();page="report";render()}}
 }
@@ -2176,6 +2177,9 @@ function reportPage(){
  return '<section class="card"><div class="row"><div class="cap">POST MATCH · 比赛报告</div><span class="chip">'+E(m.date||"")+' · '+E(m.competition||DB[p.leagueId].name)+'</span></div>'+
  '<div class="scoreboard"><div class="inside"><div class="cap">'+(m.real?"已核实结果":"游戏赛季结果 · 已完赛")+'</div><div class="club-match">'+clubShield(m.home)+'<span class="match-club-name">'+E(m.home)+'</span><span class="gold match-vs">'+m.hs+' : '+m.as+'</span><span class="match-club-name">'+E(m.away)+'</span>'+clubShield(m.away)+'</div><p class="muted small">'+E(m.stage||"正式比赛")+'</p></div></div>'+
  '<div class="grid4 gap">'+metric("本场评分",m.coach?"教练执教":m.played?m.rating+"/10":"未上场")+metric("个人进球",m.coach?"—":m.goals||0)+metric("个人助攻",m.coach?"—":m.assists||0)+metric("比赛结果",ours>opp?"获胜":ours<opp?"落败":"战平")+'</div>'+
+ (m.bodyContests?.attempts?'<section class="card gap"><h2>场上身体技术对抗 · 游戏模拟</h2><p class="muted small">'+
+ Object.values(m.bodyContests.byType||{}).map(e=>E(e.label)+'：'+e.wins+'/'+e.attempts).join(' · ')+
+ '</p><p class="muted small">根据身高、体重和位置生成的简化场上事件；不是现实球员比赛统计。</p></section>':'')+
  '<section class="card gap"><h2>赛后状态</h2>'+(m.coach?'<p class="muted">本场以主教练身份执教。</p>':'<p>出场：'+(m.played?'是':'否')+' · 伤停剩余：'+(m.injury||0)+' 场 · 停赛剩余：'+(m.suspension||0)+' 场</p>'+(m.played&&m.yellowCards!==undefined?'<p>本场纪律：'+(m.redCard==="second-yellow"?"两黄变一红":m.redCard==="direct"?"直接红牌":m.yellowCards===1?"黄牌1张":"无牌")+'</p>':""))+'</section>'+
  '<div class="flex gap"><button class="button primary" data-action="nextMatch" '+(g.season.stage!=="playing"?"disabled":"")+'>下一场比赛</button><button class="button" data-page="calendar">查看全年赛历</button><button class="button goldbtn" data-action="simSeason" '+(g.season.stage!=="playing"?"disabled":"")+'>一键完成剩余赛季</button></div></section>'
 }
@@ -2259,7 +2263,9 @@ function duoLatestMatch(x){
  if(m.yellowCards)highlights.push('黄牌 '+m.yellowCards+' 张');
  if(m.redCard)highlights.push('红牌'+(m.redMinute?' · 第 '+m.redMinute+' 分钟':''));
  if(m.newInjury)highlights.push('受伤 · 预计缺阵 '+m.newInjury+' 场');
- return '<p>'+score+'</p><p class="muted small">'+(m.played?(m.goals||0)+'球 '+(m.assists||0)+'助 · 评分 '+(m.rating??'–'):'未出场')+'</p>'+(highlights.length?'<p class="pink small">'+highlights.map(E).join(' · ')+'</p>':'')+nextText;
+ const bodyNote=m.bodyContests?.attempts?Object.values(m.bodyContests.byType||{}).map(e=>E(e.label)+' '+e.wins+'/'+e.attempts).join(' · '):"";
+ return '<p>'+score+'</p><p class="muted small">'+(m.played?(m.goals||0)+'球 '+(m.assists||0)+'助 · 评分 '+(m.rating??'–'):'未出场')+'</p>'+(highlights.length?'<p class="pink small">'+highlights.map(E).join(' · ')+'</p>':'')+
+ (bodyNote?'<p class="muted small">体格对抗（简化模拟）：'+bodyNote+'</p>':'')+nextText;
 }
 // A finished season may already have a new club selected for next year.
 // Use the recorded season club when available, never infer a past teammate
