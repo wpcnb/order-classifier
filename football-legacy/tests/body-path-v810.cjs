@@ -25,7 +25,7 @@ function harness(initial=[]){
 check("v8.1.0 release and body module precedes game",()=>{
  assert(html.includes("版本 v10.0.1 · 更新时间 2026-11-13"));
  assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("career-depth.js?v=9.0.0"));
- assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("game.js?v=10.0.0"));
+ assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("game.js?v=10.0.1"));
 });
 check("taller footballer gets aerial gain but loses agility at same mass ratio",()=>{
  const short=BP.profile(male(163,BP.referenceWeight(163)));
