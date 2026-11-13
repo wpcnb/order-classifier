@@ -22,7 +22,7 @@ function harness(loaded=[]){
  get draft(){return JSON.parse(storage.get("football-dynasty-opening-v3")||"null")}};
 }
 check("版本号和加载顺序",()=>{
- assert.match(html,/版本 v8\\.0\\.0 · 更新时间 2026-11-13/);
+ assert.match(html,/版本 v8\.0\.0 · 更新时间 2026-11-13/);
  assert(html.indexOf("free-star.js?v=6.3.0")<html.indexOf("game.js?v=8.0.0"));
 });
 check("隐藏潜能四档概率区间",()=>{
