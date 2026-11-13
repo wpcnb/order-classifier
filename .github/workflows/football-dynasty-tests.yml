@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: v9 body encounters and career balance - ten focused checks
+        run: node football-legacy/tests/v9-body-balance.cjs
       - name: v8.1.0 body tradeoffs and player development - ten checks
         run: node football-legacy/tests/body-path-v810.cjs
       - name: v8.0.1 male-only league creator - ten focused checks
