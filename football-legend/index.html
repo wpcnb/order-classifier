@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#071323"><title>绿茵世代 · 双人足球生涯</title>
+<style>
+:root{color-scheme:dark;--bg:#081326;--panel:#12253b;--panel2:#1b344e;--line:#35516c;--txt:#f4f7ff;--muted:#acbfd3;--lime:#66efb4;--gold:#ffce72;--pink:#fe95a3;--blue:#8bbefc}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:radial-gradient(ellipse at 85% -10%,#2f416e 0,transparent 38%),radial-gradient(ellipse at 0 40%,#113f40 0,transparent 42%),var(--bg)}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.46;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}h1,h2,h3,p{margin-top:0}h2{font-size:19px}h3{font-size:16px}small,.small{font-size:12px}strong{font-weight:850}.muted{color:var(--muted)}.gold{color:var(--gold)}.green{color:var(--lime)}.pink{color:var(--pink)}.cap{font-size:11px;color:var(--gold);font-weight:850;letter-spacing:2px;text-transform:uppercase}.shell{max-width:1500px;margin:auto;padding:18px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px}.logo{font-size:27px;font-weight:950;letter-spacing:1.5px}.logo b{color:var(--lime)}.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid #496781;background:#152c44;color:#d7e5f3;padding:6px 10px;border-radius:99px;font-size:12px}.hero{min-height:260px;padding:34px;border:1px solid #547d75;border-radius:24px;position:relative;overflow:hidden;display:flex;align-items:center;background:linear-gradient(90deg,#092b31f2 0,#102f47dd 48%,#091d3366 100%),url('./assets/stadium.svg') center/cover;box-shadow:0 20px 50px #0004}.hero h1{font-size:clamp(30px,3.5vw,50px);line-height:1.2;max-width:690px;margin:10px 0}.hero p{color:#dfebf5;max-width:750px}.hero>div{position:relative;z-index:1}.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:10px 16px;border-radius:11px;border:1px solid #496a83;background:#1b3954;color:#eef7ff;font-weight:800;transition:transform .1s,background .2s;white-space:normal}.button:hover{background:#2a4c6b;transform:translateY(-1px)}.button.primary{color:#063629;background:var(--lime);border-color:var(--lime)}.button.goldbtn{color:#4b2d0c;background:var(--gold);border-color:var(--gold)}.button.danger{border-color:#995a63;color:#ffc0c8}.button.outline{background:transparent}.flex{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.columns{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(310px,1fr);gap:14px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.card{background:linear-gradient(155deg,#172f47 0%,#101e36 95%);border:1px solid var(--line);padding:20px;border-radius:19px;min-width:0;box-shadow:0 8px 24px #0002}.card+ .card{margin-top:13px}.card h2{margin-bottom:12px}.card h3{margin-bottom:8px}.gap{margin-top:14px}.metric{border-radius:14px;border:1px solid #395570;background:#1a324b;padding:13px}.metric label{display:block;color:var(--muted);font-size:12px}.metric b{display:block;font-size:26px;line-height:1.4}.nav{position:sticky;top:0;z-index:10;background:#0c1c2cf0;backdrop-filter:blur(15px);display:flex;gap:6px;overflow-x:auto;margin:15px 0;padding:10px 5px;border-radius:14px}.nav button{border:1px solid #34526a;background:#172d44;color:#e0ecf7;border-radius:10px;min-height:42px;padding:8px 16px;white-space:nowrap;font-weight:800}.nav button.active{background:var(--gold);color:#2c281e;border-color:var(--gold)}.meter{height:9px;background:#2c4960;border-radius:20px;overflow:hidden;margin:7px 0}.meter span{display:block;height:100%;background:linear-gradient(90deg,#27ba8b,#85f3bb);border-radius:20px}.stat{display:grid;grid-template-columns:74px 1fr 29px;gap:9px;align-items:center;font-size:13px;margin:10px 0}.stat .meter{margin:0}.stat b{text-align:right}.list{display:grid;gap:9px}.item{background:#102740;border:1px solid #304e6e;border-radius:12px;padding:12px 14px}.item.mine{border-color:#65dbab;background:#163b42}.item.locked{border-left:4px solid var(--lime)}.item .title{font-weight:850}.kv{display:grid;grid-template-columns:1fr auto;align-items:center;padding:8px 0;border-bottom:1px solid #2b4560;gap:9px}.kv:last-child{border:none}.field{display:block;color:var(--muted);font-size:13px;margin:9px 0}.field input,.field select{display:block;width:100%;margin-top:6px;color:var(--txt);border:1px solid #456780;background:#0c2236;border-radius:11px;padding:12px;min-height:45px}.scoreboard{background:linear-gradient(0deg,#0c362cbd,#164f4a95),repeating-linear-gradient(0deg,#2b754b 0,#2b754b 40px,#235d45 40px,#235d45 80px);min-height:210px;border:2px solid #529878;border-radius:15px;display:grid;place-items:center;text-align:center;padding:20px;position:relative;overflow:hidden}.scoreboard:before{content:"";position:absolute;inset:15px;border:1px solid #d8ffee85}.scoreboard:after{content:"";border:1px solid #d8ffee85;border-radius:50%;width:105px;height:105px;position:absolute}.scoreboard .inside{position:relative;z-index:1;background:#071c2ed9;padding:16px 26px;border-radius:15px;max-width:95%}.scoreboard .vs{font-size:31px;font-weight:950}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:555px;font-size:13px}td,th{padding:10px 8px;text-align:left;border-bottom:1px solid #304b63}th{color:#b8c9d8}tr.me{background:#225948;font-weight:850}.badge{display:inline-flex;font-size:12px;padding:5px 9px;margin:3px;background:#3a3323;border:1px solid #826b44;border-radius:7px;color:#ffe1a7}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);padding:12px 18px;color:#0b382d;background:#dbffeb;border-radius:13px;z-index:100;max-width:85%;box-shadow:0 10px 50px #0008}.hidden{display:none!important}.modalshade{position:fixed;inset:0;background:#000b;z-index:50;display:grid;place-items:center;padding:18px}.modal{max-width:700px;width:100%;max-height:85vh;overflow:auto;border:1px solid #668aa2;background:#12233d;border-radius:20px;padding:23px}.photo{height:155px;background:linear-gradient(110deg,#123b40ac,#122a54a6),url('./assets/stadium.svg') center/cover;border-radius:14px;margin-bottom:12px}.portrait{width:88px;height:88px;display:grid;place-items:center;font-size:34px;font-weight:950;border-radius:18px;background:linear-gradient(140deg,#d3fb9d,#76a9e9);color:#12384b;flex:0 0 auto}.family{border-left:3px solid #65dcab;margin-left:8px;padding:1px 0 1px 17px}.family .item{margin:10px 0}.resultwin{color:var(--lime)}.resultloss{color:var(--pink)}.wide{width:100%}footer{margin:30px 0;text-align:center;font-size:12px;color:#8ea6bd}#importFile{display:none}@media(max-width:980px){.shell{padding:13px}.columns{grid-template-columns:1fr}.hero{min-height:220px}.grid4{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,1fr)}.hero{padding:23px}.card{padding:15px}.logo{font-size:21px}.metric b{font-size:21px}}
+
+/* v4.5 self-hosted game art + tablet legibility */
+html{scrollbar-color:#3a6581 #101e2d}body{background-attachment:fixed}
+.hero{background-position:center 60%;background-blend-mode:normal;box-shadow:0 22px 56px #0006,inset 0 0 0 1px #88ffd21a}
+.hero:after{content:"";pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#092233c2 0,#102d4055 54%,transparent 100%);z-index:0}
+.hero{padding:0;display:flex;flex-direction:column;align-items:stretch;background:#102638}
+.hero::before{content:"";display:block;width:100%;aspect-ratio:2.7/1;max-height:430px;background:#102638 url("./assets/interview-duo.webp") center 45%/cover no-repeat}
+.hero::after{display:none}
+.hero>div{position:relative;z-index:2;padding:26px 34px 30px}
+@media(max-width:640px){.hero::before{aspect-ratio:16/9}.hero>div{padding:20px 23px 24px}}
+.photo{background-image:linear-gradient(130deg,#10414b9a,#101c4294),url("./assets/stadium.svg")}
+.top{padding:5px 0}
+.card{transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:#52738e;box-shadow:0 10px 27px #0003}
+.nav::-webkit-scrollbar{height:5px}.nav::-webkit-scrollbar-thumb{background:#496782;border-radius:6px}
+.nav button.active{box-shadow:0 3px 14px #ebae4a55}
+.scoreboard{min-height:250px;background-image:linear-gradient(180deg,#114d4144,#064b35d2),url("./assets/stadium.svg");background-position:center 79%;background-size:cover}
+.scoreboard:before{inset:20px 12%;border-radius:3px}
+.scoreboard .inside{box-shadow:0 10px 30px #0007;border:1px solid #cee9e438}
+.item{transition:background .15s,border-color .15s}.item:hover{background:#193451;border-color:#5f83a1}
+.muted{color:#b8c9d9}.cap{color:#f9d88d}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tri .item{text-align:center}
+.visualball{font-size:24px;border:1px solid #6a91a4;background:#143248;padding:8px 15px;border-radius:14px}
+.ticket{border:1px solid #8c7448;background:linear-gradient(110deg,#322b28,#1b314a);border-radius:14px;padding:15px}
+.radar{background:radial-gradient(circle at center,#24634e 0,transparent 67%)}
+.nationflag{font-size:22px;display:inline-grid;place-items:center;width:43px;height:43px;border-radius:10px;background:#244e66;box-shadow:inset 0 0 0 1px #5b8c9e}
+.seasonbar{height:14px;background:#1d394c;border:1px solid #385e6e;border-radius:40px;overflow:hidden}
+.seasonbar>span{height:100%;display:block;background:linear-gradient(90deg,#51e0b1,#f8d277);transition:width .25s}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(hover:none){.card:hover{box-shadow:0 8px 24px #0002}.button:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media(min-width:1000px) and (orientation:landscape){.shell{padding-inline:30px}.nav button{padding-inline:18px;min-height:48px}.button{min-height:48px}.card{padding:22px}}
+
+.hero>div{position:relative;z-index:2}
+details.item{cursor:pointer}details.item>summary{padding:3px 0;list-style-position:inside}details.item[open]{background:#1a3951;border-color:#589c94}
+details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+/* Keep a long career's destinations discoverable on smaller screens. */
+.skip-link{position:absolute;top:-100px;left:12px;z-index:101;background:var(--gold);color:#152419;padding:10px 14px;border-radius:8px;font-weight:800}
+.skip-link:focus{top:10px}.nav-picker{display:none}.nav button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media(max-width:640px){.nav-picker{display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--muted);font-size:13px}.nav-picker select{flex:1;min-width:0;min-height:44px;padding:8px 12px;border:1px solid #496a83;border-radius:10px;background:#122b42;color:var(--txt);font-weight:700}.nav{position:static;margin-top:8px;scrollbar-width:thin}.nav button{min-height:44px}.tablewrap{overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}.button{min-height:44px}}
+
+.save-indicator{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#aaf0c8;background:#133f35;padding:6px 10px;border-radius:40px;border:1px solid #31856b}
+
+/* Procedural non-trademark club shields, consistent for every team */
+.club-match{display:flex;justify-content:center;align-items:center;gap:13px;max-width:850px;margin:auto;flex-wrap:wrap}
+.clubcrest{--club-hue:180;display:inline-grid;place-items:center;width:60px;height:69px;flex:0 0 60px;font-size:15px;font-weight:950;letter-spacing:-1px;color:white;text-shadow:0 1px 3px #0008;background:linear-gradient(145deg,hsl(var(--club-hue),68%,64%),hsl(var(--club-hue),65%,25%));border:3px solid #daecf5;box-shadow:0 3px 1px #0004,inset 0 0 0 3px #ffffff4d;clip-path:polygon(12% 0,88% 0,100% 13%,91% 78%,50% 100%,9% 78%,0 13%)}
+.clubcrest::first-letter{font-size:18px}.match-club-name{font-size:20px;font-weight:850;max-width:200px}.match-vs{font-size:29px;font-weight:950}
+@media(max-width:730px){.club-match{gap:7px}.clubcrest{width:43px;height:51px;flex-basis:43px;font-size:12px}.match-club-name{font-size:15px;max-width:125px}.match-vs{font-size:20px}}
+
+/* Opening CSL club lotteries and season-by-season promotion lottery. */
+.wheel-box{position:relative;display:grid;place-items:center;max-width:370px;margin:20px auto 16px;padding:13px}
+.wheel-pointer{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:3;font-size:27px;line-height:1;color:var(--gold);text-shadow:0 2px 4px #061524}
+.club-wheel{position:relative;width:min(100%,310px);aspect-ratio:1;border-radius:50%;border:7px solid #ffdf93;box-shadow:0 7px 35px #0009,inset 0 0 0 3px #142c36;display:grid;place-items:center;will-change:transform}
+.club-wheel:after{content:"";position:absolute;inset:35%;border-radius:50%;background:#112e41;border:3px solid #f3da96;z-index:1}
+.club-wheel>span{z-index:2;text-align:center;font-size:15px;font-weight:900;color:#ffedb2;line-height:1.3}
+.wheel-label{position:absolute;top:50%;left:50%;width:76px;height:20px;margin-left:-38px;margin-top:-10px;display:grid;place-items:center;text-align:center;font-size:11px;line-height:1;color:#0e2835;font-weight:900;text-shadow:0 1px 0 #ffffff55;white-space:nowrap;pointer-events:none}
+@media(max-width:420px){.club-wheel{width:min(100%,270px)}.wheel-label{font-size:10px}}
+
+/* Season promotion wheel stays legible with 2-6 team names. */
+.promotion-draw{margin-top:14px;border-color:#92784f;background:linear-gradient(145deg,#172c43,#243724)}.promotion-wheel{max-width:290px}.promotion-draw .wheel-label{width:90px;margin-left:-45px;text-shadow:0 1px #fff8}.promotion-draw .wheel-box{margin:10px auto}.promotion-draw .chip{background:#503e22;color:#ffe1a7;border-color:#886e3c}
+
+/* Ten-card blind draw: compact on mobile, accessible focus, genuine card flip. */
+.draw-card-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0 8px}
+.draw-card{padding:0;min-height:145px;aspect-ratio:3/4;position:relative;border:0;border-radius:13px;background:transparent;color:var(--txt);perspective:900px;cursor:pointer;min-width:0}
+.draw-card:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.draw-card:disabled{opacity:1;cursor:default}
+.draw-card-inner{position:relative;display:block;width:100%;height:100%;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.2,.7,.2,1);border-radius:13px;box-shadow:0 7px 15px #0005}
+.draw-card.revealed .draw-card-inner{transform:rotateY(180deg)}
+.draw-card-back,.draw-card-front{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:13px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:7px;text-align:center;overflow:hidden}
+.draw-card-back{border:2px solid #d9ba73;background:linear-gradient(145deg,#154d44,#12283f 70%,#1d4250);color:#ffe9a2;gap:7px}
+.draw-card-back:before{content:"";position:absolute;inset:5px;border:1px solid #a5caae70;border-radius:8px;pointer-events:none}
+.draw-card-back b{font-size:clamp(22px,3vw,34px);line-height:1}
+.draw-card-back small{font-size:9px;letter-spacing:.6px;line-height:1.4}
+.draw-card-back em{font-size:13px;font-style:normal;font-weight:850}
+.draw-card-front{transform:rotateY(180deg);border:2px solid #ffda80;background:linear-gradient(150deg,#19483e,#183750 70%);gap:6px}
+.draw-card-front .clubcrest{width:42px;height:48px;flex-basis:48px;font-size:11px}
+.draw-card-front strong{font-size:clamp(10px,1.2vw,13px);line-height:1.2;overflow-wrap:anywhere}
+.draw-card-front small{font-size:10px;color:#d1e3f2}
+.draw-card-front em{font-size:10px;color:var(--gold);font-style:normal;font-weight:800}
+.draw-card:not(:disabled):hover .draw-card-back{filter:brightness(1.15)}
+@media(max-width:740px){.draw-card-grid{gap:6px}.draw-card{min-height:105px}.draw-card-back small{font-size:7px}.draw-card-back b{font-size:19px}.draw-card-back em{font-size:10px}.draw-card-back,.draw-card-front{padding:3px}.draw-card-front .clubcrest{width:26px;height:31px;flex-basis:31px;font-size:8px}.draw-card-front strong{font-size:9px}.draw-card-front small,.draw-card-front em{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.draw-card-inner{transition:none}}
+
+/* Compact mobile-first career and opening layouts. */
+.duo-overview{border:1px solid var(--line);border-radius:16px;background:#10283c;padding:12px 15px}
+.duo-overview-title{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.duo-overview-players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.duo-compact{border:1px solid #304e6e;border-radius:10px;background:#102740;padding:8px 10px;min-width:0}
+.duo-compact summary{cursor:pointer;line-height:1.4;font-size:13px;overflow-wrap:anywhere}
+.duo-compact p{margin:8px 0}.duo-compact .button{margin-top:6px}
+.nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;overflow:visible}
+.nav button{min-width:0;padding:8px 5px;white-space:nowrap}
+.opening-names{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opening-names .field{margin-top:0}.opening-names input{min-width:0}
+.career-hero::before{display:none}.career-hero{min-height:0}
+.career-hero>div{padding:20px 24px}.career-hero h1{font-size:clamp(24px,3vw,36px)}
+.hero-match{background:linear-gradient(90deg,#071d30f2,#081e31cc),url("./assets/matchday.webp") center 52%/cover no-repeat}
+.transfer-hero{background:linear-gradient(90deg,#0d2436f5,#122a3de8),url("./assets/signing.webp") center/cover no-repeat}
+.hero-awards::before{background-image:url("./assets/trophy.webp")}
+@media(max-width:640px){.opening-hero::before{aspect-ratio:3.4/1;background-position:center 35%}.opening-hero{min-height:0}.opening-hero>div{padding:12px 15px}.opening-hero h1{font-size:23px;margin:4px 0}.opening-hero p{margin-bottom:0;font-size:13px}.duo-overview{padding:10px}.duo-compact{padding:7px}.career-hero>div{padding:16px}.nav{position:sticky;top:0;z-index:10}.nav-picker{display:none}}
+
+
+/* Quick-play mobile visual polish without changing the original cover. */
+.pace-picker{display:inline-flex;align-items:center;gap:8px;color:#d9e9f8;font-size:13px}
+.pace-picker select{max-width:165px;min-height:44px;border:1px solid #7da59e;border-radius:10px;background:#102d3c;color:#fff;padding:8px 10px}
+.career-main-action{min-width:184px;box-shadow:0 8px 25px #1de5a72b}
+.duo-ledger summary{cursor:pointer;color:var(--gold);list-style-position:inside}
+.news-feed{border-color:#426d68;background:linear-gradient(140deg,#142f42,#10273b)}
+.news-list{display:grid;gap:8px;margin-top:12px}
+.news-line{display:grid;gap:3px;padding:12px 14px;border-left:3px solid var(--lime);background:#102339;border-radius:9px;min-width:0;overflow-wrap:anywhere}
+.news-line b{font-size:14px}.news-line p{margin:0}.news-alert{border-left-color:#ff9b8a}.news-transfer{border-left-color:var(--gold)}
+.signing-result{padding:18px;border-radius:15px;border:1px solid #eac16e;background:linear-gradient(100deg,#081b33cb,#133748bd),url("./assets/signing.webp") center/cover}
+.signing-result h3{font-size:21px;color:#ffe5a8;margin:5px 0}.signing-result p{margin:5px 0}
+@media(max-width:640px){
+ .career-hero .flex{display:grid;grid-template-columns:1fr;gap:10px}
+ .career-main-action{width:100%;min-height:52px;font-size:17px}
+ .pace-picker{justify-content:space-between;width:100%}
+ .pace-picker select{max-width:68%;width:68%}
+ .news-feed,.duo-ledger{padding:13px}
+ .news-line{padding:11px}
+ .duo-overview-players{grid-template-columns:1fr 1fr}
+ .duo-compact summary{font-size:12px}
+ .draw-card-grid{gap:5px}
+}
+
+
+/* v6.2 career depth: prioritise scores, clear progress and thumb-friendly controls. */
+.top>.chip{white-space:normal;text-align:right;max-width:48%;line-height:1.45}
+.career-depth-overview{align-items:stretch}
+.depth-player-card{background:linear-gradient(150deg,#143b45,#10263d 80%);border-color:#477d7d}
+.depth-player-card h2{font-size:17px;margin:0}.depth-player-card .chip{font-size:11px}
+.depth-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.depth-metrics>div{background:#081b2c85;border-radius:12px;padding:10px}
+.depth-number{display:block;font-size:24px;line-height:1.4}
+.depth-goals{display:grid;gap:6px;padding:11px 0 4px;font-size:12px}
+.depth-goal{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #3e5c69;padding:5px 0}
+.depth-goal span:last-child{font-weight:800;white-space:nowrap}
+.depth-detail summary{cursor:pointer;font-weight:750;color:#ffe2a2}
+.depth-detail h3{margin-top:12px;font-size:14px}
+.depth-value-history{display:grid;gap:7px;margin-top:10px}
+.depth-value-row{display:grid;grid-template-columns:45px minmax(0,1fr) 74px;gap:7px;align-items:center;font-size:12px}
+.depth-value-row b{text-align:right}
+.depth-value-row .meter{margin:0}
+@media(max-width:640px){
+ .top{align-items:flex-start;gap:6px}
+ .top>.chip{max-width:54%;font-size:11px;padding:5px 7px}
+ .depth-number{font-size:20px}
+ .career-depth-overview{grid-template-columns:1fr}
+ .depth-player-card{padding:12px}
+}
+
+/* Free Star v6.3: a short setup path with expandable, thumb-sized customization. */
+.creator-modes{background:linear-gradient(145deg,#132b43,#0d2336);border:1px solid #355b72}
+.creator-modes h2{font-size:18px}
+.creator-choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.creator-mode-btn{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;min-height:76px;gap:7px;padding:11px 13px;border:1px solid #4c6478;background:#10283c;border-radius:12px;color:#e9f4ff;cursor:pointer}
+.creator-mode-btn small{font-size:11px;color:#b9c8d6;line-height:1.4}
+.creator-mode-btn.selected{border:2px solid #f4c76e;background:#18434a;box-shadow:0 0 0 2px #e7bb4724}
+.creator-mode-btn:disabled{cursor:not-allowed;opacity:.7}
+.creator-profile{border:1px solid #4b6c83;background:linear-gradient(120deg,#153749,#101f36);border-radius:14px;padding:13px;margin-top:10px}
+.creator-profile-head{display:grid;grid-template-columns:92px minmax(0,1fr);gap:12px;align-items:center}
+.creator-profile-head h3{margin:0 0 5px;font-size:18px}
+.creator-avatar{width:92px;max-width:100%}
+.creator-avatar svg{width:100%;height:auto;display:block;border-radius:13px}
+.creator-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:12px}
+.creator-form-grid .field{margin:0;min-width:0;font-size:12px}
+.creator-form-grid select{width:100%;min-width:0;padding:9px 7px;height:44px}
+.creator-inline-avatar{display:block;width:55px;min-width:55px}
+.creator-inline-avatar svg{display:block;width:100%;height:auto;border-radius:10px}
+.depth-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.depth-identity h2{overflow-wrap:anywhere}
+.creator-history-avatar .creator-inline-avatar{width:96px}
+@media(max-width:640px){
+ .creator-choice{grid-template-columns:1fr;gap:7px}
+ .creator-mode-btn{min-height:53px;padding:9px 11px;gap:3px}
+ .creator-profile{padding:10px}
+ .creator-profile-head{grid-template-columns:75px minmax(0,1fr);gap:9px}
+ .creator-avatar{width:75px}
+ .creator-profile-head h3{font-size:15px}
+ .creator-form-grid{gap:7px}
+ .creator-form-grid .field{font-size:11px}
+ .creator-inline-avatar{width:44px;min-width:44px}
+}
+
+.creator-fixed-gender{display:flex;flex-direction:column;gap:7px;padding:8px 12px;border-radius:10px;background:#122d3b;border:1px solid #426470;min-height:58px}.creator-fixed-gender strong{color:#daffed;font-size:14px}
+
+/* v8.1 body-tradeoff preview and each player's development priority. */
+.opening-development{border-color:#5b8275;background:linear-gradient(110deg,#102f37,#142a3f);margin-top:12px}
+.opening-development summary{cursor:pointer;color:#dfffcb;font-size:14px}
+.opening-development .creator-form-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:10px 0}
+.opening-development .field{min-width:0}
+.opening-development select{height:44px;width:100%}
+.body-effects{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.body-effects span{font-size:11px;line-height:1.4;padding:4px 7px;border:1px solid #3d6b75;border-radius:8px;background:#082e3a;color:#ccefe8}
+.body-detail-summary{padding:4px 0}
+.body-detail-summary p{margin-bottom:0}
+@media(max-width:640px){
+ .opening-development .creator-form-grid{grid-template-columns:1fr 1fr;gap:8px}
+ .opening-development{padding:10px}
+ .body-effects span{font-size:10px}
+}
+
+/* v10 original mobile onboarding: choose identity, tradeoffs, then blind draw. */
+.v10-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:13px 0}
+.v10-progress span{min-width:0;font-size:11px;line-height:1.4;padding:9px 7px;min-height:48px;background:#0e2b3d;border:1px solid #395266;border-radius:10px;color:#c4d7e4;text-align:center}
+.v10-progress span.active{border:2px solid #e5c377;background:#184347;color:#fff0ba;font-weight:800}
+.v10-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v10-card{min-width:0;padding:14px;border:1px solid #446979;border-radius:14px;background:linear-gradient(135deg,#123747,#102437)}
+.v10-card h3{font-size:17px;margin:0 0 12px;color:#f2f7ec}
+.v10-card .field{margin:10px 0;min-width:0}
+.v10-card select{width:100%;max-width:100%;font-size:16px;min-height:44px}
+.v10-card p{overflow-wrap:anywhere}
+.v10-card .opening-development{margin-top:5px}
+.v10-card .creator-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.v10-lottery{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #2e5267}
+.v10-lottery span{display:grid;gap:5px;font-size:12px;color:#bcdddc}
+.v10-lottery b{font-size:17px;color:#f4e4b9}
+.v10-lottery button{flex:0 0 auto;min-height:44px}
+.v10-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin:18px 0}
+.v10-actions .button,.v10-primary{min-height:48px}
+.v10-data{display:flex;flex-wrap:wrap;gap:7px}
+.v10-data span{font-size:12px;border:1px solid #365e71;padding:6px 8px;border-radius:9px;background:#092e40}
+@media(max-width:720px){
+ .v10-two{grid-template-columns:1fr;gap:10px}
+ .v10-card{padding:12px}
+ .v10-card .creator-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .v10-progress span{font-size:10px;padding:8px 3px;min-height:52px}
+ .v10-actions .v10-primary{flex:1}
+ .v10-lottery b{font-size:16px}
+}
+@media(max-width:365px){
+ .v10-card .creator-form-grid{grid-template-columns:1fr}
+ .v10-lottery{align-items:stretch;flex-direction:column}
+ .v10-lottery button{width:100%}
+}
+</style></head>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>世代</b> <small class="muted">双星时代</small></div></div><span class="chip">版本 v10.0.1 · 更新时间 2026-11-13（新加坡）</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>新存档与旧版完全隔离；建议定期导出 JSON 备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./body-path.js?v=9.0.0" defer></script><script src="./career-depth.js?v=9.0.0" defer></script><script src="./free-star.js?v=9.0.0" defer></script><script src="./v10-core.js?v=10.0.0" defer></script><script src="./v10-ui.js?v=10.0.0" defer></script><script src="./game.js?v=10.0.1" defer></script><script>
+(function(){
+ // The game replaces its contents when navigating; rebuild the compact picker
+ // from the actual destinations so it always stays in step with the game.
+ var appNode=document.getElementById('app');
+ function improveNavigation(){
+  var nav=appNode&&appNode.querySelector('.nav');
+  if(!nav)return;
+  var buttons=Array.from(nav.querySelectorAll('button[data-page]'));
+  buttons.forEach(function(button){
+   if(button.classList.contains('active'))button.setAttribute('aria-current','page');
+   else button.removeAttribute('aria-current');
+  });
+  nav.setAttribute('aria-label','游戏页面');
+
+ }
+ if(appNode){new MutationObserver(improveNavigation).observe(appNode,{childList:true,subtree:true});improveNavigation()}
+ function showRecovery(){
+  var app=document.getElementById('app');
+  if(!app||!app.querySelector('[data-game-loading]'))return;
+  var mark=app.querySelector('[data-game-loading] h2');if(mark)mark.textContent='游戏未能完成加载';
+  var paragraph=app.querySelector('[data-game-loading] p');
+  if(paragraph)paragraph.textContent='当前页面的脚本未成功启动。请刷新页面重试；如果仍无法加载，请到项目 GitHub Issues 报告问题。';
+ }
+ window.addEventListener('load',function(){setTimeout(showRecovery,6500)});
+ window.addEventListener('error',function(e){if(e&&e.target&&e.target.tagName==='SCRIPT')showRecovery()},true);
+})();
+</script></body></html>

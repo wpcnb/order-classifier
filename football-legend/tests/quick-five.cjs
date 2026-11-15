@@ -1,0 +1,30 @@
+"use strict";
+const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
+const root=path.resolve(__dirname,"..");
+const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__quick={verifiedDuoFixtures,duoMatchArchive,duoNewsFeed,quickCareerAdvance,duoDashboard,promotionDrawCard,preference:()=>careerPace,choosePace:value=>careerPace=value,seed:(a,b,world)=>{duoGames={wang:a,vini:b};g=a;sharedUniverse=world||{awards:{}};}};})();');
+const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const nodes={};
+const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(){}});
+const store=new Map();
+const localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
+const context={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage,confirm:()=>true,setTimeout:()=>0,clearTimeout(){},Blob,URL,console};
+for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
+vm.runInNewContext(source,context,{filename:"game.js"});
+const api=context.window.__quick;
+let checked=0;
+function check(name,fn){fn();checked++;console.log("✓ "+checked+"/10 "+name)}
+const match={kind:"league",competition:"英超",stage:"",date:"2031-10-09",home:"阿森纳",away:"切尔西",hs:2,as:1,played:true,goals:1,assists:0};
+function player(name,club,m){return {year:2031,generation:1,player:{name,club,age:24,retired:false,transferHistory:[]},season:{stage:"playing",results:[m],events:[],index:0,apps:1,goals:1,assists:0},history:[],honors:[],logs:[]}}
+const a=player("王楚淇","阿森纳",match),b=player("维尼修斯","切尔西",{...match,goals:0,assists:1});
+check("推进节奏支持一日、一周、一季",()=>{for(const pace of ["day","week","season"]){api.choosePace(pace);assert.equal(api.preference(),pace)}});
+check("未开档一键推进安全返回",()=>{api.quickCareerAdvance()});
+check("同一比赛仅匹配真实共享比分",()=>assert.equal(api.verifiedDuoFixtures(a,b).length,1));
+check("不同比分拒绝伪造交锋",()=>assert.equal(api.verifiedDuoFixtures(a,player("维尼修斯","切尔西",{...match,hs:3})).length,0));
+check("交锋胜负准确",()=>assert.match(api.duoMatchArchive(a,b),/王楚淇 1胜 · 0平 · 维尼修斯 0胜/));
+check("同队合作单独记录",()=>{const p=player("维尼修斯","阿森纳",{...match,goals:0});assert.match(api.duoMatchArchive(a,p),/同队赛程 1场/)});
+check("足球新闻使用现有赛果",()=>{api.seed(a,b);assert.match(api.duoNewsFeed(),/阿森纳 2 : 1 切尔西/)});
+check("缺少比赛记录不生成虚构新闻",()=>{api.seed(player("甲","阿森纳",{played:false}),player("乙","切尔西",{played:false}));assert.doesNotMatch(api.duoNewsFeed(),/阿森纳 2 : 1 切尔西/)});
+check("转会卡展示实力并保留隐藏卡",()=>{api.seed(a,b);a.player.transferDraw={year:2031,from:"阿森纳",level:4,direction:"up",layoutVersion:1,options:Array.from({length:10},(_,i)=>({club:i?"曼城":"皇家马德里",id:i?"ENG":"ESP",tier:i?4:5})),selectedIndex:0,selected:{club:"皇家马德里",id:"ESP",tier:5}};const result=api.promotionDrawCard("wang");assert.match(result,/TRANSFER REVEAL/);assert.match(result,/幸运跳级/);assert.match(result,/draw-card-grid/)});
+check("手机样式和主操作已接入",()=>{assert.match(html,/career-main-action/);assert.match(html,/news-feed/);assert.match(html,/signing\.webp/);assert.match(fs.readFileSync(path.join(root,"game.js"),"utf8"),/data-career-pace/)});
+assert.equal(checked,10);
+console.log("✓ 仅执行本轮10项专项测试");
