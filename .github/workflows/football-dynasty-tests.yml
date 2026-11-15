@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Green Legend v1.0.0 engine and integration checks
+        run: node football-legacy/tests/legend-v1.cjs
       - name: v10 - ten feature families, 100 independent samples each
         run: node football-legacy/tests/v10-100x.cjs
       - name: v9 body encounters and career balance - ten focused checks
