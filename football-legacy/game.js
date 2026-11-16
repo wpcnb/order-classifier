@@ -55,8 +55,8 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
   else if(d.drawn?.wang||d.drawn?.vini)v10Step=3;
   if(creatorMode!=="preset")creatorMode="preset";
   for(const id of DUO_IDS){
-   const person=V10.findPerson(d.v10Persons?.[id],window.FOOTBALL_AWARD_REAL_PEOPLE);
-   if(person){v10Persons[id]=person.name;duoDraft[id]=person.name}
+   const savedName=typeof d.v10Persons?.[id]==="string"?d.v10Persons[id].trim().slice(0,22):"";
+   if(savedName){v10Persons[id]=savedName;duoDraft[id]=savedName}
    if(V10.COUNTRIES.includes(d.v10Countries?.[id]))v10Countries[id]=d.v10Countries[id];
    if(Number.isInteger(Number(d.v10Heights?.[id])))v10Heights[id]=V10.allowedHeight(d.v10Heights[id]);
    v10Philosophies[id]=V10.scrubPhilosophy(d.v10Philosophies?.[id]);
@@ -68,6 +68,7 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
  if(typeof d.drawn?.[id]==="string")drawnClubs[id]=d.drawn[id];
  if(Number.isInteger(d.indices?.[id]))openingSelectedIndex[id]=d.indices[id];
  if(typeof d.names?.[id]==="string")duoDraft[id]=d.names[id];
+ if(V10&&typeof d.v10Persons?.[id]==="string"&&d.v10Persons[id].trim())duoDraft[id]=v10Persons[id];
  if(Object.hasOwn(PLAYER_STYLES,d.styles?.[id]))openingStyles[id]=d.styles[id];
   if(Object.hasOwn(POS,d.positions?.[id]))openingPositions[id]=d.positions[id];
   if(BP)openingPaths[id]=BP.sanitizedPath(d.paths?.[id]);
@@ -87,7 +88,7 @@ function duoPlayerTemplate(id){
  const person=V10?V10.findPerson(v10Persons[id],window.FOOTBALL_AWARD_REAL_PEOPLE):null;
  const known=person&&Object.values(DUO_TEMPLATES).find(t=>t.name===person.name);
  const generated=person&&!known?V10.templateFor(person.name,window.FOOTBALL_AWARD_REAL_PEOPLE):null;
- const base=known||generated||DUO_TEMPLATES[id],style=PLAYER_STYLES[openingStyles[id]]||PLAYER_STYLES.default;
+ const base=known||generated||(V10?V10.customTemplate(v10Persons[id],openingPositions[id]):DUO_TEMPLATES[id]),style=PLAYER_STYLES[openingStyles[id]]||PLAYER_STYLES.default;
  return {...base,stats:Object.fromEntries(Object.entries(base.stats).map(([key,value])=>[key,C(value+(style.adjust[key]||0),1,99)]))};
 }
 function openingPlayerStyle(id){
@@ -163,7 +164,10 @@ function creatorForm(id){
 
 function chooseAcademy(id,league){
  if(!DUO_IDS.includes(id)||!OPENING_LEAGUES.includes(league)||drawnClubs[id])return;
- openingLeagues[id]=league;openingDecks[id]=null;persistOpening();render();
+ const oldLeague=openingLeagues[id],oldDeck=openingDecks[id];
+ openingLeagues[id]=league;openingDecks[id]=null;
+ if(!persistOpening()){openingLeagues[id]=oldLeague;openingDecks[id]=oldDeck;notify("无法保存起始联赛，请先检查浏览器存储空间")}
+ render();
 }
 function openingPool(id){const league=openingLeagues[id];return (league==="CHN"?CSL_DRAW_TEAMS():DB[league].teams.map(t=>t.name)).filter(name=>
  !DUO_IDS.some(who=>who!==id&&openingLeagues[who]===league&&drawnClubs[who]===name));
@@ -201,7 +205,7 @@ function flipOpeningCard(id,index){
 function openingCardPanel(id){
  const t=duoPlayerTemplate(id),leagueId=openingLeagues[id],league=DB[leagueId],deck=openingCards(id),picked=drawnClubs[id];
  return '<section class="card opening-draw"><div class="row"><h2>'+E(duoDraft[id]||t.name)+' · '+(creatorMode==="preset"||creatorDrafts[id]?.age<18?"选择青训球队":"选择职业球队")+'</h2><span class="chip">'+E(league.name)+'</span></div>'+
- (V10?'<p class="muted small">随机联赛：'+E(league.name)+' · 游戏国籍：'+E(v10Countries[id])+' · 身高：'+v10Heights[id]+'cm</p>':
+ (V10?'<p class="muted small">所选联赛：'+E(league.name)+' · 游戏国籍：'+E(v10Countries[id])+' · 身高：'+v10Heights[id]+'cm</p>':
   '<label class="field">'+(creatorMode==="preset"?"青训联赛":"起始联赛")+' <select data-opening-league="'+id+'" '+(picked?'disabled':'')+'>'+OPENING_LEAGUES.map(l=>'<option value="'+l+'" '+(l===leagueId?'selected':'')+'>'+E(DB[l].name)+'</option>').join('')+'</select></label>'+
   creatorForm(id)+openingDevelopmentPanel(id))+
  '<p class="muted small">亲自翻开十张随机球队卡中的一张；球队选定后立即保存。</p>'+
@@ -676,7 +680,7 @@ function makeDuoCareer(id){
  careerPhilosophy:V10?v10Philosophies[id]:"balanced",careerOperationMode:V10?v10Operations[id]:"guided",
  autoTraining:V10?v10Operations[id]!=="deep":true,autoPoints:V10?v10Operations[id]!=="deep":true,
  realIdentity:V10?{referenceName:name,referenceClub:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.referenceClub||"",
- profileSource:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.source||"原有角色",
+ profileSource:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.source||"自定义人物 · 游戏估算",
  gameCountry:v10Countries[id],gameCareer:true}:null,
  age:ACADEMY_START_AGE,
   position:openingPositions[id]||t.position,club:drawnClubs[id]+"青训",academyParentClub:drawnClubs[id],academyStartYear:2026,academyGraduationAge:ACADEMY_GRADUATION_AGE,leagueId:openingLeagues[id],number:Number.isInteger(t.number)?t.number:R(2,39),stats:academyStats(t),potential:t.potential,
@@ -2312,7 +2316,7 @@ function v10OpeningAction(action,id){
  const before={step:v10Step,leagues:{...openingLeagues},countries:{...v10Countries},decks:{...openingDecks}};
  if(action==="v10Next"){
   if(v10Persons.wang===v10Persons.vini)return notify("两名球员不能是同一个人物，请重新选择");
-  if(v10Step===1&&!DUO_IDS.every(x=>V10.findPerson(v10Persons[x],window.FOOTBALL_AWARD_REAL_PEOPLE)))return notify("球员姓名未能匹配人物名单");
+  if(v10Step===1&&!DUO_IDS.every(x=>typeof v10Persons[x]==="string"&&v10Persons[x].trim()))return notify("请先输入两名球员的名字");
   v10Step=Math.min(3,v10Step+1);
  }else if(action==="v10Back")v10Step=Math.max(1,v10Step-1);
  else if(DUO_IDS.includes(id)&&!drawnClubs[id]){
@@ -2696,9 +2700,10 @@ $("app").addEventListener("change",ev=>{
    const previous={persons:{...v10Persons},draft:{...duoDraft},height:{...v10Heights},
     weight:{...openingWeights},position:{...openingPositions},philosophies:{...v10Philosophies},operations:{...v10Operations}};
    if(data.v10Person){
-    const found=V10.findPerson(ev.target.value,window.FOOTBALL_AWARD_REAL_PEOPLE);
-    if(!found)return;
-    v10Persons[id]=found.name;duoDraft[id]=found.name;openingPositions[id]=found.position;
+    const name=String(ev.target.value||"").trim().slice(0,22);
+    if(!name){notify("请输入球员姓名");render();return}
+    const found=V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE);
+    v10Persons[id]=name;duoDraft[id]=name;if(found)openingPositions[id]=found.position;
    }else if(data.v10Height){
     const oldHeight=v10Heights[id],newHeight=V10.allowedHeight(ev.target.value);
     if(openingWeights[id]===V10.seedWeight(oldHeight))openingWeights[id]=V10.seedWeight(newHeight);

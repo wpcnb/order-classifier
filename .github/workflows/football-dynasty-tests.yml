@@ -30,6 +30,8 @@ jobs:
           python3 -m unittest discover -s football-legacy/tests -p 'test_audit_clubs.py' -v
       - name: Green Legend v1.0.0 engine and integration checks
         run: node football-legacy/tests/legend-v1.cjs
+      - name: Independent custom names and opening-league choices
+        run: node football-legacy/tests/opening-choice.cjs
       - name: v10 - ten feature families, 100 independent samples each
         run: node football-legacy/tests/v10-100x.cjs
       - name: v9 body encounters and career balance - ten focused checks

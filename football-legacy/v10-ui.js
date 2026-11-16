@@ -10,16 +10,16 @@ function render(data){
  const label=id=>id==="wang"?"球员一":"球员二";
  let page="";
  if(stage===1){
-  page='<section class="card gap"><h2>第一步 · 人物与随机国籍、联赛</h2><p class="muted small">选两位真实足球人物姓名参考；原有王楚淇角色继续提供。游戏中的国籍、联赛、职业发展属于平行世界，不是现实履历。</p>'+
+  page='<section class="card gap"><h2>第一步 · 选择人物和起始联赛</h2><p class="muted small">输入两个人物名字，也可以从建议名单选择。自定义人物的足球能力和体格属于游戏设定，不会仅凭姓名推断真实数据。</p>'+
   '<div class="v10-two">'+["wang","vini"].map(id=>{
    const person=people.find(x=>x.name===players[id]);const isOriginal=person?.source==="原有玩家角色";
    return '<article class="v10-card"><h3>'+label(id)+'</h3>'+
-    '<label class="field">选择人物<select data-v10-person="'+id+'" '+(drawn[id]?'disabled':'')+'>'+people.map(x=>
-     '<option value="'+escape(x.name)+'" '+(x.name===players[id]?'selected':'')+'>'+escape(x.name)+' · '+escape(positionLabels[x.position]||"球员")+'</option>').join("")+'</select></label>'+
-    '<p class="muted small">'+(isOriginal?'原有玩家角色，并非已核验的职业球员。':'人物参考源于游戏名单，现实所属球队与评分不作为本次开局事实。')+'</p>'+
+    '<label class="field">人物姓名<input type="text" data-v10-person="'+id+'" list="v10-people" maxlength="22" value="'+escape(players[id])+'" '+(drawn[id]?'disabled':'')+'></label>'+
+    '<p class="muted small">'+(isOriginal?'原有玩家角色，并非已核验的职业球员。':person?'人物参考源于游戏名单，现实所属球队与评分不作为本次开局事实。':'自定义名字：依据所选位置生成游戏能力，请在下一步自行设置体格。')+'</p>'+
     '<div class="v10-lottery"><span>游戏国籍 <b>'+escape(countries[id])+'</b></span><button type="button" class="button outline" data-action="v10Country" data-id="'+id+'" '+(drawn[id]?'disabled':'')+'>随机国籍</button></div>'+
-    '<div class="v10-lottery"><span>初始联赛 <b>'+escape(gameLeagues[leagues[id]]?.name||"—")+'</b></span><button type="button" class="button outline" data-action="v10League" data-id="'+id+'" '+(drawn[id]?'disabled':'')+'>随机联赛</button></div></article>'
-  }).join("")+'</div><p class="muted small">六联赛池：英超、西甲、德甲、意甲、法甲、中超。结果独立随机，可在翻牌之前重抽。</p></section>';
+    '<label class="field">起始联赛<select data-opening-league="'+id+'" '+(drawn[id]?'disabled':'')+'>'+core.LEAGUES.map(l=>'<option value="'+escape(l)+'" '+(l===leagues[id]?'selected':'')+'>'+escape(gameLeagues[l]?.name||l)+'</option>').join("")+'</select></label>'+
+    '<button type="button" class="button outline" data-action="v10League" data-id="'+id+'" '+(drawn[id]?'disabled':'')+'>随机联赛（可选）</button></article>'
+  }).join("")+'</div><datalist id="v10-people">'+people.map(x=>'<option value="'+escape(x.name)+'"></option>').join("")+'</datalist><p class="muted small">每人可选中超或五大联赛；俱乐部仍需在下一步从十张随机卡中亲自翻选。</p></section>';
  }else if(stage===2){
   page='<section class="card gap"><h2>第二步 · 职业理念与比赛特点</h2><p class="muted small">身高、体重、位置、生涯路线与操作深度分别设置。不同选择有优缺点，能力上限不会直接赠送。</p>'+
   '<div class="v10-two">'+["wang","vini"].map(id=>{
@@ -34,7 +34,7 @@ function render(data){
   }).join("")+'</div></section>';
  }else{
   const current=["wang","vini"].find(x=>!drawn[x]);
-  page='<section class="card gap"><h2>第三步 · 十张随机球队卡</h2><p class="muted small">俱乐部由刚才抽到的联赛决定；翻牌后锁定球队，避免重复或暗中重抽。</p></section>'+
+  page='<section class="card gap"><h2>第三步 · 十张随机球队卡</h2><p class="muted small">球队来自各自选择的联赛；翻牌后锁定球队，避免重复或暗中重抽。</p></section>'+
   (current?openingCards(current):'<section class="card gap"><h2>双星准备就绪</h2><div class="v10-two">'+["wang","vini"].map(id=>
   '<div class="v10-card"><b>'+escape(players[id])+'</b><p class="gold">'+escape(drawn[id])+'</p></div>').join("")+
   '</div><button type="button" class="button primary v10-primary" data-action="preset">开始双人职业生涯</button></section>');
