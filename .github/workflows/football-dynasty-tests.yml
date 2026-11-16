@@ -46,6 +46,8 @@ jobs:
         run: node football-legacy/tests/quick-five.cjs
       - name: Club lookup equivalence
         run: node football-legacy/tests/club-lookup.cjs
+      - name: Mobile news presentation and season labels
+        run: node football-legacy/tests/news-ux.cjs
       - name: Dual-career regression tests
         run: node football-legacy/tests/smoke.cjs
       - name: Player aging and retirement regressions
