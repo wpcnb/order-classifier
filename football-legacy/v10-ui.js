@@ -6,7 +6,7 @@ function render(data){
  const stage=Math.max(1,Math.min(3,Number(step)||1));
  const titles=["选择两名人物","设置身体与生涯","随机俱乐部抽卡"];
  const bar='<nav class="v10-progress" aria-label="创建生涯进度">'+titles.map((t,i)=>'<span class="'+(i+1===stage?'active':'')+'">'+(i+1)+' · '+escape(t)+'</span>').join("")+'</nav>';
- const heading='<div class="hero opening-hero"><div><div class="cap">FOOTBALL LEGACY 10.0 · TWO CAREERS, ONE WORLD</div><h1>双星时代</h1><p>两名球员，同一个世界，不同职业命运。</p></div></div>';
+ const heading='<div class="hero opening-hero"><div><div class="cap">GREEN LEGEND 2.0 · TWO CAREERS, ONE WORLD</div><h1>双星时代</h1><p>两名球员，同一个世界，不同职业命运。</p></div></div>';
  const label=id=>id==="wang"?"球员一":"球员二";
  let page="";
  if(stage===1){
