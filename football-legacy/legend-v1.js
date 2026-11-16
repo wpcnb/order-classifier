@@ -17,7 +17,9 @@ function ensure(p){
 }
 function declineAge(p){
  const v=ensure(p);
- return cap((ageByRole[p?.position]??35)+v.peakShift,31,38);
+ // The player's preference is that physical decline starts no earlier than 35.
+ // Different positions may still maintain their peak for longer.
+ return cap((ageByRole[p?.position]??35)+v.peakShift,35,38);
 }
 function growthAge(p){
  const v=ensure(p);
@@ -60,7 +62,7 @@ function highlight(p,match,teamPower,opponentPower){
  if((match.goals||0)>=3)return "赛后聚焦："+p.name+"上演帽子戏法，成为本场焦点。";
  if((match.assists||0)>=3)return "赛后聚焦："+p.name+"送出至少三次助攻，组织表现突出。";
  if(match.rating>=8.6)return "赛后聚焦："+p.name+"表现抢眼，赛后评分"+match.rating+"。";
- if(match.redCard)return "赛后聚焦：红牌改变了双方的比赛节奏。";
+ if(match.redCard)return "赛后聚焦："+p.name+"因红牌被罚下。";
  return "";
 }
 function dynasty(x){

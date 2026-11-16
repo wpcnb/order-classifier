@@ -2484,7 +2484,7 @@ function duoSeasonComparison(a,b){
 /* Quick-play preference lives outside the career save, avoiding migration. */
 const CAREER_PACE_KEY="football-dynasty-career-pace-v1";
 let careerPace="season";
-try{const storedPace=localStorage.getItem(CAREER_PACE_KEY);if(["day","week","season"].includes(storedPace))careerPace=storedPace}catch(e){}
+try{const storedPace=localStorage.getItem(CAREER_PACE_KEY);if(storedPace==="week")careerPace="day";else if(["day","season"].includes(storedPace))careerPace=storedPace}catch(e){}
 function quickCareerAdvance(){
  if(!duoGames||DUO_IDS.every(id=>duoGames[id].player.retired))return;
 
@@ -2495,7 +2495,6 @@ function quickCareerAdvance(){
   if(manual.length&&!confirm("深度生涯快进会跳过手动训练机会："+manual.map(id=>duoGames[id].player.name).join("、")+"。本次仍要快进吗？"))return;
  }
  if(careerPace==="day")sharedAdvanceDates(1);
- else if(careerPace==="week")sharedAdvanceDates(7);
  else sharedAdvanceDates(400);
 }
 
@@ -2601,7 +2600,7 @@ function duoDashboard(){
  const date=nextSharedDate();
  const action=retired?'<button class="button" data-page="career">查看生涯总结</button>':
   allReview?(missing.length?'<button class="button primary" data-page="transfer">处理转会决定</button>':'<button class="button primary" data-action="nextSeason">进入下一赛季</button>'):
-  '<button class="button primary career-main-action" data-action="quickCareerAdvance">'+({day:"推进下一比赛日",week:"快进7个比赛日",season:"模拟剩余赛季"}[careerPace])+'</button><label class="pace-picker">节奏 <select data-career-pace="1" aria-label="生涯推进节奏">'+[["season","整个赛季"],["week","7个比赛日"],["day","下个比赛日"]].map(([v,title])=>'<option value="'+v+'" '+(careerPace===v?"selected":"")+'>'+title+'</option>').join("")+'</select></label>';
+  '<button class="button primary career-main-action" data-action="quickCareerAdvance">'+({day:"推进下一比赛日",season:"模拟剩余赛季"}[careerPace])+'</button><label class="pace-picker">节奏 <select data-career-pace="1" aria-label="生涯推进节奏">'+[["season","整个赛季"],["day","下个比赛日"]].map(([v,title])=>'<option value="'+v+'" '+(careerPace===v?"selected":"")+'>'+title+'</option>').join("")+'</select></label>';
  const summary=allReview&&!retired?'<section class="card gap"><h2>赛季总结</h2>'+DUO_IDS.map(id=>{const x=duoGames[id];return '<div class="item"><b>'+E(x.player.name)+'</b> · '+E(x.player.club)+' · '+x.season.apps+'场 '+x.season.goals+'球 '+x.season.assists+'助<br><span class="muted small">'+E(x.lastReview?.performance?.comment||"已结算")+'</span></div>'}).join("")+duoSeasonComparison(both[0],both[1])+'</section>':'';
  return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+summary+(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview()+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+
  '<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
@@ -2698,7 +2697,7 @@ $("app").addEventListener("change",ev=>{
    }render();return
   }
  }
- if(ev.target.dataset.careerPace){const value=ev.target.value;if(["day","week","season"].includes(value)){careerPace=value;try{localStorage.setItem(CAREER_PACE_KEY,value)}catch(e){}render()}return}
+ if(ev.target.dataset.careerPace){const value=ev.target.value;if(["day","season"].includes(value)){careerPace=value;try{localStorage.setItem(CAREER_PACE_KEY,value)}catch(e){}render()}return}
 
  const operationId=ev.target.dataset.careerOperation;
  if(V10&&duoGames&&DUO_IDS.includes(operationId)&&!duoGames[operationId].player.retired){
