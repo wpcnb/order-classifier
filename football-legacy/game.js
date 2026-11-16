@@ -232,6 +232,14 @@ DEN:["丹超","丹麦",["哥本哈根","中日德兰","布隆德比","北西兰"
 BRA:["巴甲","巴西",["弗拉门戈","帕尔梅拉斯","博塔弗戈","弗鲁米嫩塞","科林蒂安","圣保罗","桑托斯","国际","格雷米奥","米内罗竞技","克鲁塞罗","巴伊亚","福塔莱萨","瓦斯科达伽马","布拉甘蒂诺","塞阿拉","维多利亚","尤文图德","累西腓体育","米拉索尔"]]
 };
 const DB={};Object.entries(RAW).forEach(([id,v])=>{DB[id]={id,name:v[0],country:v[1],teams:v[2].map((name,i)=>({name,power:C(Math.round((id==="CHN"?75:id==="BRA"?82:94)-i*1.55+(i%3)-1),48,96)}))}});
+// Club membership and names are fixed after initialization; retain the first match if a
+// name ever appears twice, exactly as the original league-order scan did.
+// Keep the team object rather than a power snapshot so adjustments to a team
+// object remain visible. Per-career clubRatings still take precedence.
+const CLUB_INDEX=new Map();
+for(const [id,league] of Object.entries(DB))for(const team of league.teams){
+ if(!CLUB_INDEX.has(team.name))CLUB_INDEX.set(team.name,{id,team});
+}
 const MANU_26=[
 ["2026-08-22","赫尔城","A",0,2],["2026-08-30","伊普斯维奇","H",5,2],["2026-09-06","埃弗顿","A",2,2],["2026-09-13","曼城","H",0,1],["2026-09-20","富勒姆","A",1,1],
 ["2026-10-10","热刺","H",1,1],["2026-10-18","利兹联","A",1,1],["2026-10-25","伯恩茅斯","H",0,3],["2026-10-31","切尔西","A",0,2],
@@ -248,8 +256,7 @@ function toDate(d){return d==="—"?"":d}
 function power(team){
  if(team.endsWith("青训"))return Math.max(42,power(team.slice(0,-2))-30);
  if(g?.clubRatings&&Number.isFinite(g.clubRatings[team]))return g.clubRatings[team];
- for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power}
- return 80
+ const found=CLUB_INDEX.get(team);return found?found.team.power:80
 }
 
 function overall(p){const a=Object.values(p.stats),w=WEIGHTS[p.position]||WEIGHTS.CM;return Math.round(a.reduce((s,v,i)=>s+v*w[i],0))}
@@ -941,8 +948,7 @@ function updateTable(table,home,away,hs,as){const a=table[home],b=table[away];if
 // in future without requiring its Python scrapers in the browser.
 const LEAGUE_GOAL_ENV={ENG:1,ESP:1,ITA:1,GER:1,FRA:1,CHN:1,NED:1,POR:1,BRA:1,TUR:1,BEL:1,SCO:1,AUT:1,SUI:1,DEN:1};
 function leagueFromClub(name){
- for(const [id,league] of Object.entries(DB))if(league.teams.some(t=>t.name===name))return id;
- return null;
+ return CLUB_INDEX.get(name)?.id??null;
 }
 function poissonGoals(lambda){const threshold=Math.exp(-C(lambda,.08,4.6));let n=0,product=1;do{product*=Math.random();n++}while(product>threshold&&n<12);return Math.min(n-1,7)}
 function simulateScore(a,b,boost=0,reduceHome=0,reduceAway=0){
