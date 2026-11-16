@@ -1264,8 +1264,23 @@ function sharedNationalKnockoutWin(ev,home,away,our,their,random=Math.random){
  const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away;
  const entry=sharedUniverse?.national?.[key];
  if(!entry)return random()<.5;
- if(typeof entry.penaltyWin!=="boolean")entry.penaltyWin=random()<.5;
- return entry.penaltyWin;
+ // penaltyWin in an older save was recorded from the first player's point of
+ // view. Persist the winning team so an opponent cannot inherit the same win.
+ const team=g.player?.country;
+ if(entry.penaltyWinner===home||entry.penaltyWinner===away)return entry.penaltyWinner===team;
+ const isNew=typeof entry.penaltyWin!=="boolean";
+ if(isNew)entry.penaltyWin=random()<.5;
+ if(team!==home&&team!==away)return entry.penaltyWin;
+ let originalTeam=entry.penaltyFor;
+ if(!isNew&&originalTeam!==home&&originalTeam!==away&&typeof duoGames!=="undefined"&&typeof DUO_IDS!=="undefined"&&duoGames){
+  const prior=DUO_IDS.map(id=>duoGames[id]).find(x=>x?.year===g.year&&[home,away].includes(x.player?.country)&&
+   (x.season?.results||[]).some(m=>m.kind==="national"&&m.date===ev.date&&m.stage===ev.stage&&m.home===home&&m.away===away));
+  originalTeam=prior?.player.country;
+ }
+ if(originalTeam!==home&&originalTeam!==away)originalTeam=team;
+ entry.penaltyFor=originalTeam;
+ entry.penaltyWinner=entry.penaltyWin?originalTeam:(originalTeam===home?away:home);
+ return entry.penaltyWinner===team;
 }
 // A score can only respond to a dismissal before that match is shared or fixed.
 // For a single controlled player, scale the change to the remaining match time.
