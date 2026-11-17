@@ -5,6 +5,7 @@ const V10=window.DualV10||null, V10UI=window.DualV10UI||null; // Optional for ol
 const CD=window.CareerDepth||null; // Optional: legacy tests and old saves still load without the new module.
 const GL=window.GreenLegend||null; // v1.0.0 optional mechanics; old test harnesses retain the original behavior.
 const V3=window.LegendV3||null; // Career score never changes Ballon d'Or voting.
+const RV3=window.FootballRolesV3||null; // Role-specific promotion and relegation rules.
 const STORE="football-dynasty-duo-v2-20261110",LEGACY_STORE="football-dynasty-v4-independent-20261101",CUT="2026-11-01";
 const VERIFIED_REAL_PEOPLE_FALLBACK={"roster":[["贝林厄姆","皇家马德里","CAM",92,23],["库巴西","巴塞罗那","CB",86,19],["库库雷利亚","皇家马德里","CB",86,28],["登贝莱","巴黎圣日耳曼","RW",91,29],["路易斯·迪亚斯","拜仁慕尼黑","LW",88,29],["布鲁诺·费尔南德斯","曼联","CAM",89,32],["加布里埃尔·马加良斯","阿森纳","CB",88,28],["哈兰德","曼城","ST",95,26],["阿什拉夫","巴黎圣日耳曼","RW",91,28],["凯恩","拜仁慕尼黑","ST",95,33],["克瓦拉茨赫利亚","巴黎圣日耳曼","LW",92,25],["亚马尔","巴塞罗那","RW",94,19],["马内","利雅得胜利","LW",84,34],["马尔基尼奥斯","巴黎圣日耳曼","CB",86,32],["劳塔罗·马丁内斯","国际米兰","ST",90,29],["姆巴佩","皇家马德里","ST",96,27],["努诺·门德斯","巴黎圣日耳曼","CB",89,24],["梅西","迈阿密国际","RW",86,39],["若昂·内维斯","巴黎圣日耳曼","CM",89,22],["奥利塞","拜仁慕尼黑","RW",91,24],["帕乔","巴黎圣日耳曼","CB",86,25],["胡利安·基尼奥内斯","卡迪西亚","ST",82,29],["赖斯","阿森纳","CM",90,27],["罗德里","巴塞罗那","CM",91,30],["法比安·鲁伊斯","巴黎圣日耳曼","CM",87,30],["萨利巴","阿森纳","CB",89,25],["费兰·托雷斯","巴黎圣日耳曼","RW",85,26],["于帕梅卡诺","拜仁慕尼黑","CB",88,27],["维尼修斯","皇家马德里","LW",93,26],["维蒂尼亚","巴黎圣日耳曼","CM",92,26],["佩德里","巴塞罗那","CM",91,23],["加维","巴塞罗那","CM",86,22],["穆西亚拉","拜仁慕尼黑","CAM",92,23],["维尔茨","利物浦","CAM",92,23],["帕尔默","切尔西","CAM",91,24],["福登","曼城","RW",90,26],["萨卡","阿森纳","RW",91,25],["阿尔瓦雷斯","马德里竞技","ST",90,26],["拉菲尼亚","巴塞罗那","RW",91,29],["伊萨克","利物浦","ST",90,27],["埃斯特旺","切尔西","RW",84,19],["恩德里克","皇家马德里","ST",83,20],["居莱尔","皇家马德里","CAM",88,21],["马斯坦托诺","皇家马德里","RW",82,19],["杜埃","巴黎圣日耳曼","LW",89,21],["扎伊尔-埃梅里","巴黎圣日耳曼","CM",87,20],["巴尔韦德","皇家马德里","CM",90,28],["莱万多夫斯基","巴塞罗那","ST",88,38],["奥斯梅恩","加拉塔萨雷","ST",90,27],["罗德里戈","皇家马德里","RW",88,25],["切尔基","曼城","CAM",85,23],["加纳乔","切尔西","LW",84,22],["基米希","拜仁慕尼黑","CM",90,31],["萨内","加拉塔萨雷","RW",86,30],["迪奥曼德","RB莱比锡","RW",86,19],["巴斯托尼","国际米兰","CB",90,27],["多纳鲁马","曼城","GK",92,27],["奥布拉克","马德里竞技","GK",88,33],["库尔图瓦","皇家马德里","GK",91,34],["尼科·威廉姆斯","毕尔巴鄂竞技","LW",86,24],["苏比门迪","阿森纳","CM",86,27],["卡马文加","皇家马德里","CM",87,23],["楚阿梅尼","皇家马德里","CM",88,26],["斯凯利","阿森纳","CB",82,20],["恩瓦内里","阿森纳","RW",82,19],["埃切维里","勒沃库森","CAM",81,20],["昆达","葡萄牙体育","RW",81,19],["肯德里·派斯","斯特拉斯堡","CAM",78,19],["亚历杭德罗·巴尔德","巴塞罗那","CB",86,22],["格瓦迪奥尔","曼城","CB",90,24],["鲁本·迪亚斯","曼城","CB",88,29],["范戴克","利物浦","CB",90,35],["科纳特","利物浦","CB",87,27],["索博斯洛伊","利物浦","CM",88,25],["麦卡利斯特","利物浦","CM",89,27],["埃基蒂克","利物浦","ST",87,24],["约克雷斯","阿森纳","ST",88,28],["阿马德·迪亚洛","曼联","RW",84,24],["梅努","曼联","CM",83,21],["谢什科","曼联","ST",84,23],["乌加特","曼联","CM",82,25],["特尔","热刺","ST",81,21],["沃顿","水晶宫","CM",85,22],["摩根·罗杰斯","阿斯顿维拉","CAM",85,24],["奥蓬达","尤文图斯","ST",85,26],["维托尔·罗克","帕尔梅拉斯","ST",82,21],["罗德里戈·莫拉","波尔图","CAM",82,19],["弗朗西斯科·孔塞桑","尤文图斯","RW",84,23],["科尔·穆阿尼","热刺","ST",84,27],["伊尼戈·马丁内斯","利雅得胜利","CB",82,35],["奥纳纳","特拉布宗体育","GK",81,30],["斯卡尔维尼","亚特兰大","CB",86,22],["弗拉霍维奇","尤文图斯","ST",85,26],["马库斯·图拉姆","国际米兰","ST",87,29],["迪马尔科","国际米兰","CB",88,28]],"referenceYear":2026,"officialNomineeCount":30,"official2026Top10":[["凯恩",1055],["姆巴佩",1027],["亚马尔",881],["罗德里",726],["梅西",612],["克瓦拉茨赫利亚",541],["登贝莱",418],["哈兰德",378],["奥利塞",296],["法比安·鲁伊斯",201]],"rules":{"candidates":30,"jurors":100,"perBallot":[15,12,10,8,7,5,4,3,2,1],"maxPersonalPoints":1500,"totalPoints":6700},"sources":["https://www.uefa.com/uefachampionsleague/news/02a9-218b019cbca5-cb4b9be51c4b-1000--2026-ballon-dor-awards-nominees-revealed/","https://ballondor.com/news/posts/2026-mens-ballon-dor-the-full-ranking-and-the-28-points-that-kept-mbappe-from-the-trophy"]};
 const $=x=>document.getElementById(x),R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,C=(n,a,b)=>Math.max(a,Math.min(b,n)),P=a=>a[R(0,a.length-1)],E=v=>String(v??"").replace(/\u6a21\u62df/g,"游戏赛季").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x])),M=n=>"¥"+Math.round(n).toLocaleString("zh-CN"),percent=n=>C(Math.round(n),0,100);
@@ -920,7 +921,8 @@ function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
  let count=0,days=0,date;
  while((date=nextSharedDate())&&days<maxDays&&(!focusDate||date<=focusDate)){
   const critical=V3&&V3.criticalDay(duoGames,date);
-  if(critical&&v3Allowed!==date){v3Paused=critical;break}
+  // User preference: all finals, derbies and title deciders are automatically simulated by one-click advance.
+  // Results remain in the career archive; do not interrupt the shared calendar.
   runSharedDay(date,focusDate===date?activeDuo:null,focusChoice);days++;count++;
   if(v3Allowed===date)v3Allowed=null;
  }
@@ -1617,68 +1619,47 @@ function transferLevel(id,club){
 }
 function clubSeasonNumbers(s,club=null){
  const played=(s.results||[]).filter(x=>x.played&&x.kind!=="national");
- const n={apps:played.length,goals:0,assists:0,avg:0,cleanSheets:0,matchesWithScore:0},ratings=[];
+ const n={apps:played.length,goals:0,assists:0,avg:0,cleanSheets:0,matchesWithScore:0,goalsAgainst:0},ratings=[];
  for(const match of played){
   n.goals+=match.goals||0;n.assists+=match.assists||0;if(match.rating>0)ratings.push(match.rating);
   const against=club&&match.home===club?match.as:club&&match.away===club?match.hs:null;
-  if(Number.isFinite(against)&&against>=0){n.matchesWithScore++;if(against===0)n.cleanSheets++}
+  if(Number.isFinite(against)&&against>=0){n.matchesWithScore++;n.goalsAgainst+=against;if(against===0)n.cleanSheets++}
  }
  n.avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:0;return n;
 }
 function transferQualified(t,n,ov,position="LW"){
- // Midfielders and defenders can qualify through strong ratings and their
- // club's real simulated clean sheets, with no fabricated tackles or saves.
- const nonOffense=["CM","CDM","CB","LB","RB","GK"].includes(position);
- if(nonOffense){
-  const known=n.matchesWithScore||0,clean=n.cleanSheets||0;
-  const fraction=position==="CM"?.20:.28;
-  return n.apps>=t.apps&&n.avg>=t.avg+.22&&ov>=t.ov&&known>=Math.ceil(n.apps*.7)&&clean>=Math.max(4,Math.ceil(known*fraction));
- }
- const creator=["CAM","CM","CDM"].includes(position);
- const goalsTarget=creator?Math.max(2,t.g-3):t.g;
- const assistsTarget=creator?t.a: t.a;
- const combinedTarget=creator?Math.max(5,t.sum-2):t.sum;
- return n.apps>=t.apps&&n.avg>=t.avg&&ov>=t.ov&&(
-  n.goals>=goalsTarget||n.assists>=assistsTarget||
-  n.goals+n.assists>=combinedTarget
- );
+ if(RV3)return RV3.evaluate({position},n,t,ov,Math.max(0,TRANSFER_GATES.indexOf(t))).qualified;
+ // Only used when the optional role module fails to load.
+ return n.apps>=t.apps&&n.avg>=t.avg&&ov>=t.ov;
 }
 function seasonPerformance(){
  const p=g.player,n=clubSeasonNumbers(g.season,p.club),tier=transferLevel(p.leagueId,p.club),ov=overall(p);
- const offense=["ST","LW","RW","CAM"].includes(p.position),exempt=p.youth||!offense||n.apps<15;
- const expectedOutput=n.goals+n.assists;
- const roleFactor=p.position==="ST"?1.12:p.position==="CAM"?.88:1;
- const expectedByTier=[12,14,17,19,22,25][tier]*roleFactor;
- const performanceRatio=expectedOutput/Math.max(1,expectedByTier);
- const poor=!exempt&&(n.apps<23||n.avg<6.38||performanceRatio<.67&&n.avg<7.12||performanceRatio<.40);
- // Scoring 15+ goals can never be branded a bad season merely because a
- // formerly harsh, low-centred match-rating formula gave below 7.15.
-
+ const gate=TRANSFER_GATES[tier]||null;
+ const evaluated=RV3&&gate?RV3.evaluate(p,n,gate,ov,tier):null;
+ const offense=["ST","LW","RW","CAM"].includes(p.position);
+ const exempt=p.youth||n.apps<23||p.injuryMatches>0||p.age>=35;
+ const poor=!exempt&&!!evaluated?.poor;
  p.poorStreak=poor?(p.poorStreak||0)+1:0;
- // Only club team trophies count. Individual awards / national-team trophies do not.
  const teamChampion=(g.honors||[]).some(h=>h.year===g.year&&h.generation===g.generation&&h.type==="team"&&h.name.includes("冠军"));
  p.trophylessStreak=p.youth?0:teamChampion?0:(p.trophylessStreak||0)+1;
- // Poor performance takes precedence over an honour-driven lateral transfer.
  p.forcedMove=!p.youth&&p.poorStreak>=2&&tier>0;
- p.sameTierReminder=!p.youth&&p.trophylessStreak>=2;
- p.forcedSameTier=false;
- const gate=TRANSFER_GATES[tier]||null;
- const ratingStandard=[6.98,7.00,7.04,7.10,7.18][tier]??7.2;
- const performanceStandard=[16,18,20,23,25][tier]??25;
- const roleAdjustedOutput=expectedOutput/(p.position==="CAM"?.90:p.position==="ST"?1.12:1);
+ p.sameTierReminder=!p.youth&&p.trophylessStreak>=2;p.forcedSameTier=false;
  const scoutingChance=[.69,.62,.58,.50,.44][tier]??0;
- const qualified=!!gate&&transferQualified(gate,n,ov,p.position)&&n.avg>=ratingStandard&&(!offense||roleAdjustedOutput>=performanceStandard)&&(p.scoutingRoll??(p.scoutingRoll=Math.random()))<scoutingChance;
+ const qualified=!!evaluated?.qualified&&(p.scoutingRoll??(p.scoutingRoll=Math.random()))<scoutingChance;
  const eligible=!p.youth&&n.apps>=15;
  const maxTier=eligible&&!poor&&qualified?Math.min(tier+1,TRANSFER_LEVELS.length-1):tier;
- const comment=p.youth?"青训阶段：16—17岁参加青年联赛，18岁自动进入本俱乐部一线队；青年数据不计入成年赛季。":p.forcedSameTier?"连续两个赛季没有获得俱乐部冠军，必须申请同档转会":n.apps<15?"出场不足，不按进球助攻处罚":!offense?(maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"根据评分、出场和球队零封考核，不按进球助攻处罚"):
-  p.forcedMove?"连续两个赛季未达标，可选择降档或留队":
-  tier===0&&poor&&p.poorStreak>=2?"中超已是起步最低档，留队或同级转会，不会假装降档":
-  poor?"本赛季低于留队标准，累计不达标"+p.poorStreak+"季":
-  tier===TRANSFER_LEVELS.length-1?"已达到最高的世界传奇豪门档次":
-  maxTier>tier?"已解锁"+TRANSFER_LEVELS[maxTier]+"升级报价":"尚未达到下一档转会门槛";
- const roleCleanTarget=gate&&!offense?Math.max(4,Math.ceil(n.matchesWithScore*(p.position==="CM"?.20:.28))):null;
- const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:offense?gate?.g??null:null,assistsTarget:offense?gate?.a??null:null,roleCleanTarget,
-  tier,maxTier,poor,exempt,offense,expectedByTier:Number(expectedByTier.toFixed(1)),performanceRatio:Number(performanceRatio.toFixed(2)),scoutingChance,poorStreak:p.poorStreak,forcedMove:p.forcedMove,forcedSameTier:p.forcedSameTier,trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment};
+ const comment=p.youth?"青训阶段不进行成年赛季考核。":
+  p.forcedMove?"连续两个健康赛季表现明显低于预期：可选择降档或留队。":
+  poor?"本赛季竞技表现低迷，但不会因输决赛或没有冠军被处罚。":
+  maxTier>tier?"已解锁升级抽卡："+TRANSFER_LEVELS[maxTier]+"。":
+  tier===TRANSFER_LEVELS.length-1?"已达到最高俱乐部档次。":
+  (evaluated?.description||"按出场、评分与位置职责综合考核。")+(exempt?" 当前样本不足、受伤或年龄变化不计入低谷。":"");
+ const assessment={...n,avg:Number(n.avg.toFixed(2)),goalsTarget:offense?gate?.g??null:null,
+ assistsTarget:offense?gate?.a??null:null,roleCleanTarget:evaluated&&["keeper","defender","holding"].includes(evaluated.group)?Math.max(3,Math.ceil(n.matchesWithScore*.18)):null,
+ tier,maxTier,poor,exempt,offense,expectedByTier:evaluated?.requiredOutput||0,
+ performanceRatio:evaluated?.requiredOutput?n.goals+n.assists>=0?Number(((n.goals+n.assists)/evaluated.requiredOutput).toFixed(2)):0:0,
+ scoutingChance,poorStreak:p.poorStreak,forcedMove:p.forcedMove,forcedSameTier:p.forcedSameTier,
+ trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment,roleGroup:evaluated?.group||"unknown"};
  p.transferAssessment={...assessment,year:g.year};
  if(eligible&&!poor&&maxTier>tier)p.points=Math.min(15,(p.points||0)+2);
  return assessment;
@@ -2635,7 +2616,7 @@ function careerDepthDetails(id){
 function v3Panel(){
  if(!V3)return "";
  // Reloading the page must not silently bypass a pending final or derby.
- if(!v3Paused&&duoGames){const next=nextSharedDate();if(next)v3Paused=V3.criticalDay(duoGames,next)}
+ // Critical fixtures are not interactive blockers; one-click advance processes them automatically.
  if(v3Paused)return '<section class="card gap"><h2>重要比赛 · 赛前暂停</h2><p>'+E(v3Paused.date)+' · '+v3Paused.reasons.map(E).join(" / ")+'</p>'+
  '<p class="muted">选择战术，只模拟一次。赛后可分段回看比赛结果。</p><label class="field">战术<select id="v3Tactics"><option value="balanced">均衡</option><option value="defend">稳健</option><option value="attack">冒险</option></select></label>'+
  '<button class="button primary" data-action="v3Play" data-watch="1">比赛并观看战报</button> <button class="button" data-action="v3Play" data-watch="0">跳过战报</button></section>';
@@ -2689,7 +2670,7 @@ function duoDashboard(){
  // their presentation so match results remain visible on small screens.
  const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
  const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
- return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+v3Panel()+v3Scores()+summary+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
+ return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+v3Scores()+summary+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
@@ -2703,22 +2684,10 @@ function duoWorldPage(){
 }
 function transferCriteria(p,n,level){
  const gate=TRANSFER_GATES[level];if(!gate||p.youth)return "";
- const attack=["ST","LW","RW","CAM"].includes(p.position);
- const ratingStandard=[6.98,7.00,7.04,7.10,7.18][level]??7.2;
- const rating=Math.max(gate.avg+(attack?0:.22),ratingStandard).toFixed(2);
- const apps=Math.max(15,gate.apps);
- let detail;
- if(attack){
-  const creator=p.position==="CAM",g=creator?Math.max(2,gate.g-3):gate.g,sum=creator?Math.max(5,gate.sum-2):gate.sum;
-  const threshold=[16,18,20,23,25][level]??25,divisor=p.position==="CAM"?.90:p.position==="ST"?1.12:1;
-  const output=Math.ceil(threshold*divisor);
-  detail='进球至少 '+g+'、助攻至少 '+gate.a+' 或两项合计至少 '+sum+'；且进球助攻合计至少 '+output+'。';
- }else{
-  const known=n.matchesWithScore||0,rate=p.position==="CM"?.20:.28;
-  detail='按实际出场比赛中的球队零封考核；当前有效比分 '+known+' 场，需至少 '+Math.max(4,Math.ceil(known*rate))+' 场零封，且有效比分覆盖至少七成出场。';
- }
- const chance=Math.round(([.69,.62,.58,.50,.44][level]??0)*100);
- return '<details class="item"><summary>查看升档条件</summary><p class="muted small">俱乐部赛事出场至少 '+apps+' 场，场均评分至少 '+rating+'，综合能力至少 '+gate.ov+'。'+E(detail)+'满足数据后还需球探评估（游戏概率 '+chance+'%，每赛季固定一次）。</p></details>';
+ const evaluated=RV3?RV3.evaluate(p,n,gate,overall(p),level):null;
+ return '<details class="item"><summary>查看按位置升档标准</summary><p class="muted small">'+E(evaluated?.description||"综合出场、场均评分和位置表现")+
+ ' · 出场至少 '+(evaluated?.minApps||gate.apps)+' 场 · 平均评分 '+(evaluated?.rating||gate.avg).toFixed(2)+
+ ' · 能力至少 '+gate.ov+'。考核达标后还需通过球探评估，抽卡遵循9＋1规则。</p></details>';
 }
 function duoTransferPage(){
  const missing=missingPromotionDraws();
