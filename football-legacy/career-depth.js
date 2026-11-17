@@ -75,7 +75,7 @@ function marketValue(p,overall,tier,season){
  const ageFactor=age<18?.36:age<20?.72:age<23?1.10:age<27?1.27:age<30?1.18:age<32?.97:age<35?.67:age<38?.37:.18;
  const tierFactor=[.30,.49,.66,.82,1,1.13][clamp(Math.round(tier||0),0,5)];
  // 评价不以金球奖或冠军次数为前提。高能力年轻球星可达1–2亿欧元。
- const ability=4200000*Math.pow(ov/70,8);
+ const ability=11500000*Math.pow(ov/70,8);
  const played=Math.max(0,Number(season?.apps)||0);
  const ratings=Array.isArray(season?.ratings)?season.ratings.filter(Number.isFinite):[];
  const avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:6.8;
