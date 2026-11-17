@@ -2634,6 +2634,8 @@ function careerDepthDetails(id){
 
 function v3Panel(){
  if(!V3)return "";
+ // Reloading the page must not silently bypass a pending final or derby.
+ if(!v3Paused&&duoGames){const next=nextSharedDate();if(next)v3Paused=V3.criticalDay(duoGames,next)}
  if(v3Paused)return '<section class="card gap"><h2>重要比赛 · 赛前暂停</h2><p>'+E(v3Paused.date)+' · '+v3Paused.reasons.map(E).join(" / ")+'</p>'+
  '<p class="muted">选择战术，只模拟一次。赛后可分段回看比赛结果。</p><label class="field">战术<select id="v3Tactics"><option value="balanced">均衡</option><option value="defend">稳健</option><option value="attack">冒险</option></select></label>'+
  '<button class="button primary" data-action="v3Play" data-watch="1">比赛并观看战报</button> <button class="button" data-action="v3Play" data-watch="0">跳过战报</button></section>';
@@ -2661,6 +2663,8 @@ function v3AchievementPage(){
 }
 function v3Play(watch){
  if(!v3Paused||!V3)return;
+ // Only allow the next unplayed shared date, preventing stale-button double simulation.
+ if(nextSharedDate()!==v3Paused.date){v3Paused=null;render();return}
  const date=v3Paused.date,raw=document.getElementById("v3Tactics")?.value||"balanced";
  const choice=["balanced","defend","attack"].includes(raw)?raw:"balanced";
  const old=activeDuo,focus=DUO_IDS.find(id=>duoGames[id].season.stage==="playing"&&duoGames[id].season.events[duoGames[id].season.index]?.date===date)||old;
@@ -2668,6 +2672,7 @@ function v3Play(watch){
  try{sharedAdvanceDates(1,date,choice)}
  finally{activeDuo=old;g=duoGames[old];v3Allowed=null}
  const games=V3.replay(duoGames,date);v3Replay=watch&&games.length?{games,i:0}:null;
+ v3Sync();
  page="dashboard";save();render();
 }
 function duoDashboard(){
