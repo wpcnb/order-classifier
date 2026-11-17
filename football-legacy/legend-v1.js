@@ -17,7 +17,9 @@ function ensure(p){
 }
 function declineAge(p){
  const v=ensure(p);
- return cap((ageByRole[p?.position]??35)+v.peakShift,31,38);
+ // The player's preference is that physical decline starts no earlier than 35.
+ // Different positions may still maintain their peak for longer.
+ return cap((ageByRole[p?.position]??35)+v.peakShift,35,38);
 }
 function growthAge(p){
  const v=ensure(p);
@@ -60,7 +62,7 @@ function highlight(p,match,teamPower,opponentPower){
  if((match.goals||0)>=3)return "赛后聚焦："+p.name+"上演帽子戏法，成为本场焦点。";
  if((match.assists||0)>=3)return "赛后聚焦："+p.name+"送出至少三次助攻，组织表现突出。";
  if(match.rating>=8.6)return "赛后聚焦："+p.name+"表现抢眼，赛后评分"+match.rating+"。";
- if(match.redCard)return "赛后聚焦：红牌改变了双方的比赛节奏。";
+ if(match.redCard)return "赛后聚焦："+p.name+"因红牌被罚下。";
  return "";
 }
 function dynasty(x){
@@ -96,7 +98,7 @@ function overview(games,shared){
  const rivalry=aInfluence===bInfluence?"职业生涯直接贡献持平":aInfluence>bInfluence?escape(a.name)+"暂时领先":" "+escape(b.name)+"暂时领先";
  const current=Math.max(Number(games.wang.year)||0,Number(games.vini.year)||0);
  const ceremony=shared?.awards?.[current-1];
- return '<section class="card gap"><h2>绿茵传奇 v1.0.0 · 生涯动态</h2><div class="grid2">'+html+
+ return '<section class="card gap"><h2>绿茵传奇 v2.0.0 · 生涯动态</h2><div class="grid2">'+html+
  '</div><p class="muted small gap">双星竞争：'+rivalry+'（只比较一线队进球与助攻，不影响更衣室和谐）。</p>'+
  (ceremony?.winner?'<p class="gold">上届年度盛典 · '+escape(ceremony.year)+'年金球奖：'+escape(ceremony.winner.name)+'（'+escape(ceremony.winner.points)+'分）</p>':'')+
  '<p class="muted small">本模块为新增生涯机制；旧存档使用原有存储键，比赛仍遵循双星共享比分。</p></section>';

@@ -61,6 +61,13 @@ function templateFor(id,rawRoster){
  const potential=Math.round(clamp(row.rating+3,77,98));
  return {...row,stats,potential,sourceReference:"v10平行世界能力估算；不代表真实球员当前评分"};
 }
+// Unknown names are intentionally not matched to a real athlete. Their
+// football attributes are a neutral game estimate for the selected role.
+function customTemplate(name,position){
+ const role=Object.hasOwn(ROLES,position)?position:"LW",offsets=ROLES[role];
+ const stats=Object.fromEntries(STATS.map((key,i)=>[key,Math.round(clamp(65+offsets[i],32,92))]));
+ return {name:String(name||"自定义球员").trim().slice(0,22),position:role,stats,potential:87,source:"自定义人物 · 游戏估算",sourceReference:"依据所选位置生成的游戏估算；不会根据姓名推断真实身体或足球能力"};
+}
 function matchInfluence(p){
  const row=PHILOSOPHIES[scrubPhilosophy(p?.careerPhilosophy)];
  return {shot:row.shot,assist:row.assist,fatigue:row.fatigue};
@@ -96,5 +103,5 @@ function snapshotForRestore(storage,index,key=SLOT_KEY){
  const slot=readSlots(storage,key)[index];
  return slot&&parseCareer(slot.body)?slot.body:null;
 }
-window.DualV10=Object.freeze({LEAGUES,COUNTRIES,STATS,PHILOSOPHIES,OPERATIONS,REFERENCE_COUNTRIES,SLOT_KEY,chooseLeague,chooseCountry,allowedHeight,seedWeight,allowedWeight,scrubPhilosophy,scrubOperation,catalog,findPerson,templateFor,matchInfluence,narrative,parseCareer,readSlots,saveSnapshot,snapshotForRestore});
+window.DualV10=Object.freeze({LEAGUES,COUNTRIES,STATS,PHILOSOPHIES,OPERATIONS,REFERENCE_COUNTRIES,SLOT_KEY,chooseLeague,chooseCountry,allowedHeight,seedWeight,allowedWeight,scrubPhilosophy,scrubOperation,catalog,findPerson,templateFor,customTemplate,matchInfluence,narrative,parseCareer,readSlots,saveSnapshot,snapshotForRestore});
 })();

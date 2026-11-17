@@ -55,8 +55,8 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
   else if(d.drawn?.wang||d.drawn?.vini)v10Step=3;
   if(creatorMode!=="preset")creatorMode="preset";
   for(const id of DUO_IDS){
-   const person=V10.findPerson(d.v10Persons?.[id],window.FOOTBALL_AWARD_REAL_PEOPLE);
-   if(person){v10Persons[id]=person.name;duoDraft[id]=person.name}
+   const savedName=typeof d.v10Persons?.[id]==="string"?d.v10Persons[id].trim().slice(0,22):"";
+   if(savedName){v10Persons[id]=savedName;duoDraft[id]=savedName}
    if(V10.COUNTRIES.includes(d.v10Countries?.[id]))v10Countries[id]=d.v10Countries[id];
    if(Number.isInteger(Number(d.v10Heights?.[id])))v10Heights[id]=V10.allowedHeight(d.v10Heights[id]);
    v10Philosophies[id]=V10.scrubPhilosophy(d.v10Philosophies?.[id]);
@@ -68,6 +68,7 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
  if(typeof d.drawn?.[id]==="string")drawnClubs[id]=d.drawn[id];
  if(Number.isInteger(d.indices?.[id]))openingSelectedIndex[id]=d.indices[id];
  if(typeof d.names?.[id]==="string")duoDraft[id]=d.names[id];
+ if(V10&&typeof d.v10Persons?.[id]==="string"&&d.v10Persons[id].trim())duoDraft[id]=v10Persons[id];
  if(Object.hasOwn(PLAYER_STYLES,d.styles?.[id]))openingStyles[id]=d.styles[id];
   if(Object.hasOwn(POS,d.positions?.[id]))openingPositions[id]=d.positions[id];
   if(BP)openingPaths[id]=BP.sanitizedPath(d.paths?.[id]);
@@ -87,7 +88,7 @@ function duoPlayerTemplate(id){
  const person=V10?V10.findPerson(v10Persons[id],window.FOOTBALL_AWARD_REAL_PEOPLE):null;
  const known=person&&Object.values(DUO_TEMPLATES).find(t=>t.name===person.name);
  const generated=person&&!known?V10.templateFor(person.name,window.FOOTBALL_AWARD_REAL_PEOPLE):null;
- const base=known||generated||DUO_TEMPLATES[id],style=PLAYER_STYLES[openingStyles[id]]||PLAYER_STYLES.default;
+ const base=known||generated||(V10?V10.customTemplate(v10Persons[id],openingPositions[id]):DUO_TEMPLATES[id]),style=PLAYER_STYLES[openingStyles[id]]||PLAYER_STYLES.default;
  return {...base,stats:Object.fromEntries(Object.entries(base.stats).map(([key,value])=>[key,C(value+(style.adjust[key]||0),1,99)]))};
 }
 function openingPlayerStyle(id){
@@ -163,7 +164,10 @@ function creatorForm(id){
 
 function chooseAcademy(id,league){
  if(!DUO_IDS.includes(id)||!OPENING_LEAGUES.includes(league)||drawnClubs[id])return;
- openingLeagues[id]=league;openingDecks[id]=null;persistOpening();render();
+ const oldLeague=openingLeagues[id],oldDeck=openingDecks[id];
+ openingLeagues[id]=league;openingDecks[id]=null;
+ if(!persistOpening()){openingLeagues[id]=oldLeague;openingDecks[id]=oldDeck;notify("无法保存起始联赛，请先检查浏览器存储空间")}
+ render();
 }
 function openingPool(id){const league=openingLeagues[id];return (league==="CHN"?CSL_DRAW_TEAMS():DB[league].teams.map(t=>t.name)).filter(name=>
  !DUO_IDS.some(who=>who!==id&&openingLeagues[who]===league&&drawnClubs[who]===name));
@@ -201,7 +205,7 @@ function flipOpeningCard(id,index){
 function openingCardPanel(id){
  const t=duoPlayerTemplate(id),leagueId=openingLeagues[id],league=DB[leagueId],deck=openingCards(id),picked=drawnClubs[id];
  return '<section class="card opening-draw"><div class="row"><h2>'+E(duoDraft[id]||t.name)+' · '+(creatorMode==="preset"||creatorDrafts[id]?.age<18?"选择青训球队":"选择职业球队")+'</h2><span class="chip">'+E(league.name)+'</span></div>'+
- (V10?'<p class="muted small">随机联赛：'+E(league.name)+' · 游戏国籍：'+E(v10Countries[id])+' · 身高：'+v10Heights[id]+'cm</p>':
+ (V10?'<p class="muted small">所选联赛：'+E(league.name)+' · 游戏国籍：'+E(v10Countries[id])+' · 身高：'+v10Heights[id]+'cm</p>':
   '<label class="field">'+(creatorMode==="preset"?"青训联赛":"起始联赛")+' <select data-opening-league="'+id+'" '+(picked?'disabled':'')+'>'+OPENING_LEAGUES.map(l=>'<option value="'+l+'" '+(l===leagueId?'selected':'')+'>'+E(DB[l].name)+'</option>').join('')+'</select></label>'+
   creatorForm(id)+openingDevelopmentPanel(id))+
  '<p class="muted small">亲自翻开十张随机球队卡中的一张；球队选定后立即保存。</p>'+
@@ -232,6 +236,14 @@ DEN:["丹超","丹麦",["哥本哈根","中日德兰","布隆德比","北西兰"
 BRA:["巴甲","巴西",["弗拉门戈","帕尔梅拉斯","博塔弗戈","弗鲁米嫩塞","科林蒂安","圣保罗","桑托斯","国际","格雷米奥","米内罗竞技","克鲁塞罗","巴伊亚","福塔莱萨","瓦斯科达伽马","布拉甘蒂诺","塞阿拉","维多利亚","尤文图德","累西腓体育","米拉索尔"]]
 };
 const DB={};Object.entries(RAW).forEach(([id,v])=>{DB[id]={id,name:v[0],country:v[1],teams:v[2].map((name,i)=>({name,power:C(Math.round((id==="CHN"?75:id==="BRA"?82:94)-i*1.55+(i%3)-1),48,96)}))}});
+// Club membership and names are fixed after initialization; retain the first match if a
+// name ever appears twice, exactly as the original league-order scan did.
+// Keep the team object rather than a power snapshot so adjustments to a team
+// object remain visible. Per-career clubRatings still take precedence.
+const CLUB_INDEX=new Map();
+for(const [id,league] of Object.entries(DB))for(const team of league.teams){
+ if(!CLUB_INDEX.has(team.name))CLUB_INDEX.set(team.name,{id,team});
+}
 const MANU_26=[
 ["2026-08-22","赫尔城","A",0,2],["2026-08-30","伊普斯维奇","H",5,2],["2026-09-06","埃弗顿","A",2,2],["2026-09-13","曼城","H",0,1],["2026-09-20","富勒姆","A",1,1],
 ["2026-10-10","热刺","H",1,1],["2026-10-18","利兹联","A",1,1],["2026-10-25","伯恩茅斯","H",0,3],["2026-10-31","切尔西","A",0,2],
@@ -248,8 +260,7 @@ function toDate(d){return d==="—"?"":d}
 function power(team){
  if(team.endsWith("青训"))return Math.max(42,power(team.slice(0,-2))-30);
  if(g?.clubRatings&&Number.isFinite(g.clubRatings[team]))return g.clubRatings[team];
- for(const x of Object.values(DB)){const t=x.teams.find(z=>z.name===team);if(t)return t.power}
- return 80
+ const found=CLUB_INDEX.get(team);return found?found.team.power:80
 }
 
 function overall(p){const a=Object.values(p.stats),w=WEIGHTS[p.position]||WEIGHTS.CM;return Math.round(a.reduce((s,v,i)=>s+v*w[i],0))}
@@ -669,7 +680,7 @@ function makeDuoCareer(id){
  careerPhilosophy:V10?v10Philosophies[id]:"balanced",careerOperationMode:V10?v10Operations[id]:"guided",
  autoTraining:V10?v10Operations[id]!=="deep":true,autoPoints:V10?v10Operations[id]!=="deep":true,
  realIdentity:V10?{referenceName:name,referenceClub:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.referenceClub||"",
- profileSource:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.source||"原有角色",
+ profileSource:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.source||"自定义人物 · 游戏估算",
  gameCountry:v10Countries[id],gameCareer:true}:null,
  age:ACADEMY_START_AGE,
   position:openingPositions[id]||t.position,club:drawnClubs[id]+"青训",academyParentClub:drawnClubs[id],academyStartYear:2026,academyGraduationAge:ACADEMY_GRADUATION_AGE,leagueId:openingLeagues[id],number:Number.isInteger(t.number)?t.number:R(2,39),stats:academyStats(t),potential:t.potential,
@@ -941,8 +952,7 @@ function updateTable(table,home,away,hs,as){const a=table[home],b=table[away];if
 // in future without requiring its Python scrapers in the browser.
 const LEAGUE_GOAL_ENV={ENG:1,ESP:1,ITA:1,GER:1,FRA:1,CHN:1,NED:1,POR:1,BRA:1,TUR:1,BEL:1,SCO:1,AUT:1,SUI:1,DEN:1};
 function leagueFromClub(name){
- for(const [id,league] of Object.entries(DB))if(league.teams.some(t=>t.name===name))return id;
- return null;
+ return CLUB_INDEX.get(name)?.id??null;
 }
 function poissonGoals(lambda){const threshold=Math.exp(-C(lambda,.08,4.6));let n=0,product=1;do{product*=Math.random();n++}while(product>threshold&&n<12);return Math.min(n-1,7)}
 function simulateScore(a,b,boost=0,reduceHome=0,reduceAway=0){
@@ -1254,8 +1264,23 @@ function sharedNationalKnockoutWin(ev,home,away,our,their,random=Math.random){
  const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away;
  const entry=sharedUniverse?.national?.[key];
  if(!entry)return random()<.5;
- if(typeof entry.penaltyWin!=="boolean")entry.penaltyWin=random()<.5;
- return entry.penaltyWin;
+ // penaltyWin in an older save was recorded from the first player's point of
+ // view. Persist the winning team so an opponent cannot inherit the same win.
+ const team=g.player?.country;
+ if(entry.penaltyWinner===home||entry.penaltyWinner===away)return entry.penaltyWinner===team;
+ const isNew=typeof entry.penaltyWin!=="boolean";
+ if(isNew)entry.penaltyWin=random()<.5;
+ if(team!==home&&team!==away)return entry.penaltyWin;
+ let originalTeam=entry.penaltyFor;
+ if(!isNew&&originalTeam!==home&&originalTeam!==away&&typeof duoGames!=="undefined"&&typeof DUO_IDS!=="undefined"&&duoGames){
+  const prior=DUO_IDS.map(id=>duoGames[id]).find(x=>x?.year===g.year&&[home,away].includes(x.player?.country)&&
+   (x.season?.results||[]).some(m=>m.kind==="national"&&m.date===ev.date&&m.stage===ev.stage&&m.home===home&&m.away===away));
+  originalTeam=prior?.player.country;
+ }
+ if(originalTeam!==home&&originalTeam!==away)originalTeam=team;
+ entry.penaltyFor=originalTeam;
+ entry.penaltyWinner=entry.penaltyWin?originalTeam:(originalTeam===home?away:home);
+ return entry.penaltyWinner===team;
 }
 // A score can only respond to a dismissal before that match is shared or fixed.
 // For a single controlled player, scale the change to the remaining match time.
@@ -2306,7 +2331,7 @@ function v10OpeningAction(action,id){
  const before={step:v10Step,leagues:{...openingLeagues},countries:{...v10Countries},decks:{...openingDecks}};
  if(action==="v10Next"){
   if(v10Persons.wang===v10Persons.vini)return notify("两名球员不能是同一个人物，请重新选择");
-  if(v10Step===1&&!DUO_IDS.every(x=>V10.findPerson(v10Persons[x],window.FOOTBALL_AWARD_REAL_PEOPLE)))return notify("球员姓名未能匹配人物名单");
+  if(v10Step===1&&!DUO_IDS.every(x=>typeof v10Persons[x]==="string"&&v10Persons[x].trim()))return notify("请先输入两名球员的名字");
   v10Step=Math.min(3,v10Step+1);
  }else if(action==="v10Back")v10Step=Math.max(1,v10Step-1);
  else if(DUO_IDS.includes(id)&&!drawnClubs[id]){
@@ -2484,7 +2509,7 @@ function duoSeasonComparison(a,b){
 /* Quick-play preference lives outside the career save, avoiding migration. */
 const CAREER_PACE_KEY="football-dynasty-career-pace-v1";
 let careerPace="season";
-try{const storedPace=localStorage.getItem(CAREER_PACE_KEY);if(["day","week","season"].includes(storedPace))careerPace=storedPace}catch(e){}
+try{const storedPace=localStorage.getItem(CAREER_PACE_KEY);if(storedPace==="week")careerPace="day";else if(["day","season"].includes(storedPace))careerPace=storedPace}catch(e){}
 function quickCareerAdvance(){
  if(!duoGames||DUO_IDS.every(id=>duoGames[id].player.retired))return;
 
@@ -2495,7 +2520,6 @@ function quickCareerAdvance(){
   if(manual.length&&!confirm("深度生涯快进会跳过手动训练机会："+manual.map(id=>duoGames[id].player.name).join("、")+"。本次仍要快进吗？"))return;
  }
  if(careerPace==="day")sharedAdvanceDates(1);
- else if(careerPace==="week")sharedAdvanceDates(7);
  else sharedAdvanceDates(400);
 }
 
@@ -2529,6 +2553,13 @@ function duoMatchArchive(a,b){
   '<div class="news-line"><span class="muted small">'+E(m.date)+' · '+E(m.competition||"比赛")+'</span><b>'+E(m.home)+' '+m.hs+' : '+m.as+' '+E(m.away)+'</b><span class="muted small">'+E(a.player.name)+' '+(Number.isFinite(m.goals)?m.goals:"—")+'球 · '+E(b.player.name)+' '+(Number.isFinite(n.goals)?n.goals:"—")+'球'+(sideA===sideB?' · 同队':' · 交锋')+'</span></div>').join("");
  return '<details class="card gap duo-ledger"><summary><b>本赛季双星交集 · '+fixtures.length+'场</b> <small class="muted">点击展开真实赛程</small></summary><p class="muted small gap">交锋 '+E(a.player.name)+' '+aWins+'胜 · '+draws+'平 · '+E(b.player.name)+' '+bWins+'胜；同队赛程 '+teammates+'场。仅统计双方赛果完全匹配的比赛。</p><div class="news-list">'+line+'</div></details>';
 }
+function newsDateLabel(value,seasonYear){
+ if(typeof value==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(value)){
+  const stamp=Date.parse(value+"T00:00:00Z");
+  if(Number.isFinite(stamp)&&new Date(stamp).toISOString().slice(0,10)===value)return value;
+ }
+ return Number.isFinite(Number(seasonYear))?String(seasonYear)+"赛季":"日期未记录";
+}
 function duoNewsFeed(){
  if(!duoGames)return "";
  const entries=[];
@@ -2537,20 +2568,20 @@ function duoNewsFeed(){
   for(const m of (x.season?.results||[]).slice(-3)){
    if(!m.played||!m.date||!m.home||!m.away||!Number.isFinite(m.hs)||!Number.isFinite(m.as))continue;
    const contribution=Number.isFinite(m.goals)&&Number.isFinite(m.assists)?' · '+m.goals+'球'+m.assists+'助':'';
-   entries.push({key:String(m.date),tone:m.redCard||m.newInjury?"alert":"match",title:p.name+" · "+(m.competition||"最新比赛"),body:m.home+" "+m.hs+" : "+m.as+" "+m.away+contribution});
-   if(m.newInjury)entries.push({key:String(m.date)+"z",tone:"alert",title:p.name+" · 伤停通报",body:"比赛记录显示受伤，预计缺阵 "+m.newInjury+" 场"});
+   entries.push({key:String(m.date),dateLabel:newsDateLabel(m.date,x.year),tone:m.redCard||m.newInjury?"alert":"match",title:p.name+" · "+(m.competition||"最新比赛"),body:m.home+" "+m.hs+" : "+m.as+" "+m.away+contribution});
+   if(m.newInjury)entries.push({key:String(m.date)+"z",dateLabel:newsDateLabel(m.date,x.year),tone:"alert",scene:"medical",title:p.name+" · 伤停通报",body:"比赛记录显示受伤，预计缺阵 "+m.newInjury+" 场"});
   }
   const transfer=(p.transferHistory||[]).at(-1);
-  if(transfer&&Number(transfer.year)===x.year)entries.push({key:String(x.year)+"-13",tone:"transfer",title:p.name+" · 转会动态",body:transfer.from+" → "+transfer.to+" · "+(transfer.reason||"转会")});
-  if(x.season?.stage==="review")entries.push({key:String(x.year)+"-12",tone:"season",title:p.name+" · 年度战报",body:x.season.apps+"场 "+x.season.goals+"球 "+x.season.assists+"助；赛季已结算"});
+  if(transfer&&Number(transfer.year)===x.year)entries.push({key:String(x.year)+"-13",dateLabel:String(x.year)+"赛季",tone:"transfer",title:p.name+" · 转会动态",body:transfer.from+" → "+transfer.to+" · "+(transfer.reason||"转会")});
+  if(x.season?.stage==="review")entries.push({key:String(x.year)+"-12",dateLabel:String(x.year)+"赛季",tone:"season",title:p.name+" · 年度战报",body:x.season.apps+"场 "+x.season.goals+"球 "+x.season.assists+"助；赛季已结算"});
  }
  const awards=sharedUniverse?.awards||{},currentYear=duoGames.wang.year;
  const award=awards[currentYear];
- if(award?.winner?.name)entries.push({key:String(currentYear)+"-14",tone:"season",title:"年度金球奖",body:award.winner.name+"获得本届金球奖 · "+(award.winner.points??"—")+"分"});
+ if(award?.winner?.name)entries.push({key:String(currentYear)+"-14",dateLabel:String(currentYear)+"赛季",tone:"season",title:"年度金球奖",body:award.winner.name+"获得本届金球奖 · "+(award.winner.points??"—")+"分"});
  entries.sort((a,b)=>b.key.localeCompare(a.key));
  const shown=entries.slice(0,5);
  return '<section class="card gap news-feed"><div class="row"><h2>绿茵快讯</h2><span class="chip">依据实际存档</span></div>'+
- (shown.length?'<div class="news-list">'+shown.map(item=>'<article class="news-line news-'+E(item.tone)+'"><span class="cap">'+E(item.key.slice(0,10))+'</span><b>'+E(item.title)+'</b><p class="muted small">'+E(item.body)+'</p></article>').join("")+'</div>':'<p class="muted small">开赛后自动生成比分、伤停、转会和年度新闻，无需手动操作。</p>')+
+ (shown.length?'<div class="news-list">'+shown.map(item=>'<article class="news-line news-'+E(item.tone)+(item.scene==="medical"?' medical-scene':'')+'"><span class="cap">'+E(item.dateLabel)+'</span><b>'+E(item.title)+'</b><p class="muted small">'+E(item.body)+'</p></article>').join("")+'</div>':'<p class="muted small">开赛后自动生成比分、伤停、转会和年度新闻，无需手动操作。</p>')+
  '<p class="muted small gap">新闻仅根据已保存比赛与事件生成，不接入实时媒体。</p></section>';
 }
 
@@ -2601,10 +2632,13 @@ function duoDashboard(){
  const date=nextSharedDate();
  const action=retired?'<button class="button" data-page="career">查看生涯总结</button>':
   allReview?(missing.length?'<button class="button primary" data-page="transfer">处理转会决定</button>':'<button class="button primary" data-action="nextSeason">进入下一赛季</button>'):
-  '<button class="button primary career-main-action" data-action="quickCareerAdvance">'+({day:"推进下一比赛日",week:"快进7个比赛日",season:"模拟剩余赛季"}[careerPace])+'</button><label class="pace-picker">节奏 <select data-career-pace="1" aria-label="生涯推进节奏">'+[["season","整个赛季"],["week","7个比赛日"],["day","下个比赛日"]].map(([v,title])=>'<option value="'+v+'" '+(careerPace===v?"selected":"")+'>'+title+'</option>').join("")+'</select></label>';
- const summary=allReview&&!retired?'<section class="card gap"><h2>赛季总结</h2>'+DUO_IDS.map(id=>{const x=duoGames[id];return '<div class="item"><b>'+E(x.player.name)+'</b> · '+E(x.player.club)+' · '+x.season.apps+'场 '+x.season.goals+'球 '+x.season.assists+'助<br><span class="muted small">'+E(x.lastReview?.performance?.comment||"已结算")+'</span></div>'}).join("")+duoSeasonComparison(both[0],both[1])+'</section>':'';
- return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+summary+(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview()+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+
- '<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
+  '<button class="button primary career-main-action" data-action="quickCareerAdvance">'+({day:"推进下一比赛日",season:"模拟剩余赛季"}[careerPace])+'</button><label class="pace-picker">节奏 <select data-career-pace="1" aria-label="生涯推进节奏">'+[["season","整个赛季"],["day","下个比赛日"]].map(([v,title])=>'<option value="'+v+'" '+(careerPace===v?"selected":"")+'>'+title+'</option>').join("")+'</select></label>';
+ const summary=allReview&&!retired?'<section class="card gap season-scene"><h2>赛季总结</h2>'+DUO_IDS.map(id=>{const x=duoGames[id];return '<div class="item"><b>'+E(x.player.name)+'</b> · '+E(x.player.club)+' · '+x.season.apps+'场 '+x.season.goals+'球 '+x.season.assists+'助<br><span class="muted small">'+E(x.lastReview?.performance?.comment||"已结算")+'</span></div>'}).join("")+duoSeasonComparison(both[0],both[1])+'</section>':'';
+ // Preserve all current overview calculations and their order; only collapse
+ // their presentation so match results remain visible on small screens.
+ const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
+ const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
+ return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+summary+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
@@ -2681,9 +2715,10 @@ $("app").addEventListener("change",ev=>{
    const previous={persons:{...v10Persons},draft:{...duoDraft},height:{...v10Heights},
     weight:{...openingWeights},position:{...openingPositions},philosophies:{...v10Philosophies},operations:{...v10Operations}};
    if(data.v10Person){
-    const found=V10.findPerson(ev.target.value,window.FOOTBALL_AWARD_REAL_PEOPLE);
-    if(!found)return;
-    v10Persons[id]=found.name;duoDraft[id]=found.name;openingPositions[id]=found.position;
+    const name=String(ev.target.value||"").trim().slice(0,22);
+    if(!name){notify("请输入球员姓名");render();return}
+    const found=V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE);
+    v10Persons[id]=name;duoDraft[id]=name;if(found)openingPositions[id]=found.position;
    }else if(data.v10Height){
     const oldHeight=v10Heights[id],newHeight=V10.allowedHeight(ev.target.value);
     if(openingWeights[id]===V10.seedWeight(oldHeight))openingWeights[id]=V10.seedWeight(newHeight);
@@ -2698,7 +2733,7 @@ $("app").addEventListener("change",ev=>{
    }render();return
   }
  }
- if(ev.target.dataset.careerPace){const value=ev.target.value;if(["day","week","season"].includes(value)){careerPace=value;try{localStorage.setItem(CAREER_PACE_KEY,value)}catch(e){}render()}return}
+ if(ev.target.dataset.careerPace){const value=ev.target.value;if(["day","season"].includes(value)){careerPace=value;try{localStorage.setItem(CAREER_PACE_KEY,value)}catch(e){}render()}return}
 
  const operationId=ev.target.dataset.careerOperation;
  if(V10&&duoGames&&DUO_IDS.includes(operationId)&&!duoGames[operationId].player.retired){

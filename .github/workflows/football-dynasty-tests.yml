@@ -24,8 +24,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Offline Python club data audit
+        run: |
+          python3 football-legacy/tools/audit_clubs.py --json
+          python3 -m unittest discover -s football-legacy/tests -p 'test_audit_clubs.py' -v
       - name: Green Legend v1.0.0 engine and integration checks
         run: node football-legacy/tests/legend-v1.cjs
+      - name: Independent custom names and opening-league choices
+        run: node football-legacy/tests/opening-choice.cjs
       - name: v10 - ten feature families, 100 independent samples each
         run: node football-legacy/tests/v10-100x.cjs
       - name: v9 body encounters and career balance - ten focused checks
@@ -40,6 +46,10 @@ jobs:
         run: node football-legacy/tests/career-depth-v620.cjs
       - name: Five quick-play upgrades - ten focused checks
         run: node football-legacy/tests/quick-five.cjs
+      - name: Club lookup equivalence
+        run: node football-legacy/tests/club-lookup.cjs
+      - name: Mobile news presentation and season labels
+        run: node football-legacy/tests/news-ux.cjs
       - name: Dual-career regression tests
         run: node football-legacy/tests/smoke.cjs
       - name: Player aging and retirement regressions

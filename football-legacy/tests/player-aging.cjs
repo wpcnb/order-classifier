@@ -2,17 +2,25 @@
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,".."),SAVE="football-dynasty-duo-v2-20261110";
 const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,nextSeason,save};})();');
-function harness(data,failBackup=false){
+function harness(data,failBackup=false,withLegend=false){
  const storage=new Map(data||[]),nodes={},handlers={},timers=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn}});
  const context={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
   localStorage:{get length(){return storage.size},key:i=>[...storage.keys()][i]||null,getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(failBackup&&k.includes("-before-auto-retirement"))throw Error("quota");storage.set(k,String(v))},removeItem:k=>storage.delete(k)},confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
+ if(withLegend)vm.runInNewContext(fs.readFileSync(path.join(root,"legend-v1.js"),"utf8"),context,{filename:"legend-v1.js"});
  vm.runInNewContext(source,context,{filename:"game.js"});
  return {api:context.window.__test,storage,get html(){return node("app").innerHTML},click(action,extras={}){handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},flush(){while(timers.length)timers.shift()()}};
 }
-function newGame(){const h=harness();h.click("flipOpeningCard",{id:"wang",i:0});h.flush();h.click("flipOpeningCard",{id:"vini",i:0});h.flush();h.click("preset");return h;}
+function newGame(withLegend=false){const h=harness(null,false,withLegend);h.click("flipOpeningCard",{id:"wang",i:0});h.flush();h.click("flipOpeningCard",{id:"vini",i:0});h.flush();h.click("preset");return h;}
 function toReview(h,ages){const d=h.api.duo();for(const [id,age] of Object.entries(ages)){const x=d[id],p=x.player;p.age=age;p.youth=false;p.club=p.club.replace(/青训$/,"");p.academyParentClub=p.club;p.forcedMove=false;p.transferAssessment={maxTier:0};delete p.transferDraw;x.season.stage="review";}return d;}
+{
+ const h=newGame(true),d=toReview(h,{wang:32,vini:33});
+ for(const id of ["wang","vini"])d[id].player.legendProfile={version:1,discipline:50,ambition:50,composure:50,loyalty:50,peakShift:-1};
+ const before=Object.fromEntries(["wang","vini"].map(id=>[id,{...d[id].player.stats}]));h.api.nextSeason();
+ for(const id of ["wang","vini"]){assert(d[id].player.age<35);assert.equal(d[id].player.stats.pace,before[id].pace);assert.equal(d[id].player.stats.physical,before[id].physical)}
+ console.log("✓ 已启用传奇模块时，两名球员35岁前不会触发身体衰退");
+}
 {
  const h=newGame(),d=toReview(h,{wang:33,vini:38}),before={...d.wang.player.stats};h.api.nextSeason();
  assert.equal(d.wang.player.age,34);assert.equal(d.wang.player.stats.pace,before.pace);assert.equal(d.wang.player.stats.physical,before.physical);
