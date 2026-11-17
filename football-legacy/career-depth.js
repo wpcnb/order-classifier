@@ -68,16 +68,26 @@ function contributionModifiers(p,ev){
          assist:id==="create"?1.10:id==="technique"?1.045:id==="big"&&big?1.04:1};
 }
 function injuryFactor(p){return traitFor(p)==="robust"?.83:1;}
+// 游戏内估值（欧元），不是现实身价。获奖不是高身价的必要条件。
 function marketValue(p,overall,tier,season){
  if(!p||p.retired)return 0;
- const age=p.age||18;
- const ageFactor=age<19?.55:age<23?1.04:age<29?1.36:age<32?1.03:age<35?.66:age<38?.36:.20;
- const levelFactor=[.50,.72,1.02,1.38,1.80,2.22][clamp(Math.round(tier||0),0,5)];
- const apps=Math.max(0,season?.apps||0),goalContributions=Math.max(0,(season?.goals||0)+(season?.assists||0));
- const performance=clamp(.86+Math.min(1,apps/25)*.13+Math.min(35,goalContributions)*.012,.8,1.43);
- const health=clamp(1-Math.min(5,p.injuryHistory||0)*.035,.75,1);
- const peak=clamp(Math.pow(Math.max(40,overall||65)/72,6),.14,5.6);
- return Math.round(clamp(2500000*peak*ageFactor*levelFactor*performance*health*(p.youth?.17:1),75000,180000000)/10000)*10000;
+ const age=Number(p.age)||18,ov=clamp(Number(overall)||65,40,99);
+ const ageFactor=age<18?.36:age<20?.72:age<23?1.10:age<27?1.27:age<30?1.18:age<32?.97:age<35?.67:age<38?.37:.18;
+ const tierFactor=[.30,.49,.66,.82,1,1.13][clamp(Math.round(tier||0),0,5)];
+ // 评价不以金球奖或冠军次数为前提。高能力年轻球星可达1–2亿欧元。
+ const ability=4200000*Math.pow(ov/70,8);
+ const played=Math.max(0,Number(season?.apps)||0);
+ const ratings=Array.isArray(season?.ratings)?season.ratings.filter(Number.isFinite):[];
+ const avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:6.8;
+ const reliability=clamp(.84+Math.min(30,played)/30*.17,.84,1.01);
+ const performance=clamp(.86+(avg-6.5)*.16,.75,1.19);
+ // 非前场不按进球助攻砍价。前场贡献仅提供少量上浮。
+ const attack=["ST","LW","RW","CAM"].includes(p.position);
+ const contributions=Math.max(0,(Number(season?.goals)||0)+(Number(season?.assists)||0));
+ const roleBonus=attack?1+Math.min(.13,contributions*.004):1;
+ const fitness=clamp(1-Math.min(6,p.injuryHistory||0)*.025,.82,1);
+ const raw=ability*ageFactor*tierFactor*reliability*performance*roleBonus*fitness*(p.youth?.16:1);
+ return Math.round(clamp(raw,75000,280000000)/10000)*10000;
 }
 function money(value){
  if(!value)return "€0";
@@ -87,19 +97,24 @@ function money(value){
 }
 function objectiveTargets(p,year,tier,season){
  if(!p)return [];
- const youth=!!p.youth,attack=["ST","LW","RW","CAM"].includes(p.position);
- const keeperBack=["CB","CDM","GK"].includes(p.position);
- const appearances=youth?13:clamp(19+Math.floor((tier||0)/2)+(p.age>34?-5:0),10,27);
- const output=attack?clamp((youth?5:8)+Math.floor((tier||0)*1.5),4,16):keeperBack?5:7;
- const assist=attack?clamp((youth?3:5)+Math.floor((tier||0)/2),3,10):5;
- const S=season||{},avg=(S.ratings||[]).length?(S.ratings.reduce((a,b)=>a+b,0)/S.ratings.length):0;
+ const S=season||{},results=(S.results||[]).filter(m=>m.played&&m.kind!=="national");
+ const apps=results.length||Number(S.apps)||0;
+ const ratings=results.map(m=>m.rating).filter(Number.isFinite);
+ const avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:(S.ratings||[]).length?(S.ratings.reduce((a,b)=>a+b,0)/S.ratings.length):0;
+ const eligibleScores=results.filter(m=>Number.isFinite(m.hs)&&Number.isFinite(m.as)&&(m.home===p.club||m.away===p.club));
+ const clean=eligibleScores.filter(m=>(m.home===p.club?m.as:m.hs)===0).length;
+ const group=p.position==="GK"?"keeper":["CB","LB","RB"].includes(p.position)?"defender":p.position==="CDM"?"holding":p.position==="CM"?"midfield":p.position==="CAM"?"creator":"forward";
+ const appearances=p.youth?13:clamp(18+Math.floor((tier||0)/2)+(p.age>34?-4:0),10,27);
+ const output=(Number(S.goals)||0)+(Number(S.assists)||0);
+ const goal=group==="forward"?{key:"output",label:"进球与助攻",value:output,target:p.youth?5:clamp(8+Math.floor((tier||0)*1.4),6,16)}:
+ group==="creator"?{key:"creation",label:"助攻或稳定高评分",value:Math.max((Number(S.assists)||0),avg>=7.25?5:0),target:5}:
+ group==="midfield"?{key:"midfield",label:"组织表现（助攻或高评分）",value:Math.max((Number(S.assists)||0),avg>=7.15?4:0),target:4}:
+ {key:"defence",label:"防守稳定（真实零封或高评分）",value:Math.max(clean,avg>=7.2?5:0),target:Math.min(5,Math.max(3,Math.floor(eligibleScores.length*.17)))};
  return [
- {key:"apps",label:"赛季出场",value:S.apps||0,target:appearances},
- attack?{key:"output",label:"进球＋助攻",value:(S.goals||0)+(S.assists||0),target:output}:
- keeperBack?{key:"clean",label:"球队零封（本人出场）",value:S.clean||0,target:output}:
- {key:"assists",label:"赛季助攻",value:S.assists||0,target:assist},
- {key:"rating",label:"平均评分",value:Math.round(avg*100)/100,target:youth?6.5:6.7}
- ].map(g=>({...g,done:g.value>=g.target}));
+  {key:"apps",label:"赛季出场",value:apps,target:appearances},
+  goal,
+  {key:"rating",label:"平均评分",value:Math.round(avg*100)/100,target:p.youth?6.5:6.75}
+ ].map(item=>({...item,done:item.value>=item.target}));
 }
 function settleObjectives(p,year,tier,season){
  if(!p||p.retired)return null;
