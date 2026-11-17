@@ -2699,6 +2699,7 @@ function duoTransferPage(){
   const n=clubSeasonNumbers(x.season,p.club);
   return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
+   '<p class="muted small">预计市场身价 '+(CD?CD.money(CD.marketValue(p,overall(p),level,x.season)):'待评估')+' · '+E(RV3?RV3.evaluate(p,n,TRANSFER_GATES[level]||TRANSFER_GATES[4],overall(p),Math.min(level,4)).description:'按位置综合考核')+'</p>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
    '<p class="muted small">连续无冠 '+(p.trophylessStreak||0)+' 季 · 连续表现不佳 '+(p.poorStreak||0)+' 季</p>'+
    promotionDrawCard(id)+transferCriteria(p,n,level)+
