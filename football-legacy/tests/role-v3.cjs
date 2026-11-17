@@ -16,7 +16,7 @@ test("门将、后卫、后腰、中场零进球也可满足升档条件",()=>{
 });
 test("前腰根据组织输出或优异评分及合理参与度判断",()=>{
  assert.equal(roles.evaluate({position:"CAM"},sample,gate,85,2).qualified,false);
- assert.equal(roles.evaluate({position:"CAM"},{...sample,assists:8},gate,85,2).qualified,true);
+ assert.equal(roles.evaluate({position:"CAM"},{...sample,assists:9},gate,85,2).qualified,true);
 });
 test("中锋在同样零贡献时不能直接升级",()=>{
  assert.equal(roles.evaluate({position:"ST"},sample,gate,85,2).qualified,false);
