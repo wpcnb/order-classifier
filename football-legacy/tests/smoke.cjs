@@ -294,6 +294,7 @@ assert.equal(api.transferLevel("ENG","切尔西"),4);
 for(const [league,club] of [["ESP","皇家马德里"],["ESP","巴塞罗那"],["FRA","巴黎圣日耳曼"],["ENG","曼城"],["ENG","曼联"]])assert.equal(api.transferLevel(league,club),5,club+" is legendary");
 const active=api.get();const p=active.player,s=active.season;
 p.leagueId="ESP";p.club="皇家马德里";p.position="LW";p.poorStreak=0;p.forcedMove=false;
+p.youth=false;p.injuryMatches=0;p.age=25;p.retired=false; // Healthy senior sample required for relegation assessment.
 s.apps=26;s.goals=0;s.assists=0;s.ratings=Array(26).fill(6.3);s.results=Array.from({length:26},(_,i)=>({kind:"league",played:true,goals:0,assists:0,rating:6.3,home:"皇家马德里",away:"对手",hs:0,as:0,date:"2027-01-"+String(i+1).padStart(2,"0")}));
 const first=api.seasonPerformance();assert(first.poor&&!first.forcedMove&&first.poorStreak===1);
 const second=api.seasonPerformance();assert(second.poor&&second.forcedMove&&second.poorStreak===2);
