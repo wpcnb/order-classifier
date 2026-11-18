@@ -279,7 +279,7 @@ if(drawsBeforeReload.length){
  assert.equal(restored.state.duoGames[target].player.transferDraw.selected.club,previous,"Lottery result survives page reload");
 }
 for(const id of ["wang","vini"])if(reload.state.duoGames[id].player.transferDraw?.options?.length){if(!reload.state.duoGames[id].player.transferDraw.selected){reload.click("flipPromotionCard",{id,i:0});reload.flush()}reload.click("acceptDraw",{id})}
-reload.click("simBoth");state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2029);assert.equal(state.duoGames[id].history.length,4)}
+reload.click("nextSeason");finishSeason(reload);state=reload.state;for(const id of ["wang","vini"]){assert.equal(state.duoGames[id].year,2029);assert.equal(state.duoGames[id].history.length,4)}
 if(state.duoGames.wang.player.leagueId===state.duoGames.vini.player.leagueId)assert.deepEqual(state.duoGames.wang.season.leagueTable,state.duoGames.vini.season.leagueTable,"Players in same league must share table");log("Both careers advance synchronously into next season and survive reload");
 
 const retirementFixture=harness([[SAVE,x.stored.get(SAVE)]]);
