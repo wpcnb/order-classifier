@@ -243,7 +243,7 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
  .v10-lottery button{width:100%}
 }
 </style></head>
-<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">FOOTBALL DYNASTY · 2026 / 27</div><div class="logo">绿茵<b>传奇</b> <small class="muted">双星时代</small> <small style="font-size:12px;color:#ffce72;font-weight:750;letter-spacing:0">v1.0.0</small></div></div><span class="chip">《绿茵领袖》v1.0.0</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>使用原有双人存档并保留 JSON 导入导出；重大升级前建议导出备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./body-path.js?v=9.0.0" defer></script><script src="./market-v3.js?v=3.2.0" defer></script><script src="./career-depth.js?v=3.3.0" defer></script><script src="./role-v3.js?v=3.3.0" defer></script><script src="./transfer-v3.js?v=3.3.0" defer></script><script src="./free-star.js?v=9.0.0" defer></script><script src="./v10-core.js?v=2.0.0" defer></script><script src="./v10-ui.js?v=2.0.0" defer></script><script src="./legend-v1.js?v=2.0.0" defer></script><script src="./legend-v3.js?v=3.0.0" defer></script><script src="./legacy-awards.js?v=1.0.0" defer></script><script src="./game.js?v=3.3.0" defer></script><script>
+<body><a class="skip-link" href="#app">跳到游戏内容</a><main class="shell"><header class="top"><div><div class="cap">GREEN LEADER · 2026 / 27</div><div class="logo">绿茵<b>领袖</b> <small class="muted">双星时代</small> <small style="font-size:12px;color:#ffce72;font-weight:750;letter-spacing:0">v1.0.0</small></div></div><span class="chip">《绿茵领袖》v1.0.0</span></header><div id="app" tabindex="-1" aria-live="off"><section class="card" data-game-loading="1"><h2>正在加载游戏…</h2><p class="muted">如果长时间停留在这个画面，可能是网站脚本加载失败。</p><div class="flex"><a class="button goldbtn" href="./">重新加载在线游戏</a><a class="button" href="https://github.com/wpcnb/order-classifier/issues">报告加载问题</a></div></section></div><noscript><section class="card">此游戏需要启用 JavaScript 才能运行。</section></noscript><footer>原创单机推演作品，部分真实赛事比分注明来源，其余均为游戏赛果。球员数值、荣誉和转会并非现实预测。<br>使用原有双人存档并保留 JSON 导入导出；重大升级前建议导出备份。首页双人画面为合成示意图；图片使用本地资源。</footer></main><div id="toast" class="toast hidden" role="status"></div><input type="file" id="importFile" accept=".json,application/json"><script src="./real-footballers.js?v=4.6.0" defer></script><script src="./uefa2026.js?v=4.6.0" defer></script><script src="./shared-uefa.js?v=season-unified-v58" defer></script><script src="./advice.js" defer></script><script src="./body-path.js?v=9.0.0" defer></script><script src="./market-v3.js?v=3.2.0" defer></script><script src="./career-depth.js?v=3.3.0" defer></script><script src="./role-v3.js?v=3.3.0" defer></script><script src="./transfer-v3.js?v=3.3.0" defer></script><script src="./free-star.js?v=9.0.0" defer></script><script src="./v10-core.js?v=2.0.0" defer></script><script src="./v10-ui.js?v=2.0.0" defer></script><script src="./legend-v1.js?v=2.0.0" defer></script><script src="./legend-v3.js?v=3.0.0" defer></script><script src="./legacy-awards.js?v=1.0.1" defer></script><script src="./game.js?v=1.0.1-hotfix" defer></script><script>
 (function(){
  // The game replaces its contents when navigating; rebuild the compact picker
  // from the actual destinations so it always stays in step with the game.
@@ -260,14 +260,30 @@ details.item summary:focus-visible{outline:2px solid var(--gold);outline-offset:
 
  }
  if(appNode){new MutationObserver(improveNavigation).observe(appNode,{childList:true,subtree:true});improveNavigation()}
+ var startupFailure='';
+ function describeFailure(message){
+  if(!startupFailure)startupFailure=String(message||'未知脚本错误').slice(0,280);
+  showRecovery();
+ }
+ window.addEventListener('error',function(event){
+  if(event&&event.target&&event.target.tagName==='SCRIPT'){
+   var src=event.target.getAttribute('src')||'未知脚本';
+   describeFailure('脚本加载失败：'+src);
+  }else if(event&&event.message){
+   var where=event.filename?event.filename.split('/').pop()+':'+(event.lineno||'?'):'未知位置';
+   describeFailure('JavaScript 错误：'+event.message+' ('+where+')');
+  }
+ },true);
+ window.addEventListener('unhandledrejection',function(event){
+  describeFailure('脚本执行失败：'+String(event.reason?.message||event.reason||'未知错误'));
+ });
  function showRecovery(){
   var app=document.getElementById('app');
   if(!app||!app.querySelector('[data-game-loading]'))return;
   var mark=app.querySelector('[data-game-loading] h2');if(mark)mark.textContent='游戏未能完成加载';
   var paragraph=app.querySelector('[data-game-loading] p');
-  if(paragraph)paragraph.textContent='当前页面的脚本未成功启动。请刷新页面重试；如果仍无法加载，请到项目 GitHub Issues 报告问题。';
+  if(paragraph)paragraph.textContent=startupFailure?'启动诊断：'+startupFailure+'。请截屏发给开发者。':'当前脚本没有完成启动。请用强制刷新重试；如果仍无法加载，请把本页截图发给开发者。';
  }
  window.addEventListener('load',function(){setTimeout(showRecovery,6500)});
- window.addEventListener('error',function(e){if(e&&e.target&&e.target.tagName==='SCRIPT')showRecovery()},true);
 })();
 </script></body></html>
