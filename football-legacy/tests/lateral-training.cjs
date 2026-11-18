@@ -56,3 +56,24 @@ function offerFor(x){return {id:"CHN",club:x.player.club==="上海申花"?"上�
  h.change({trainingFocus:"wang"},"auto");assert.equal(w.trainingFocus,null);
  console.log("✓ 两人训练偏向独立保存，选定能力优先，达到上限或受伤时自动调整");
 }
+{
+ const h=newGame(),x=h.api.duo().wang,p=x.player;
+ h.api.setActive("wang");
+ Object.assign(p,{trainingFocus:"shoot",potential:99,stamina:95,autoTraining:true,autoPoints:false,trainingProgress:{},trainingUsed:false,injuryMatches:0});
+ h.change({prepPlan:"wang"},"develop");
+ assert.equal(h.api.duo().vini.season.prepPlan,undefined);
+ assert.equal(harness([[SAVE,h.storage.get(SAVE)]]).api.duo().wang.season.prepPlan,"develop");
+ h.api.automaticPrep();
+ assert.equal(p.stamina,85);assert.equal(p.trainingProgress.shoot,2);
+ h.api.automaticPrep();assert.equal(p.stamina,85,"repeated preparation must not spend stamina twice");
+ h.change({prepPlan:"wang"},"protect");
+ Object.assign(p,{stamina:70,trainingUsed:false});
+ h.api.automaticPrep();assert.equal(p.stamina,90);assert.equal(p.trainingProgress.shoot,2);
+ p.trainingUsed=false;p.careerOperationMode="deep";
+ h.click("duoTrain",{id:"wang",key:"shoot"});
+ assert.equal(p.stamina,84);assert.equal(p.trainingProgress.shoot,3);
+ h.change({prepPlan:"wang"},"develop");
+ h.click("duoTrain",{id:"wang",key:"shoot"});
+ assert.equal(p.stamina,84,"switching the plan must not unlock another training session");
+ console.log("✓ 备战方案按球员保存；自动与手动训练兑现收益及消耗，换方案不能重复训练");
+}
