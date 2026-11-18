@@ -1834,7 +1834,7 @@ function endSeason(){
   g.history.push({year:g.year,generation:g.generation,club:p.club,league:league.name,age:p.age,rank,apps:s.apps,goals:s.goals,assists:s.assists,leagueGoals:s.leagueGoals||0,leagueAssists:s.leagueAssists||0,average:avg.toFixed(2),points:sortedTable(s.leagueTable).find(t=>t.name===p.club)?.points||0,europa:s.uefa?.type||null});
  g.lastReview={rank,avg:avg.toFixed(2),goals:s.goals,assists:s.assists,performance,leagueGoalLeader:goalKing?{name:goalKing.name,goals:goalKing.goals}:null};
  g.offers=p.youth?[]:generateOffers();
- s.stage="review";ensurePromotionDraw(g);page="review";log("完成 "+g.year+"/"+(g.year+1)+" 赛季，联赛第"+rank+"名。"+(performance.poor?"进球助攻未达标，连续"+performance.poorStreak+"季；"+(performance.forcedMove?"可选择降档或留队。":"将影响球队信任。"):"表现考核："+performance.comment));save();render()
+ s.stage="review";ensurePromotionDraw(g);page="review";log("完成 "+g.year+"/"+(g.year+1)+" 赛季，联赛第"+rank+"名。"+(performance.poor?"本位置赛季表现低于预期，连续"+performance.poorStreak+"季；"+(performance.forcedMove?"可选择降档或留队。":"将影响球队信任。"):"表现考核："+performance.comment));save();render()
 }
 
 function applyPlayerTransfer(o,automatic=false,deferDisplay=false){
@@ -2699,7 +2699,7 @@ function duoTransferPage(){
   const n=clubSeasonNumbers(x.season,p.club);
   return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
-   '<p class="muted small">预计市场身价 '+(CD?CD.money(CD.marketValue(p,overall(p),level,x.season)):'待评估')+' · '+E(RV3?RV3.evaluate(p,n,TRANSFER_GATES[level]||TRANSFER_GATES[4],overall(p),Math.min(level,4)).description:'按位置综合考核')+'</p>'+
+   '<p class="muted small">游戏市场估值 '+(CD?CD.money(CD.marketValue(p,overall(p),level,x.season)):'待评估')+' · '+E(RV3?RV3.evaluate(p,n,TRANSFER_GATES[level]||TRANSFER_GATES[4],overall(p),Math.min(level,4)).description:'按位置综合考核')+'</p>'+ '<details class="item"><summary>查看身价模型依据</summary><p class="muted small">根据年龄、位置、综合能力、俱乐部档次、出场、评分、合同、伤病及青年潜力估算；前锋数据仅微调前场球员身价。不以金球奖作为估值门槛。原创游戏模型，不是德转实时身价，也不包含外部抓取数据库。</p></details>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
    '<p class="muted small">连续无冠 '+(p.trophylessStreak||0)+' 季 · 连续表现不佳 '+(p.poorStreak||0)+' 季</p>'+
    promotionDrawCard(id)+transferCriteria(p,n,level)+
