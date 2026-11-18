@@ -1024,7 +1024,7 @@ function s1Decide(id,choice){
  render();
 }
 
-function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced",pauseForChoices=false){
+function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced",pauseForChoices=true){
  if(!duoGames)return;
  let count=0,days=0,date;
  while((date=nextSharedDate())&&days<maxDays&&(!focusDate||date<=focusDate)){
@@ -2365,15 +2365,15 @@ function startNextGenerationFromCoach(){
 function simSeason(quiet=false){
  if(!g||g.season.stage!=="playing")return;
  if(!quiet&&!confirm("同步完成两名球员在同一个足球世界中的剩余赛季，确定？"))return;
- if(duoGames){sharedAdvanceDates(400);if(!quiet)notify("两人已在同一时间线上完成赛季");return}
+ if(duoGames){sharedAdvanceDates(400);if(!quiet)notify(s1PendingIds().length?"已暂停，请先完成赛季中期决定":"两人已在同一时间线上完成赛季");return}
  const p=g.player,oldAuto=p.autoPoints,oldTrain=p.autoTraining;p.autoPoints=true;p.autoTraining=true;
  let n=0;while(g.season.index<g.season.events.length&&n<110){const ev=currentEvent();automaticPrep();playEvent(ev,"balanced",true);n++}
  p.autoPoints=oldAuto;p.autoTraining=oldTrain;if(g.season.stage==="playing")endSeason();else{save();render()}
 }
-function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){sharedAdvanceDates(3);notify("双方同步推进3个比赛日");return}
+function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){const played=sharedAdvanceDates(3);notify(s1PendingIds().length?"已暂停，请先完成赛季中期决定":"双方同步推进"+played+"个比赛日");return}
  let n=0;while(n<3&&g.season.index<g.season.events.length){automaticPrep();playEvent(currentEvent(),"balanced",true);n++}if(g.season.index>=g.season.events.length)endSeason();else{save();page="dashboard";render()}
 }
-function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵信仰_S1.01_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
+function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵信仰_S1.02_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
 async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if(DUO_IDS.some(id=>!DB[v.duoGames[id].player.leagueId])){notify("该旧存档包含已取消联赛。文件保持原样，不会覆盖当前存档");return}if(!confirm("导入双人生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();if(!ageMigrationBlocked)notify("同一足球世界双人生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
 function newGameDialog(){if(g&&!confirm("删除当前两人生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);localStorage.removeItem(S1_SAVED_YEAR);v3Paused=null;v3Replay=null;v3Allowed=null;resetDraw();render()}
 function choosePage(p){page=p;render()}
@@ -2517,7 +2517,7 @@ function exportBallotCsv(){
  const lines=[header.map(quote).join(",")];
  b.ballots.forEach((vote,i)=>lines.push([i+1,...vote.map(id=>name[id]||id)].map(quote).join(",")));
  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="绿茵信仰_S1.01_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
+ a.href=url;a.download="绿茵信仰_S1.02_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
  setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},1200)
 }
 
@@ -2993,8 +2993,28 @@ function retirementLikenessPanel(x){
  if(!rows.length)return '<div class="item gap"><strong>退役历史地位匹配</strong><p class="muted small">当前生涯数据不足，暂时无法进行现实球星相似度匹配。</p></div>';
  return '<div class="item gap"><div class="row"><strong>退役历史地位 · 现实球星相似度</strong><span class="chip">游戏模型 · Top 5</span></div><p class="muted small">系统把位置、出场、进球、助攻、联赛冠军、欧战、国家队成绩、金球奖和世界足球先生分别计算，再与多名现实球星参考画像比较。相似度不是官方评价。</p><div class="list">'+rows.map((v,i)=>'<div class="item row"><span><b>'+(i+1)+'. '+E(v.name)+'</b><br><small class="muted">'+E(v.position)+' · '+E(v.highlights.join("、"))+' · 金球 '+v.ballon+' · FIFA个人大奖 '+v.worldBest+'</small></span><strong>'+v.similarity+'%</strong></div>').join("")+'</div></div>';
 }
+/* S1.02: SVG trend computed only from the existing adult-season archive. */
+function s1CareerTrend(x){
+ const rows=(x.history||[]).filter(h=>!h.manager&&Number(h.age)>=18&&Number.isFinite(Number(h.goals))&&Number.isFinite(Number(h.assists)));
+ if(rows.length<2)return '<p class="muted small">完成至少两个成年赛季后显示进球／助攻走势。</p>';
+ const data=rows.slice(-25),max=Math.max(1,...data.map(h=>Math.max(Number(h.goals)||0,Number(h.assists)||0)));
+ const xAt=i=>24+i*(276/Math.max(1,data.length-1));
+ const yAt=v=>119-(Math.max(0,Number(v)||0)/max)*92;
+ const path=key=>data.map((h,i)=>(i===0?'M':'L')+xAt(i).toFixed(1)+' '+yAt(h[key]).toFixed(1)).join(' ');
+ const first=E(String(data[0].year)),last=E(String(data[data.length-1].year));
+ return '<section class="item gap"><h3>生涯赛季走势</h3><p class="muted small">成年赛季 · 单赛季进球与助攻（非累计值）</p>'+
+ '<svg role="img" aria-label="进球和助攻逐赛季走势，进球为绿色、助攻为黄色" viewBox="0 0 320 148" style="display:block;width:100%;max-width:520px;height:auto" xmlns="http://www.w3.org/2000/svg">'+
+ '<line x1="24" y1="119" x2="300" y2="119" stroke="#7890a5"/>'+
+ '<line x1="24" y1="27" x2="24" y2="119" stroke="#7890a5"/>'+
+ '<text x="2" y="30" font-size="10" fill="#cbd5e1">'+max+'</text>'+
+ '<path d="'+path("goals")+'" fill="none" stroke="#66efb4" stroke-width="2.6" stroke-linejoin="round"/>'+
+ '<path d="'+path("assists")+'" fill="none" stroke="#ffce72" stroke-width="2.6" stroke-linejoin="round"/>'+
+ '<text x="24" y="140" font-size="10" fill="#cbd5e1">'+first+'</text>'+
+ '<text x="278" y="140" font-size="10" fill="#cbd5e1">'+last+'</text></svg>'+
+ '<p class="muted small"><span style="color:#66efb4">●</span> 进球　<span style="color:#ffce72">●</span> 助攻 · 完整数值见下方赛季记录。</p></section>';
+}
 function duoHistoryPage(){
- return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player;return '<section class="card"><h2>'+E(p.name)+'</h2>'+(p.freeStar?'<div class="creator-history-avatar">'+creatorPortrait(p)+'</div><p class="muted small">'+E(p.country)+' · '+p.age+'岁 · '+p.heightCm+'cm · '+E(hiddenPotentialText(x))+'</p>':'')+trainingFocusPanel(id)+careerDepthDetails(id)+'<div class="grid3">'+metric("一线队进球",p.career.goals)+metric("一线队助攻",p.career.assists)+metric("一线队出场",p.career.apps)+'</div>'+retirementLikenessPanel(x)+'<h3 class="gap">转会历程</h3><div class="list">'+((p.transferHistory||[]).map(t=>'<div class="item">'+t.year+' · '+E(t.from)+' → '+E(t.to)+' · '+E(t.reason)+'</div>').join("")||'<p class="muted">暂无转会</p>')+'</div><h3 class="gap">赛季记录</h3><div class="list">'+x.history.map(h=>'<div class="item">'+h.year+' · '+(h.age<18?'青训 · ':'')+E(h.club)+' · '+h.goals+'球 '+h.assists+'助</div>').join("")+partialRetirementHistory(x)+'</div><h3 class="gap">青训履历（与成年数据分开）</h3><div class="grid3">'+metric("青训出场",p.academyCareer?.apps||0)+metric("青训进球",p.academyCareer?.goals||0)+metric("青训助攻",p.academyCareer?.assists||0)+'</div><p class="muted small">'+(p.academyHonors||[]).map(h=>E(h.year+"年 "+h.name)).join(" · ")+'</p><h3 class="gap">个人奖杯</h3>'+x.honors.map(h=>badge(h.year+" "+h.name+(h.legacyDisputed?"（旧档争议）":""))).join("")+'</section>'}).join("")+'</div>';
+ return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player;return '<section class="card"><h2>'+E(p.name)+'</h2>'+(p.freeStar?'<div class="creator-history-avatar">'+creatorPortrait(p)+'</div><p class="muted small">'+E(p.country)+' · '+p.age+'岁 · '+p.heightCm+'cm · '+E(hiddenPotentialText(x))+'</p>':'')+trainingFocusPanel(id)+careerDepthDetails(id)+'<div class="grid3">'+metric("一线队进球",p.career.goals)+metric("一线队助攻",p.career.assists)+metric("一线队出场",p.career.apps)+'</div>'+retirementLikenessPanel(x)+s1CareerTrend(x)+'<h3 class="gap">转会历程</h3><div class="list">'+((p.transferHistory||[]).map(t=>'<div class="item">'+t.year+' · '+E(t.from)+' → '+E(t.to)+' · '+E(t.reason)+'</div>').join("")||'<p class="muted">暂无转会</p>')+'</div><h3 class="gap">赛季记录</h3><div class="list">'+x.history.map(h=>'<div class="item">'+h.year+' · '+(h.age<18?'青训 · ':'')+E(h.club)+' · '+h.goals+'球 '+h.assists+'助</div>').join("")+partialRetirementHistory(x)+'</div><h3 class="gap">青训履历（与成年数据分开）</h3><div class="grid3">'+metric("青训出场",p.academyCareer?.apps||0)+metric("青训进球",p.academyCareer?.goals||0)+metric("青训助攻",p.academyCareer?.assists||0)+'</div><p class="muted small">'+(p.academyHonors||[]).map(h=>E(h.year+"年 "+h.name)).join(" · ")+'</p><h3 class="gap">个人奖杯</h3>'+x.honors.map(h=>badge(h.year+" "+h.name+(h.legacyDisputed?"（旧档争议）":""))).join("")+'</section>'}).join("")+'</div>';
 }
 function duoMyPage(){
  const tabs=[["honors","冠军与荣誉"],["awards","金球奖 / 世界足球先生"],["achievements","生涯成就"],["career","两人履历"],["save","存档与备份"]];
