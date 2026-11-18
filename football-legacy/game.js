@@ -402,6 +402,7 @@ function hydratePayload(data){
  if(overdue.length){finalizeRetiredSeasonIfReady();save()}
 }
 let v3Allowed=null,v3Paused=null,v3Replay=null;
+const S1_AUTO_BACKUP=STORE+"-s1-yearly-backup",S1_BACKUP_META=STORE+"-s1-yearly-meta",S1_SAVED_YEAR=STORE+"-s1-current-year";
 let storageWarningShown=false;
 function save(){
  if(ageMigrationBlocked){
@@ -411,7 +412,15 @@ function save(){
  try{
   const payload=duoPayload();
   if(!payload)return false;
+  const previous=localStorage.getItem(STORE),now=Number(payload.duoGames?.wang?.year)||0;
+  const previousYear=Number(localStorage.getItem(S1_SAVED_YEAR))||0;
+  // Protect the active save first; a backup quota error must never block it.
   localStorage.setItem(STORE,JSON.stringify(payload));
+  if(previous&&previousYear>=2026&&now>previousYear&&previous.length<1300000){
+   try{localStorage.setItem(S1_AUTO_BACKUP,previous);localStorage.setItem(S1_BACKUP_META,String(previousYear))}
+   catch(_){}
+  }
+  try{if(now)localStorage.setItem(S1_SAVED_YEAR,String(now))}catch(_){}
   storageWarningShown=false;
   return true;
  }catch(e){
@@ -2365,7 +2374,7 @@ function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){shared
 }
 function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵信仰_S1.01_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
 async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if(DUO_IDS.some(id=>!DB[v.duoGames[id].player.leagueId])){notify("该旧存档包含已取消联赛。文件保持原样，不会覆盖当前存档");return}if(!confirm("导入双人生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();if(!ageMigrationBlocked)notify("同一足球世界双人生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
-function newGameDialog(){if(g&&!confirm("删除当前两人生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);v3Paused=null;v3Replay=null;v3Allowed=null;resetDraw();render()}
+function newGameDialog(){if(g&&!confirm("删除当前两人生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);localStorage.removeItem(S1_SAVED_YEAR);v3Paused=null;v3Replay=null;v3Allowed=null;resetDraw();render()}
 function choosePage(p){page=p;render()}
 function bar(n){return '<div class="meter"><span style="width:'+percent(n)+'%"></span></div>'}
 function metric(label,val){return '<div class="metric"><label>'+label+'</label><b>'+val+'</b></div>'}
