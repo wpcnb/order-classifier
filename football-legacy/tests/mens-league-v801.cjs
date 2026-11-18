@@ -46,8 +46,8 @@ test("game creator removes gender selection and declares male-only",()=>{
  assert(game.includes("FS.validate(profile)"))
 });
 test("homepage version and local asset cache reflect change",()=>{
- assert(html.includes("绿茵传奇 v2.0.0"));
+ assert(html.includes("绿茵信仰 S1.01"));
  assert(html.includes('free-star.js?v=9.0.0'));
- assert(html.includes('game.js?v=2.0.0'))
+ assert(html.includes('game.js?v=S1.01-20261118'))
 });
 assert.equal(done,10);console.log("10/10 v8.0.1 men's career creator checks passed");
