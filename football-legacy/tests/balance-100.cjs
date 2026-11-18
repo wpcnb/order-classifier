@@ -9,7 +9,7 @@ function run(seed){
  const ctx={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},Math:math,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{},Blob,URL};
  for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
  vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
- function click(action,id){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id}})}})}
+ function click(action,id,choice){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id,choice}})}})}
  function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.accepted&&!d.declined){if(!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}click("acceptDraw",id)}}}
  click("flipOpeningCard","wang");while(timers.length)timers.shift()();
  click("flipOpeningCard","vini");while(timers.length)timers.shift()();
@@ -20,7 +20,24 @@ const seasons=[],moves=[],winners={},reports=[],sessions=10,seasonsPerSession=10
 for(let trial=0;trial<sessions;trial++){
  const app=run(43773+trial*1789);let last={};
  for(let season=0;season<seasonsPerSession;season++){
-  app.drawPromotions();app.click("simBoth");const state=app.state(),year=state.wang.year;
+  app.drawPromotions();
+  if(season>0)app.click("nextSeason");
+  for(let guard=0;guard<12;guard++){
+   const pair=app.state();
+   if(["wang","vini"].every(id=>pair[id].player.retired||pair[id].season.stage==="review"))break;
+   const waiting=["wang","vini"].filter(id=>pair[id].season.stage==="playing"&&
+    pair[id].season.midseasonDecision&&!pair[id].season.midseasonDecision.done);
+   if(waiting.length)for(const id of waiting){
+    const kind=pair[id].season.midseasonDecision.kind;
+    const choice=({rehab:"wait",contract:"wait",locker:"talk",veteran:"light",training:"rest"})[kind];
+    assert(choice,"Unknown midseason choice: "+kind);
+    app.click("s1Choice",id,choice);
+   }
+   else app.click("simBoth");
+  }
+  const state=app.state(),year=state.wang.year;
+  assert(["wang","vini"].every(id=>state[id].player.retired||state[id].season.stage==="review"),
+   "Baseline must complete each shared season, not reuse a paused partial season");
   for(const key of ["wang","vini"]){
    const x=state[key],p=x.player,s=x.season,lev=app.level(p),prior=last[key];
    const item={trial,year,id:key,club:p.club,level:lev,overall:app.ratings(p),goals:s.goals,leagueGoals:s.leagueGoals,assists:s.assists,apps:s.apps,avg:Number(s.ratings.reduce((a,b)=>a+b,0)/(s.ratings.length||1)).toFixed(2),qualified:x.lastReview?.performance?.qualified,forcedSameTier:x.lastReview?.performance?.forcedSameTier,poor:x.lastReview?.performance?.poor,champion:x.lastReview?.performance?.teamChampion,awardRank:x.ballonHistory.at(-1)?.rank};
