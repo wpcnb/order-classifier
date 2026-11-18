@@ -1952,6 +1952,12 @@ function finalizeSharedSeason(){
  if(place===0){activeDuo=id;g=x;award("金球奖（法国足球规则）","individual")}
  const bestWinner=sharedUniverse.theBest?.[year]?.winner;
  if(bestWinner?.id===key){activeDuo=id;g=x;award("世界足球先生（FIFA The Best）","individual")}
+ // Gold Ball / FIFA award data exists only after shared season settlement.
+ // Update this year's market snapshot once; historical years stay untouched.
+ if(CD&&!x.player.retired){
+  const level=x.player.youth?0:transferLevel(x.player.leagueId,x.player.club);
+  CD.recordMarketValue(x.player,year,overall(x.player),level,x.season,{...x,refreshAnnualValue:true});
+ }
  if(x.player.retired&&x.retirementSummary?.at?.year===year){x.retirementSummary.honors=x.honors.map(h=>({...h}));x.retirementSummary.likeness=FA?FA.similarity(x,sharedUniverse.theBest||{},5):[];}
  }
  activeDuo=original;g=originalGame;
@@ -2198,7 +2204,7 @@ function endSeason(){
  if(CD&&!p.retired){
   const level=p.youth?0:transferLevel(p.leagueId,p.club);
   const goals=CD.settleObjectives(p,g.year,level,s);
-  CD.recordMarketValue(p,g.year,overall(p),level,s);
+  CD.recordMarketValue(p,g.year,overall(p),level,s,g);
   if(goals)log("赛季目标："+goals.completed+"/"+goals.total+"完成。");
  }
   g.history.push({year:g.year,generation:g.generation,club:p.club,league:league.name,age:p.age,rank,apps:s.apps,goals:s.goals,assists:s.assists,leagueGoals:s.leagueGoals||0,leagueAssists:s.leagueAssists||0,average:avg.toFixed(2),points:sortedTable(s.leagueTable).find(t=>t.name===p.club)?.points||0,europa:s.uefa?.type||null});
@@ -2605,7 +2611,10 @@ function transferRulePanel(){
   '<p class="muted small">正常每赛季晋升一档；翻中唯一幸运卡时可跳两档。同一档内部转会不算升级或降档。两季明显不佳可逐级降档，但中超已是最低起点，只允许留队或同级转会。传奇豪门包括皇马、巴萨、巴黎、曼城、曼联等，按俱乐部声望判定，而非仅按联赛。</p>'+
   (r?'<p class="gold">上季考核：'+E(r.comment)+'</p>':'')+'</div>';
 }
-function transferPage(){if(g.mode==="coach")return coachTransferPage();const p=g.player;return '<div class="columns"><section class="card"><h2>转会与合同</h2>'+transferRulePanel()+'<div class="photo"></div><h3>'+E(p.club)+'</h3><div class="kv"><span>当前身份</span><b>'+(p.youth?"青训球员":"一线队球员")+'</b></div><div class="kv"><span>合同年限</span><b>'+p.contract+'年</b></div><div class="kv"><span>周薪</span><b>'+M(p.wage)+'</b></div><div class="kv"><span>虚拟身价</span><b>'+M(Math.round(overall(p)*overall(p)*1450))+'</b></div><p class="muted small gap">转会仅在赛季结束进行；已进一线队不会再转回任何青训体系。青训毕业自动升入当前俱乐部一线队。</p></section><section class="card"><h2>赛季转会报价</h2>'+(g.offers.length?'<div class="list">'+g.offers.map((o,i)=>'<div class="item"><div class="row"><b>'+E(o.club)+'</b><span class="chip">'+E(DB[o.id].name)+'</span></div><p class="muted small">周薪 '+M(o.wage)+' · 合同 '+o.years+'年 · '+E(o.move||"同级转会")+'</p><button class="button primary" data-action="transfer" data-i="'+i+'">接受'+(o.promotion?"一线队晋升":"转会报价")+'</button></div>').join('')+'</div>':'<p class="muted">赛季结束后会出现符合当前能力和身价的正式报价。</p>')+'</section></div>'}
+function transferPage(){if(g.mode==="coach")return coachTransferPage();const p=g.player;
+ const tier=p.youth?0:transferLevel(p.leagueId,p.club);
+ const value=CD?CD.money(CD.marketValue(p,overall(p),tier,g.season,g)):"待评估";
+ return '<div class="columns"><section class="card"><h2>转会与合同</h2>'+transferRulePanel()+'<div class="photo"></div><h3>'+E(p.club)+'</h3><div class="kv"><span>当前身份</span><b>'+(p.youth?"青训球员":"一线队球员")+'</b></div><div class="kv"><span>合同年限</span><b>'+p.contract+'年</b></div><div class="kv"><span>周薪</span><b>'+M(p.wage)+'</b></div><div class="kv"><span>估算身价（欧元）</span><b>'+value+'</b></div><p class="muted small gap">转会仅在赛季结束进行；已进一线队不会再转回任何青训体系。青训毕业自动升入当前俱乐部一线队。</p></section><section class="card"><h2>赛季转会报价</h2>'+(g.offers.length?'<div class="list">'+g.offers.map((o,i)=>'<div class="item"><div class="row"><b>'+E(o.club)+'</b><span class="chip">'+E(DB[o.id].name)+'</span></div><p class="muted small">周薪 '+M(o.wage)+' · 合同 '+o.years+'年 · '+E(o.move||"同级转会")+'</p><button class="button primary" data-action="transfer" data-i="'+i+'">接受'+(o.promotion?"一线队晋升":"转会报价")+'</button></div>').join('')+'</div>':'<p class="muted">赛季结束后会出现符合当前能力和身价的正式报价。</p>')+'</section></div>'}
 function cupPage(){const s=g.season;return '<div class="grid2"><div class="card"><h2>'+E(s.cup.name)+'</h2><p class="muted">'+(s.cup.active?"仍在争夺中":"本季杯赛结束")+'</p><div class="list">'+s.cup.results.map(x=>'<div class="item">'+E(x.stage)+' · '+x.hs+'-'+x.as+(x.penalties?" · 点球决胜":"")+(x.win?" · 晋级":" · 出局")+'</div>').join('')+'</div></div><div class="card"><h2>国家队赛事</h2><p>国籍：<b>'+E(g.player.country)+'</b></p><p>本赛季国家队比赛：'+s.nationalApps+'场</p><p>当前国家队赛事：'+E(s.national?.name||"暂无")+' · '+(s.national?.stage||"未开始")+'</p><p>小组积分：'+(s.national?.groupPoints||0)+'</p><p class="muted">世界杯、欧洲杯、亚洲杯等赛事根据所属国家和赛历触发；赛季推演赛制不会让中国球员强制进入英格兰队，也不会自动换国籍。</p></div></div>'}
 function honorsByGeneration(gen=g.generation){
  const records=(g.honors||[]).filter(h=>h.generation===gen);
@@ -2996,7 +3005,7 @@ function careerDepthOverview(){
  if(!CD||!duoGames)return "";
  return '<section class="grid2 gap career-depth-overview">'+DUO_IDS.map(id=>{
   const x=duoGames[id],p=x.player,tier=p.youth?0:transferLevel(p.leagueId,p.club);
-  const value=CD.money(CD.marketValue(p,overall(p),tier,x.season)),trait=CD.traitInfo(p);
+  const value=CD.money(CD.marketValue(p,overall(p),tier,x.season,x)),trait=CD.traitInfo(p);
   const targets=CD.objectiveTargets(p,x.year,tier,x.season),complete=targets.filter(item=>item.done).length;
   const lineup=CD.lineup(p,overall(p),power(p.club),()=>.5);
   return '<div class="card depth-player-card"><div class="row"><div class="depth-identity">'+creatorPortrait(p)+'<h2>'+E(p.name)+' · '+E(CD.ROLE_NAMES[p.position]||p.position)+'</h2></div><span class="chip">'+(p.retired?'已退役':E(trait.label))+'</span></div>'+
@@ -3013,6 +3022,7 @@ function careerDepthOverview(){
 function careerDepthDetails(id){
  const x=duoGames?.[id];if(!CD||!x)return "";
  const p=x.player,trait=CD.traitInfo(p),current=CD.positionOptions(p.position);
+ const valuation=CD.marketValueDetails(p,overall(p),p.youth?0:transferLevel(p.leagueId,p.club),x.season,x);
  const values=(p.marketValueHistory||[]).slice(-7);
  const peak=Math.max(1,...values.map(v=>v.value||0));
  const market=values.length?'<div class="depth-value-history">'+values.map(v=>'<div class="depth-value-row"><span>'+E(v.year)+'</span><span class="meter"><span style="width:'+Math.round((v.value||0)/peak*100)+'%"></span></span><b>'+E(CD.money(v.value))+'</b></div>').join("")+'</div>':'<p class="muted small">完成本赛季后开始保存年度身价记录。</p>';
@@ -3021,6 +3031,7 @@ function careerDepthDetails(id){
   '<label class="field">位置改造（可选，默认维持当前位置）<select data-position-target="'+id+'">'+current.map(pos=>'<option value="'+E(pos)+'" '+((p.positionTarget||p.position)===pos?'selected':'')+'>'+E(CD.ROLE_NAMES[pos])+(pos===p.position?'（当前）':'')+'</option>').join("")+'</select></label><p class="muted small">'+(p.positionTarget?'已完成 '+(p.positionProgress||0)+'/9 场；每次实际出场积累改造进度。':'选择其他位置后自动训练9次实际出场，不增加额外操作。')+'</p>')+
   '<p class="muted small">累计首发 '+(p.lineupCareer?.starts||0)+'场 · 替补出场 '+(p.lineupCareer?.substitutes||0)+'场</p>'+
  (BP?'<p class="muted small">开局生涯路线：'+E(BP.PATHS[BP.sanitizedPath(p.careerPath)].name)+'。该路线只影响训练与出场概率，不保证上场或能力提升。</p>':'')+
+  '<h3>身价估值依据</h3><p class="muted small">金球奖 '+(valuation.awards?.ballonDor||0)+' 次 · 世界足球先生 '+(valuation.awards?.worldPlayer||0)+' 次 · 当季爆发贡献 '+E(CD.money(valuation.components?.breakoutBonus||0))+' · 大奖身价加成 '+E(CD.money(valuation.components?.prestigeBonus||0))+'；不是实时转会费。</p>'+
   '<h3>历年身价（游戏估算）</h3>'+market+
   '<h3 class="gap">历史赛季目标</h3><div class="list">'+((p.goalHistory||[]).slice(-7).reverse().map(h=>'<p class="muted small">'+E(h.year)+'赛季 · '+h.completed+'/'+h.total+' 完成</p>').join("")||'<p class="muted small">完成首个赛季后记录。</p>')+'</div></details>';
 }
@@ -3114,7 +3125,7 @@ function duoTransferPage(){
   const n=clubSeasonNumbers(x.season,p.club);
   return '<section class="card"><h2>'+E(p.name)+'</h2><p>'+E(p.club)+' · '+E(TRANSFER_LEVELS[level])+'</p>'+
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
-   '<p class="muted small">游戏市场估值 '+(CD?CD.money(CD.marketValue(p,overall(p),level,x.season)):'待评估')+' · '+E(RV3?RV3.evaluate(p,n,TRANSFER_GATES[level]||TRANSFER_GATES[4],overall(p),Math.min(level,4)).description:'按位置综合考核')+'</p>'+ '<details class="item"><summary>查看身价模型依据</summary><p class="muted small">根据年龄、位置、综合能力、俱乐部档次、出场、评分、合同、伤病及青年潜力估算；前锋数据仅微调前场球员身价。不以金球奖作为估值门槛。原创游戏模型，不是德转实时身价，也不包含外部抓取数据库。</p></details>'+
+   '<p class="muted small">游戏市场估值 '+(CD?CD.money(CD.marketValue(p,overall(p),level,x.season,x)):'待评估')+' · '+E(RV3?RV3.evaluate(p,n,TRANSFER_GATES[level]||TRANSFER_GATES[4],overall(p),Math.min(level,4)).description:'按位置综合考核')+'</p>'+ '<details class="item"><summary>查看身价模型依据</summary><p class="muted small">结合年龄、位置、能力、俱乐部层级、当季爆发程度、历史金球奖与世界足球先生、合同及伤病估算。20多岁球员凭一个顶级赛季即可迅速达到亿元级别；获奖会显著提高估值，但不是身价过亿的必要条件。金额为游戏估值欧元，并非实时转会费或德转报价。</p></details>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
    (n.role?.recorded?'<p class="muted small">本赛季位置数据（游戏模拟）：'+E(RV3?.LABELS[RV3.group(p.position)]||p.position)+' · 记录 '+n.role.recorded+' 场 · '+E(["GK"].includes(p.position)?"扑救 "+n.role.saves+"次 / 扑救率 "+Math.round(n.role.saveRate*100)+"%":["CB","LB","RB","CDM"].includes(p.position)?"抢断成功 "+n.role.tacklesWon+"次 · 拦截 "+n.role.interceptions+"次 · 对抗胜率 "+Math.round(n.role.duelRate*100)+"%":"向前传球 "+n.role.progressivePasses+"次 · 创造机会 "+n.role.chancesCreated+"次 · 传球成功率 "+Math.round(n.role.passRate*100)+"%")+'</p>':'')+
    '<p class="muted small">连续无冠 '+(p.trophylessStreak||0)+' 季 · 连续表现不佳 '+(p.poorStreak||0)+' 季</p>'+
