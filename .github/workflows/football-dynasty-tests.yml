@@ -85,6 +85,9 @@ jobs:
       - name: Club qualification and retired-player integrity
         run: node football-legacy/tests/world-integrity.cjs
 
+      - name: Market valuation regression: breakout, awards, age and history
+        run: node --test football-legacy/tests/market-v3.cjs
+
       - name: S1.03 integrated shared cups, red cards and retirement
         run: node football-legacy/tests/s103-world-regression.cjs
 
