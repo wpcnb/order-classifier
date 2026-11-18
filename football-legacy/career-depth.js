@@ -69,25 +69,17 @@ function contributionModifiers(p,ev){
 }
 function injuryFactor(p){return traitFor(p)==="robust"?.83:1;}
 // 游戏内估值（欧元），不是现实身价。获奖不是高身价的必要条件。
+// 估值由独立模块实现；旧存档格式、其他比赛计算与奖项均不受影响。
+function marketValueDetails(p,overall,tier,season){
+ const market=window.FootballMarketV3;
+ if(market)return market.details(p,overall,tier,season);
+ return {value:0,source:"估值模块未加载",model:"unavailable"};
+}
 function marketValue(p,overall,tier,season){
- if(!p||p.retired)return 0;
- const age=Number(p.age)||18,ov=clamp(Number(overall)||65,40,99);
- const ageFactor=age<18?.36:age<20?.72:age<23?1.10:age<27?1.27:age<30?1.18:age<32?.97:age<35?.67:age<38?.37:.18;
- const tierFactor=[.30,.49,.66,.82,1,1.13][clamp(Math.round(tier||0),0,5)];
- // 评价不以金球奖或冠军次数为前提。高能力年轻球星可达1–2亿欧元。
- const ability=11500000*Math.pow(ov/70,8);
- const played=Math.max(0,Number(season?.apps)||0);
- const ratings=Array.isArray(season?.ratings)?season.ratings.filter(Number.isFinite):[];
- const avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:6.8;
- const reliability=clamp(.84+Math.min(30,played)/30*.17,.84,1.01);
- const performance=clamp(.86+(avg-6.5)*.16,.75,1.19);
- // 非前场不按进球助攻砍价。前场贡献仅提供少量上浮。
- const attack=["ST","LW","RW","CAM"].includes(p.position);
- const contributions=Math.max(0,(Number(season?.goals)||0)+(Number(season?.assists)||0));
- const roleBonus=attack?1+Math.min(.13,contributions*.004):1;
- const fitness=clamp(1-Math.min(6,p.injuryHistory||0)*.025,.82,1);
- const raw=ability*ageFactor*tierFactor*reliability*performance*roleBonus*fitness*(p.youth?.16:1);
- return Math.round(clamp(raw,75000,280000000)/10000)*10000;
+ const market=window.FootballMarketV3;
+ if(market)return market.marketValue(p,overall,tier,season);
+ // Fail closed instead of showing fabricated valuations if the JS file fails to load.
+ return 0;
 }
 function money(value){
  if(!value)return "€0";
@@ -137,5 +129,5 @@ function recordMarketValue(p,year,overall,tier,season){
  p.marketValueHistory.push(entry);p.marketValueHistory=p.marketValueHistory.slice(-42);
  return entry;
 }
-window.CareerDepth=Object.freeze({ROLE_NAMES,traitFor,traitInfo,positionOptions,setPositionTarget,progressPosition,lineup,contributionModifiers,injuryFactor,marketValue,money,objectiveTargets,settleObjectives,recordMarketValue});
+window.CareerDepth=Object.freeze({ROLE_NAMES,traitFor,traitInfo,positionOptions,setPositionTarget,progressPosition,lineup,contributionModifiers,injuryFactor,marketValue,marketValueDetails,money,objectiveTargets,settleObjectives,recordMarketValue});
 })();
