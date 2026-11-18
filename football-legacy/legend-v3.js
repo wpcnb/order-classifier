@@ -1,4 +1,4 @@
-/* 绿茵传奇 3.0：关键比赛与独立生涯成就。兼容原双人存档，不接入金球奖公式。 */
+/* 绿茵领袖 3.0：关键比赛与独立生涯成就。兼容原双人存档，不接入金球奖公式。 */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
