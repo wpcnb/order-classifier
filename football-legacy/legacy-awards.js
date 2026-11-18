@@ -1,4 +1,4 @@
-/* 绿茵领袖 1.0 — FIFA The Best（游戏模拟）+ 退役球星相似度。
+/* 绿茵信仰 S1.01 — FIFA The Best（游戏模拟）+ 退役球星相似度。
  * No official FIFA voting data or verified player statistics are claimed here.
  * Ballon d'Or voting is handled separately in game.js.
  */
