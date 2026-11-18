@@ -126,6 +126,7 @@ x.page("honors");assert(x.html.includes("双星荣誉陈列室")&&x.html.include
 x.page("dashboard");
 log("One-click dual dashboard and academy-first mode");
 for(let youthYear=0;youthYear<2;youthYear++){
+ if(youthYear>0)x.click("nextSeason");
  finishSeason(x);
  const academy=x.state;
  assert.equal(academy.duoGames.wang.year,2026+youthYear);
@@ -147,7 +148,7 @@ for(let youthYear=0;youthYear<2;youthYear++){
 assert.equal(x.state.duoGames.wang.year,2027);
 assert.equal(x.state.duoGames.vini.year,2027);
 log("16-17 youth seasons finish with separate academy history and no senior transfers");
-finishSeason(x);state=x.state;
+x.click("nextSeason");finishSeason(x);state=x.state;
 for(const id of ["wang","vini"]){
  const p=state.duoGames[id].player;
  assert.equal(p.age,18);assert.equal(p.youth,false);assert(p.academyCareer.apps>0);
