@@ -16,6 +16,25 @@ function harness(loaded=null){
  return {get html(){return node("app").innerHTML},get state(){const data=storage.get(SAVE);return data?JSON.parse(data):null},get stored(){return storage},get api(){return window.__test},flush(){let n=0;while(timers.length&&n++<200)timers.shift()()},click(action,extras={}){const fn=handlers["app:click"];fn({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},page(p){const fn=handlers["app:click"];fn({target:{closest:()=>({disabled:false,dataset:{page:p}})}})}};
 }
 function log(s){console.log("✓ "+s)}
+// Explicitly pick S1 midseason choices, just as a player must do in the UI.
+function finishSeason(h){
+ for(let attempt=0;attempt<8;attempt++){
+  const v=h.state;if(!v)throw Error("Missing game save");
+  const ids=["wang","vini"];
+  if(ids.every(id=>v.duoGames[id].player.retired||v.duoGames[id].season.stage==="review"))return;
+  const pending=ids.filter(id=>{const x=v.duoGames[id];return x.season.stage==="playing"&&x.season.midseasonDecision&&!x.season.midseasonDecision.done});
+  if(pending.length){
+   assert(h.html.includes("赛季中期"),"Midseason pause must be visible");
+   for(const id of pending){
+    const kind=v.duoGames[id].season.midseasonDecision.kind;
+    const choice=({rehab:"wait",contract:"wait",locker:"talk",veteran:"light",training:"rest"})[kind];
+    assert(choice,"Unknown decision type: "+kind);
+    h.click("s1Choice",{id,choice});
+   }
+  }else h.click("simBoth");
+ }
+ throw Error("S1 midseason decisions could not be completed");
+}
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");assert(html.includes('src="./game.js'));
 const oldData=JSON.stringify({version:4,player:{name:"陆白"}});
 const oldDuo="football-dynasty-duo-v1-20261110",oldKeys=[OLD,OLD+"-safety",oldDuo,oldDuo+"-safety"];
@@ -89,7 +108,7 @@ assert.equal(nextOne.state.duoGames.vini.year,2026);
 log("Next Match advances the shared world by one matchday without completing the season");
 
 const safeSeason=harness([[SAVE,x.stored.get(SAVE)]]);
-safeSeason.click("simBoth");
+finishSeason(safeSeason);
 assert.equal(safeSeason.state.duoGames.wang.season.stage,"review");
 assert(safeSeason.html.includes('data-action="nextSeason"')&&safeSeason.html.includes("进入下一赛季"),"At year end, the main action must describe advancing the year");
 safeSeason.click("nextSeason");
@@ -107,7 +126,7 @@ x.page("honors");assert(x.html.includes("双星荣誉陈列室")&&x.html.include
 x.page("dashboard");
 log("One-click dual dashboard and academy-first mode");
 for(let youthYear=0;youthYear<2;youthYear++){
- x.click("simBoth");
+ finishSeason(x);
  const academy=x.state;
  assert.equal(academy.duoGames.wang.year,2026+youthYear);
  assert.deepEqual(academy.duoGames.wang.season.leagueTable,academy.duoGames.vini.season.leagueTable);
@@ -128,7 +147,7 @@ for(let youthYear=0;youthYear<2;youthYear++){
 assert.equal(x.state.duoGames.wang.year,2027);
 assert.equal(x.state.duoGames.vini.year,2027);
 log("16-17 youth seasons finish with separate academy history and no senior transfers");
-x.click("simBoth");state=x.state;
+finishSeason(x);state=x.state;
 for(const id of ["wang","vini"]){
  const p=state.duoGames[id].player;
  assert.equal(p.age,18);assert.equal(p.youth,false);assert(p.academyCareer.apps>0);
@@ -266,7 +285,7 @@ const retirementFixture=harness([[SAVE,x.stored.get(SAVE)]]);
 retirementFixture.click("retirePlayer",{id:"wang"});
 assert.equal(retirementFixture.state.duoGames.wang.player.retired,true);
 assert.equal(retirementFixture.state.duoGames.vini.player.retired||false,false);
-retirementFixture.click("simBoth");
+finishSeason(retirementFixture);
 assert.equal(retirementFixture.state.duoGames.vini.season.stage,"review","The surviving player must finish the season");
 const afterOne=retirementFixture.state.duoGames.vini.year;
 const survivorDraw=retirementFixture.state.duoGames.vini.player.transferDraw;
@@ -387,7 +406,7 @@ for(const id of ["wang","vini"]){
   assert(original&&[original.home,original.away].includes(club),"User European fixtures must belong to the shared competition");
  }
 }
-fixture.click("simBoth");
+finishSeason(fixture);
 const result=fixture.state,comp=result.sharedUniverse.europeCompetitions["2048:欧冠"],champ=result.sharedUniverse.europeFinals["2048:欧冠"];
 assert(champ,"Global UEFA winner must be declared even if only NPC clubs reach the final");
 assert.equal(champ.winner,comp.champion);
