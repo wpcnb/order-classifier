@@ -13,6 +13,23 @@ function harness(data,failBackup=false,withLegend=false){
  return {api:context.window.__test,storage,get html(){return node("app").innerHTML},click(action,extras={}){handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},flush(){while(timers.length)timers.shift()()}};
 }
 function newGame(withLegend=false){const h=harness(null,false,withLegend);h.click("flipOpeningCard",{id:"wang",i:0});h.flush();h.click("flipOpeningCard",{id:"vini",i:0});h.flush();h.click("preset");return h;}
+// The S1 career system deliberately stops at human decisions; acknowledge
+// them in this regression harness without skipping or disabling the pause.
+function finishSeason(h){
+ for(let attempts=0;attempts<8;attempts++){
+  const world=h.api.duo(),ids=["wang","vini"];
+  if(ids.every(id=>world[id].player.retired||world[id].season.stage==="review"))return;
+  const pending=ids.filter(id=>world[id].season.stage==="playing"&&world[id].season.midseasonDecision&&!world[id].season.midseasonDecision.done);
+  if(pending.length){
+   for(const id of pending){
+    const kind=world[id].season.midseasonDecision.kind;
+    const choice=({rehab:"wait",contract:"wait",locker:"talk",veteran:"light",training:"rest"})[kind];
+    assert(choice);h.click("s1Choice",{id,choice});
+   }
+  }else h.click("simBoth");
+ }
+ throw Error("Unable to complete season after S1 decisions");
+}
 function toReview(h,ages){const d=h.api.duo();for(const [id,age] of Object.entries(ages)){const x=d[id],p=x.player;p.age=age;p.youth=false;p.club=p.club.replace(/青训$/,"");p.academyParentClub=p.club;p.forcedMove=false;p.transferAssessment={maxTier:0};delete p.transferDraw;x.season.stage="review";}return d;}
 {
  const h=newGame(true),d=toReview(h,{wang:32,vini:33});
@@ -47,7 +64,7 @@ function toReview(h,ages){const d=h.api.duo();for(const [id,age] of Object.entri
  assert.equal(d.wang.year,year+1);assert.equal(d.vini.year,year+1);assert.equal(d.vini.player.retired||false,false);assert.equal(d.vini.season.stage,"playing");
  assert(h.html.includes("年满40岁自动"));
  const reload=harness([[SAVE,h.storage.get(SAVE)]]);assert.equal(reload.api.duo().wang.player.retired,true);assert.equal(reload.api.duo().vini.season.stage,"playing");
- reload.click("simBoth");assert.equal(reload.api.duo().vini.season.stage,"review");
+ finishSeason(reload);assert.equal(reload.api.duo().vini.season.stage,"review");
  console.log("✓ 单人40岁自动退役，跳过转会并保留履历；另一人读档后继续完整赛季");
 }
 {
@@ -78,7 +95,7 @@ function toReview(h,ages){const d=h.api.duo();for(const [id,age] of Object.entri
  const reloaded=harness([[SAVE,h.storage.get(SAVE)]]);reloaded.click(null,{page:"career"});
  assert(reloaded.html.includes("2场 1球 0助 · 未完赛季（退役）"));
  assert.equal(reloaded.api.duo().wang.player.career.apps,2);assert.equal(reloaded.api.duo().wang.player.career.goals,1);
- h.click("simBoth");assert.equal(d.vini.season.stage,"review");
+ finishSeason(h);assert.equal(d.vini.season.stage,"review");
  console.log("✓ 导入满40岁的旧档立即退役，保留已踢比赛、可导出备份，另一人继续比赛");
  const blocked=harness([[SAVE,raw]],true);
  assert.equal(blocked.api.duo().wang.player.retired,true);assert.equal(blocked.storage.get(SAVE),raw);
