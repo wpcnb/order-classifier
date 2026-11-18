@@ -150,7 +150,7 @@ assert(!("npcs" in state.duoGames.wang)&&!("npcs" in state.duoGames.vini),"NPC r
 assert(!("world" in state.duoGames.wang.season)&&!("world" in state.duoGames.vini.season),"World state not duplicated");
 assert(!("leagueRounds" in state.duoGames.wang.season),"Regenerable fixture schedule not saved");
 assert(x.stored.get(SAVE).length<1000000,"Save should fit comfortably inside mobile localStorage");
-x.page("awards");assert(x.html.includes("同一届金球奖")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
+x.page("awards");assert(x.html.includes("金球奖 ·")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 x.page("world");assert(x.html.includes("统一射手榜")&&x.html.includes("王楚淇")&&x.html.includes("维尼修斯"));
 const l1=state.duoGames.wang.season.leagueTable,l2=state.duoGames.vini.season.leagueTable;
 assert.deepEqual(l1,l2,"Both players must see same CSL league table");
