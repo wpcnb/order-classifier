@@ -1,4 +1,6 @@
-# 绿茵传奇 v2.0.0 · 双人足球生涯
+# 绿茵信仰 S1.01 · 双人足球生涯
+
+版本规则：以 S1.00 为基准，每次正式更新递增 0.01（S1.01、S1.02、S1.03……）。旧存档存储键及 JSON 导入格式保持不变。
 
 在线游戏：https://wpcnb.github.io/order-classifier/football-legacy/
 
