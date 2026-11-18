@@ -1,4 +1,4 @@
-/* 绿茵领袖 3.0：关键比赛与独立生涯成就。兼容原双人存档，不接入金球奖公式。 */
+/* 绿茵领袖 1.0：关键比赛与独立生涯成就。兼容原双人存档，不接入金球奖公式。 */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -146,13 +146,46 @@
     if (joint.length) { award(a, 'duoTitle', world.wang.year); award(b, 'duoTitle', world.vini.year); }
     if (joint.some(h => h.name === '欧冠冠军')) { award(a, 'duoUcl', world.wang.year); award(b, 'duoUcl', world.vini.year); }
   }
+  // Milestone achievements are awarded once; subsequent titles must still
+  // contribute to historical standing. All totals are derived from the save,
+  // so older careers get credit without rewriting their match/trophy records.
+  function recurringHonorPoints(game) {
+    const honors = (game.honors || []).filter(h => !h.legacyDisputed);
+    const unique = new Set();
+    const counts = {world:0,ucl:0,league:0,cup:0,otherNational:0,best:0};
+    for (const h of honors) {
+      const key = String(h.year)+"|"+String(h.type)+"|"+String(h.name);
+      if (unique.has(key)) continue;
+      unique.add(key);
+      const name=String(h.name||"");
+      if(h.type==="national"&&/世界杯.*冠军/.test(name))counts.world++;
+      else if(h.type==="national"&&/亚洲杯|欧洲杯|美洲杯/.test(name)&&/冠军/.test(name))counts.otherNational++;
+      else if(h.type==="team"&&name==="欧冠冠军")counts.ucl++;
+      else if(h.type==="team"&&/联赛.*冠军|英超冠军|西甲冠军|德甲冠军|意甲冠军|法甲冠军|中超冠军|荷甲冠军|葡超冠军|巴甲冠军/.test(name))counts.league++;
+      else if(h.type==="team"&&/杯.*冠军|杯赛冠军/.test(name)&&!name.includes("欧冠"))counts.cup++;
+      else if(h.type==="individual"&&/世界足球先生/.test(name))counts.best++;
+    }
+    const balls=new Set((game.ballonHistory||[]).filter(v=>v.rank===1).map(v=>String(v.year))).size;
+    const milestoneIds=new Set(state(game.player).achievements.map(v=>v.id));
+    // First World Cup/UCL/league/Ballon already has a milestone award.
+    // Preserve that first-time value, score only repeat wins here.
+    const points=
+      Math.max(0,counts.world-(milestoneIds.has("worldTitle")?1:0))*85+
+      Math.max(0,counts.ucl-(milestoneIds.has("uclTitle")?1:0))*55+
+      Math.max(0,counts.league-(milestoneIds.has("leagueTitle")?1:0))*12+
+      Math.max(0,balls-(milestoneIds.has("ballon")?1:0))*55+
+      counts.best*35+counts.otherNational*30+counts.cup*8;
+    return {points,counts,ballon:balls};
+  }
   function score(game) {
-    if (!game || !game.player) return { base: 0, bonus: 0, penalty: 0, total: 0 };
+    if (!game || !game.player) return { base: 0, bonus: 0, milestone: 0, repeat: 0, penalty: 0, total: 0 };
     const p = game.player, c = p.career || {}, values = state(p);
     const base = Math.round(num(c.apps) * .15 + num(c.goals) * 1.2 + num(c.assists) * .8);
-    const bonus = values.achievements.reduce((s, a) => s + num(a.points), 0);
+    const milestone = values.achievements.reduce((s, a) => s + num(a.points), 0);
+    const repeat = recurringHonorPoints(game).points;
+    const bonus = milestone + repeat;
     const minus = values.penalties.reduce((s, a) => s + num(a.points), 0);
-    return { base, bonus, penalty: minus, total: base + bonus + minus };
+    return { base, bonus, milestone, repeat, penalty: minus, total: base + bonus + minus };
   }
   function replay(world, date) {
     const result = [];
