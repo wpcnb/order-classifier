@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const roles = require("../role-v3.js");
 const base = path.join(__dirname, "..");
 const context = {window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(base,"market-v3.js"),"utf8"),context);
 vm.runInNewContext(fs.readFileSync(path.join(base,"career-depth.js"),"utf8"),context);
 const career=context.window.CareerDepth;
 const gate={apps:19,avg:6.94,ov:78,g:6,a:5,sum:11};
@@ -32,8 +33,8 @@ test("未获奖的优秀球员也能达到一两亿欧元身价",()=>{
  const p={age:25,club:"皇家马德里",position:"GK",injuryHistory:0};
  const s={apps:30,ratings:Array(30).fill(7.4),goals:0,assists:0};
  const value=career.marketValue(p,95,5,s);
- assert(value>100000000);
- assert(career.marketValue({...p,position:"CM"},97,5,s)>200000000);
+ assert(value>40000000 && value<120000000,"门将应采用独立身价分布");
+ assert(career.marketValue({...p,position:"CM"},97,5,s)>140000000,"世界级中场应可能达到亿元");
  assert(career.marketValue({...p,age:36},95,5,s)<value);
 });
 test("门将目标不使用进球与助攻",()=>{
