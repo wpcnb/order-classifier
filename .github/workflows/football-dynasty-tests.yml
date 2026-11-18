@@ -76,6 +76,9 @@ jobs:
       - name: Red-card score consistency
         run: node football-legacy/tests/red-score.cjs
 
+      - name: S1.03 shared cup and legacy-save integration
+        run: node football-legacy/tests/shared-cups-s103.cjs
+
       - name: Dual-player interaction display regression tests
         run: node football-legacy/tests/duo-interactions.cjs
 
