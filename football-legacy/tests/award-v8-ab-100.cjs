@@ -24,7 +24,7 @@ function run(seed){
  const w={__abSamples:[]},ctx={window:w,document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},Math:math,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
  for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","career-depth.js","free-star.js"])vm.runInNewContext(read(f),ctx,{filename:f,timeout:12000});
  vm.runInNewContext(src,ctx,{filename:"game.js",timeout:12000});
- const click=(action,id,i=0)=>events["app:click"][0]({target:{closest:()=>({disabled:false,dataset:{action,id,i}})}});
+ const click=(action,id,i=0,choice=null)=>events["app:click"][0]({target:{closest:()=>({disabled:false,dataset:{action,id,i,choice}})}});
  const flush=()=>{let i=0;while(timers.length&&i++<300)timers.shift()()};
  click("flipOpeningCard","wang");flush();click("flipOpeningCard","vini");flush();click("preset");
  assert(w.__ab.duo(),"failed to start career");
@@ -33,7 +33,21 @@ function run(seed){
    const x=w.__ab.duo()[id],d=x.player.transferDraw;
    if(d?.options?.length&&!d.accepted&&!d.declined){if(!d.selected){click("flipPromotionCard",id);flush()}click("acceptDraw",id)}
   }
-  click("simBoth");
+  if(k>0)click("nextSeason");
+  for(let guard=0;guard<10;guard++){
+   const current=w.__ab.duo();
+   if(["wang","vini"].every(id=>current[id].season.stage==="review"||current[id].player.retired))break;
+   const pending=["wang","vini"].filter(id=>current[id].season.stage==="playing"&&
+    current[id].season.midseasonDecision&&!current[id].season.midseasonDecision.done);
+   if(pending.length){
+    for(const id of pending){
+     const kind=current[id].season.midseasonDecision.kind;
+     const choice=({rehab:"wait",contract:"wait",locker:"talk",veteran:"light",training:"rest"})[kind];
+     assert(choice,"unsupported mid-season decision: "+kind);
+     click("s1Choice",id,0,choice);
+    }
+   }else click("simBoth");
+  }
   const pair=w.__ab.duo();assert.equal(pair.wang.season.stage,"review","did not finish season "+k);
   const award=w.__ab.awards()[pair.wang.year];assert(award&&award.winner);
   // A single young player award is recorded per actual league and year.
