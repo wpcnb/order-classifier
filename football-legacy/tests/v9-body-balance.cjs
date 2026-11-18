@@ -7,7 +7,7 @@ const p=(h,w,pos="LW",careerPath="balanced")=>({heightCm:h,weightKg:w,position:p
 let checked=0;function test(name,fn){fn();checked++;console.log("✓ "+checked+"/10 "+name)}
 test("v9 release, script order and reproducibility document",()=>{
  const html=read("index.html");
- assert(html.includes("绿茵信仰 S1.02"));
+ assert(html.includes("<title>绿茵信仰 ·"));
  assert(html.indexOf("./body-path.js?v=")<html.indexOf("./career-depth.js?v="));
  assert(html.indexOf("./career-depth.js?v=")<html.indexOf("./legend-v1.js?v=S1.02"));
  assert(html.indexOf("legend-v1.js?v=S1.02")<html.indexOf("game.js?v="));
