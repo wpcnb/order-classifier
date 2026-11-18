@@ -76,6 +76,6 @@ test("主游戏赛季边界已接入自动流转，手动存档版本仍兼容",
  assert(source.includes("guidedTransferDecisions();if(missingPromotionDraws().length)"));
  assert(source.includes("const roleActions=played&&RV3?RV3.simulateMatch"));
  assert(source.includes("bodyContests,roleActions};s.results.push(eventResult)"));
- assert(html.indexOf("transfer-v3.js")>=0&&html.indexOf("transfer-v3.js")<html.indexOf("game.js?v=3.3.0"));
+ assert(html.indexOf("transfer-v3.js")>=0&&html.indexOf("transfer-v3.js")<html.indexOf("game.js?v=S1.01-20261118"));
  assert(source.includes("return {version:2,compact:1"));
 });
