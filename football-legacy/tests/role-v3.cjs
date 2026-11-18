@@ -6,7 +6,7 @@ const vm = require("node:vm");
 const roles = require("../role-v3.js");
 const base = path.join(__dirname, "..");
 const context = {window:{}};
-vm.runInNewContext(fs.readFileSync(path.join(base,"market-v3.js"),"utf8"),context);
+context.window.FootballMarketV3 = require("../market-v3.js");
 vm.runInNewContext(fs.readFileSync(path.join(base,"career-depth.js"),"utf8"),context);
 const career=context.window.CareerDepth;
 const gate={apps:19,avg:6.94,ov:78,g:6,a:5,sum:11};
