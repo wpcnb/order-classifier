@@ -52,3 +52,16 @@ test("共享比分只做一次战报",()=>{
  x.wang.season.results=[result];x.vini.season.results=[{...result}];
  assert.equal(V3.replay(x,result.date).length,1);
 });
+
+test("关键比赛不因普通快进而静默跳过",()=>{
+ const x=world();
+ x.wang.season.events=[{kind:"europeKO",stage:"决赛",date:"2030-05-30"}];
+ assert(V3.criticalDay(x,"2030-05-30"));
+});
+test("决赛失利只记录遗憾，不产生负分",()=>{
+ const x=world();
+ x.wang.season.results=[{kind:"national",stage:"决赛",date:"2030-07-15",competition:"世界杯",home:"中国",away:"巴西",hs:1,as:2}];
+ V3.sync(x,{},[]);
+ assert.equal(V3.score(x.wang).penalty,0);
+ assert.equal(x.wang.player.legendV3.regrets.length,1);
+});
