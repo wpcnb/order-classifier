@@ -1793,9 +1793,12 @@ const TRANSFER_GOALS={
  nonFiveElite:{g:5,a:4,sum:9,apps:17,avg:6.83,ov:74},
  five:{g:6,a:5,sum:11,apps:19,avg:6.94,ov:78},
  fiveElite:{g:7,a:6,sum:13,apps:20,avg:7.05,ov:83},
- legendary:{g:8,a:7,sum:15,apps:22,avg:7.16,ov:87}
+ legendary:{g:8,a:7,sum:15,apps:22,avg:7.16,ov:87},
+ worldLegend:{g:9,a:8,sum:17,apps:23,avg:7.22,ov:89}
 };
-const TRANSFER_GATES=[TRANSFER_GOALS.europe,TRANSFER_GOALS.nonFiveElite,TRANSFER_GOALS.five,TRANSFER_GOALS.fiveElite,TRANSFER_GOALS.legendary];
+// Six club reputation levels require six evaluation gates. The last gate is
+// still needed for underperformance/demotion even when promotion is impossible.
+const TRANSFER_GATES=[TRANSFER_GOALS.europe,TRANSFER_GOALS.nonFiveElite,TRANSFER_GOALS.five,TRANSFER_GOALS.fiveElite,TRANSFER_GOALS.legendary,TRANSFER_GOALS.worldLegend];
 function transferLevel(id,club){
  if(LEGENDARY_CLUBS.has(club))return 5;
  if(id==="CHN")return 0;
