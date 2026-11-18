@@ -3,6 +3,8 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),asse
 const root=path.resolve(__dirname,".."),read=file=>fs.readFileSync(path.join(root,file),"utf8");
 const html=read("index.html"),depth=read("career-depth.js");
 const depContext={window:{}};
+vm.runInNewContext(read("market-v3.js"),depContext,{filename:"market-v3.js"});
+depContext.window.FootballMarketV3=depContext.FootballMarketV3;
 vm.runInNewContext(depth,depContext,{filename:"career-depth.js"});
 const D=depContext.window.CareerDepth;
 let passed=0;
