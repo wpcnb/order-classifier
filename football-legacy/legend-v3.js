@@ -1,4 +1,4 @@
-/* 绿茵领袖 1.0：关键比赛与独立生涯成就。兼容原双人存档，不接入金球奖公式。 */
+/* 绿茵信仰 S1.01：关键比赛与独立生涯成就。兼容原双人存档，不接入金球奖公式。 */
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
