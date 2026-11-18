@@ -6,6 +6,7 @@ const CD=window.CareerDepth||null; // Optional: legacy tests and old saves still
 const GL=window.GreenLegend||null; // v1.0.0 optional mechanics; old test harnesses retain the original behavior.
 const V3=window.LegendV3||null; // Career score never changes Ballon d'Or voting.
 const RV3=window.FootballRolesV3||null; // Role-specific promotion and relegation rules.
+const TV3=window.FootballTransferV3||null; // Assisted career transfers, never for deep/manual mode.
 const STORE="football-dynasty-duo-v2-20261110",LEGACY_STORE="football-dynasty-v4-independent-20261101",CUT="2026-11-01";
 const VERIFIED_REAL_PEOPLE_FALLBACK={"roster":[["贝林厄姆","皇家马德里","CAM",92,23],["库巴西","巴塞罗那","CB",86,19],["库库雷利亚","皇家马德里","CB",86,28],["登贝莱","巴黎圣日耳曼","RW",91,29],["路易斯·迪亚斯","拜仁慕尼黑","LW",88,29],["布鲁诺·费尔南德斯","曼联","CAM",89,32],["加布里埃尔·马加良斯","阿森纳","CB",88,28],["哈兰德","曼城","ST",95,26],["阿什拉夫","巴黎圣日耳曼","RW",91,28],["凯恩","拜仁慕尼黑","ST",95,33],["克瓦拉茨赫利亚","巴黎圣日耳曼","LW",92,25],["亚马尔","巴塞罗那","RW",94,19],["马内","利雅得胜利","LW",84,34],["马尔基尼奥斯","巴黎圣日耳曼","CB",86,32],["劳塔罗·马丁内斯","国际米兰","ST",90,29],["姆巴佩","皇家马德里","ST",96,27],["努诺·门德斯","巴黎圣日耳曼","CB",89,24],["梅西","迈阿密国际","RW",86,39],["若昂·内维斯","巴黎圣日耳曼","CM",89,22],["奥利塞","拜仁慕尼黑","RW",91,24],["帕乔","巴黎圣日耳曼","CB",86,25],["胡利安·基尼奥内斯","卡迪西亚","ST",82,29],["赖斯","阿森纳","CM",90,27],["罗德里","巴塞罗那","CM",91,30],["法比安·鲁伊斯","巴黎圣日耳曼","CM",87,30],["萨利巴","阿森纳","CB",89,25],["费兰·托雷斯","巴黎圣日耳曼","RW",85,26],["于帕梅卡诺","拜仁慕尼黑","CB",88,27],["维尼修斯","皇家马德里","LW",93,26],["维蒂尼亚","巴黎圣日耳曼","CM",92,26],["佩德里","巴塞罗那","CM",91,23],["加维","巴塞罗那","CM",86,22],["穆西亚拉","拜仁慕尼黑","CAM",92,23],["维尔茨","利物浦","CAM",92,23],["帕尔默","切尔西","CAM",91,24],["福登","曼城","RW",90,26],["萨卡","阿森纳","RW",91,25],["阿尔瓦雷斯","马德里竞技","ST",90,26],["拉菲尼亚","巴塞罗那","RW",91,29],["伊萨克","利物浦","ST",90,27],["埃斯特旺","切尔西","RW",84,19],["恩德里克","皇家马德里","ST",83,20],["居莱尔","皇家马德里","CAM",88,21],["马斯坦托诺","皇家马德里","RW",82,19],["杜埃","巴黎圣日耳曼","LW",89,21],["扎伊尔-埃梅里","巴黎圣日耳曼","CM",87,20],["巴尔韦德","皇家马德里","CM",90,28],["莱万多夫斯基","巴塞罗那","ST",88,38],["奥斯梅恩","加拉塔萨雷","ST",90,27],["罗德里戈","皇家马德里","RW",88,25],["切尔基","曼城","CAM",85,23],["加纳乔","切尔西","LW",84,22],["基米希","拜仁慕尼黑","CM",90,31],["萨内","加拉塔萨雷","RW",86,30],["迪奥曼德","RB莱比锡","RW",86,19],["巴斯托尼","国际米兰","CB",90,27],["多纳鲁马","曼城","GK",92,27],["奥布拉克","马德里竞技","GK",88,33],["库尔图瓦","皇家马德里","GK",91,34],["尼科·威廉姆斯","毕尔巴鄂竞技","LW",86,24],["苏比门迪","阿森纳","CM",86,27],["卡马文加","皇家马德里","CM",87,23],["楚阿梅尼","皇家马德里","CM",88,26],["斯凯利","阿森纳","CB",82,20],["恩瓦内里","阿森纳","RW",82,19],["埃切维里","勒沃库森","CAM",81,20],["昆达","葡萄牙体育","RW",81,19],["肯德里·派斯","斯特拉斯堡","CAM",78,19],["亚历杭德罗·巴尔德","巴塞罗那","CB",86,22],["格瓦迪奥尔","曼城","CB",90,24],["鲁本·迪亚斯","曼城","CB",88,29],["范戴克","利物浦","CB",90,35],["科纳特","利物浦","CB",87,27],["索博斯洛伊","利物浦","CM",88,25],["麦卡利斯特","利物浦","CM",89,27],["埃基蒂克","利物浦","ST",87,24],["约克雷斯","阿森纳","ST",88,28],["阿马德·迪亚洛","曼联","RW",84,24],["梅努","曼联","CM",83,21],["谢什科","曼联","ST",84,23],["乌加特","曼联","CM",82,25],["特尔","热刺","ST",81,21],["沃顿","水晶宫","CM",85,22],["摩根·罗杰斯","阿斯顿维拉","CAM",85,24],["奥蓬达","尤文图斯","ST",85,26],["维托尔·罗克","帕尔梅拉斯","ST",82,21],["罗德里戈·莫拉","波尔图","CAM",82,19],["弗朗西斯科·孔塞桑","尤文图斯","RW",84,23],["科尔·穆阿尼","热刺","ST",84,27],["伊尼戈·马丁内斯","利雅得胜利","CB",82,35],["奥纳纳","特拉布宗体育","GK",81,30],["斯卡尔维尼","亚特兰大","CB",86,22],["弗拉霍维奇","尤文图斯","ST",85,26],["马库斯·图拉姆","国际米兰","ST",87,29],["迪马尔科","国际米兰","CB",88,28]],"referenceYear":2026,"officialNomineeCount":30,"official2026Top10":[["凯恩",1055],["姆巴佩",1027],["亚马尔",881],["罗德里",726],["梅西",612],["克瓦拉茨赫利亚",541],["登贝莱",418],["哈兰德",378],["奥利塞",296],["法比安·鲁伊斯",201]],"rules":{"candidates":30,"jurors":100,"perBallot":[15,12,10,8,7,5,4,3,2,1],"maxPersonalPoints":1500,"totalPoints":6700},"sources":["https://www.uefa.com/uefachampionsleague/news/02a9-218b019cbca5-cb4b9be51c4b-1000--2026-ballon-dor-awards-nominees-revealed/","https://ballondor.com/news/posts/2026-mens-ballon-dor-the-full-ranking-and-the-28-points-that-kept-mbappe-from-the-trophy"]};
 const $=x=>document.getElementById(x),R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,C=(n,a,b)=>Math.max(a,Math.min(b,n)),P=a=>a[R(0,a.length-1)],E=v=>String(v??"").replace(/\u6a21\u62df/g,"游戏赛季").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x])),M=n=>"¥"+Math.round(n).toLocaleString("zh-CN"),percent=n=>C(Math.round(n),0,100);
@@ -1849,7 +1850,7 @@ function applyPlayerTransfer(o,automatic=false,deferDisplay=false){
  if(!p.youth&&o.club.endsWith("青训"))return notify("已进入一线队，不能退回青训"),false;
  if(p.forcedMove&&!(dest<current))return notify("未达标，必须接受降档报价"),false;
  
- if(!p.forcedMove&&dest>current&&dest>(p.transferAssessment?.maxTier??current)&&!(automatic&&p.transferDraw?.selected?.club===o.club&&p.transferDraw?.selected?.id===o.id&&p.transferDraw?.year===g.year&&dest===current+2&&p.transferAssessment?.maxTier===current+1))return notify("进球助攻和评分未达到升级资格"),false;
+ if(!p.forcedMove&&dest>current&&dest>(p.transferAssessment?.maxTier??current)&&!(automatic&&p.transferDraw?.selected?.club===o.club&&p.transferDraw?.selected?.id===o.id&&p.transferDraw?.year===g.year&&dest===current+2&&p.transferAssessment?.maxTier===current+1))return notify("本位置赛季综合表现未达到升级资格"),false;
  const wasForced=p.forcedMove,old=p.club;p.club=o.club;p.leagueId=o.id;p.youth=false;
  if(p.parentCoach)p.parentCoach.club=o.club;
  p.wage=o.wage;p.contract=o.years;p.morale=85;p.coachTrust=65;p.forcedMove=false;p.forcedSameTier=false;p.poorStreak=0;p.trophylessStreak=0;
@@ -1968,8 +1969,54 @@ function trainingFocusPanel(id){
  return '<details class="item gap" open><summary><b>'+E(p.name)+' · 训练与成长（'+(deep?"深度":"轻松")+'）</b></summary>'+
   settings+details+'</details>';
 }
+// Assisted career mode: consume genuine 9+1 cards or arrange a realistic same-tier move.
+// Deep mode and already selected cards are never changed automatically.
+function guidedTransferDecisions(){
+ if(!duoGames||!TV3)return [];
+ const original=activeDuo,oldG=g,notes=[];
+ for(const id of DUO_IDS){
+  const x=duoGames[id],p=x.player;
+  if(p.retired||p.youth||x.season.stage!=="review"||p.age>=39||duoOperationMode(p)==="deep")continue;
+  const draw=ensurePromotionDraw(x),selected=!!draw?.selected,decided=!!(draw?.accepted||draw?.declined);
+  if(selected&&!decided)continue; // Player has already flipped a card; wait for an explicit choice.
+  if(decided)continue;
+  const level=transferLevel(p.leagueId,p.club);
+  const pool=Object.entries(DB).filter(([league])=>league!=="BRA")
+   .flatMap(([league,db])=>db.teams.map(t=>({id:league,club:t.name,power:power(t.name),tier:transferLevel(league,t.name)})))
+   .filter(o=>o.club!==p.club&&o.tier===level&&Math.abs(o.power-power(p.club))<=16);
+  const info=TV3.decision(x,p.transferAssessment,{mode:"guided",manual:false,
+    drawAvailable:!!draw,drawOpen:false,candidateCount:pool.length});
+  if(info.type==="draw"&&draw?.options?.length===10){
+   const pick=TV3.hash(x.year+"|"+p.name+"|"+p.club+"|career-draw")%10;
+   draw.selectedIndex=pick;draw.selected={...draw.options[pick]};draw.accepted=true;
+   logGuided(id,"球探评估通过：自动选择第"+(pick+1)+"张转会卡（"+draw.selected.club+"），保留9+1的机会分布。");
+   notes.push({id,type:"promotion",club:draw.selected.club});
+  }else if(info.type==="lateral"){
+   const o=TV3.choose(x,pool);
+   if(!o)continue;
+   const proposal={...o,move:"同级转会",
+    wage:Math.round((o.power*480+overall(p)*270+(p.fame||0)*140)/1000)*1000,years:3};
+   activeDuo=id;g=x;
+   const moved=applyPlayerTransfer(proposal,false,true);
+   activeDuo=original;g=oldG;
+   if(moved){
+    p.sameTierMoveYear=x.year;p.autoMoveYear=x.year;delete p.transferDraw;
+    logGuided(id,"引导生涯自动同档转会："+p.name+"已加盟"+o.club+"（原俱乐部效力"+info.years+"年）。");
+    notes.push({id,type:"lateral",club:o.club});
+   }
+  }
+ }
+ activeDuo=original;g=oldG;
+ return notes;
+}
+function logGuided(id,message){
+ const x=duoGames[id];if(!x)return;
+ x.logs=x.logs||[];
+ x.logs.unshift({year:x.year,week:x.season?.completed||0,description:message});
+ if(x.logs.length>100)x.logs.length=100;
+}
 function nextSeason(){if(!g||(g.season.stage!=="review"&&!g.player.retired))return;
- if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired)){notify("同一时间线：请先完成仍在参赛球员的当前赛季");return}if(!finalizeRetiredSeasonIfReady())return;if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
+ if(duoGames&&!syncSeasonChange){if(!DUO_IDS.every(id=>duoGames[id].season.stage==="review"||duoGames[id].player.retired)){notify("同一时间线：请先完成仍在参赛球员的当前赛季");return}if(!finalizeRetiredSeasonIfReady())return;guidedTransferDecisions();if(missingPromotionDraws().length){page="transfer";save();render();notify("请先为需要升档或降档的球员分别抽取新球队");return}syncSeasonChange=true;const original=activeDuo;for(const id of DUO_IDS){activeDuo=id;g=duoGames[id];nextSeason()}activeDuo=original;g=duoGames[original];syncSeasonChange=false;linkSharedWorld();setupSharedUefaSeason();save();render();return}
 if(g.player.retired){g.year++;g.season={...g.season,stage:"retired",events:[],index:0,completed:0,world:null,leagueRounds:[],results:[],uefa:null,national:null};return}
 if(g.mode==="coach")return nextCoachSeason();const p=g.player;
  const previousClub=p.club,previousLeague=p.leagueId,previousYear=g.year;
