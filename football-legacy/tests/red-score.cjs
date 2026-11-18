@@ -36,8 +36,9 @@ function setup(sameLeague=false){
  const {h,w}=setup(true),ev=w.season.events.find(e=>e.kind==="league"),calls=[];
  h.api.setScore((home,away,boost=0,reduceHome=0,reduceAway=0)=>{if(home===ev.home&&away===ev.away)calls.push({reduceHome,reduceAway});return [1,0]});
  h.api.playEvent(ev,"balanced",true);const result=w.season.results.at(-1);
- assert.equal(result.redCard,"direct");assert.equal(result.redScoreEffect,false);assert(calls.every(x=>x.reduceHome===0&&x.reduceAway===0));
- console.log("✓ a two-player shared league preserves its existing shared result");
+ assert.equal(result.redCard,"direct");assert.equal(result.redScoreEffect,true);
+ assert(calls.some(x=>x.reduceHome!==0||x.reduceAway!==0),"controlled club red must impact the shared fixture"); 
+ console.log("✓ two controlled players in one league have their match red impact precomputed");
 }
 {
  const {h,w}=setup(),ev=w.season.events.find(e=>e.kind==="league"),key=w.year+":"+w.player.leagueId;
