@@ -34,11 +34,19 @@
   const apps=clamp(num(p.apps),0,65);
   const involvement=clamp((dim(p.goals,goalsMax)*.56+dim(p.assists,assistsMax)*.44));
   const sheets=apps?clamp(num(p.cleanSheets)/apps/.48):0;
+  const form=clamp((num(p.rating)-5.9)/2.9);
+  const ability=clamp((num(p.ov)-58)/41);
+  const team=dim(p.teamBonus,32);
+  // Defensive players are evaluated on their role. Unknown historical clean
+  // sheets are NOT interpreted as a season of zero clean sheets for defenders.
+  const defense=type==="GK"?clamp(sheets*.65+form*.20+ability*.15):
+   type==="DEF"?clamp(form*.50+ability*.30+team*.20):involvement;
   return {
-   form:clamp((num(p.rating)-5.9)/2.9),
-   impact:type==="GK"||type==="DEF"?clamp(involvement*.22+sheets*.78):involvement,
-   team:dim(p.teamBonus,32),
-   ability:clamp((num(p.ov)-58)/41),
+   form,
+   impact:type==="GK"?clamp(defense*.93+involvement*.07):
+      type==="DEF"?clamp(defense*.87+involvement*.13):involvement,
+   team,
+   ability,
    available:dim(apps,55)
   };
  }
@@ -98,7 +106,17 @@
   ["塞尔吉奥·拉莫斯","CB",[.96,.32,.25,.95,.74,.93,0,0],"The Best（2016年后）"],
   ["马尔蒂尼","CB",[1,.12,.31,.93,.83,.21,0,0],"FIFA世界足球先生（旧制）"],
   ["诺伊尔","GK",[.94,.04,.20,.96,.73,.91,0,0],"The Best（2016年后）"],
-  ["布冯","GK",[.99,.04,.18,.89,.45,.94,0,0],"FIFA世界足球先生（旧制）"]
+  ["布冯","GK",[.99,.04,.18,.89,.45,.94,0,0],"FIFA世界足球先生（旧制）"],
+  // Additional designer-curated archetypes: these are not official statistics.
+  ["卡西利亚斯","GK",[.94,.03,.15,.96,.88,1,0,0],"FIFA个人大奖"],
+  ["切赫","GK",[.97,.02,.14,.91,.68,.37,0,0],"FIFA个人大奖"],
+  ["范德萨","GK",[.96,.02,.18,.91,.79,.31,0,0],"FIFA个人大奖"],
+  ["雅辛","GK",[.83,.04,.14,.93,.83,.66,1,0],"FIFA世界足球先生（旧制）"],
+  ["拉姆","RB",[.97,.13,.59,.96,.94,1,0,0],"The Best（2016年后）"],
+  ["普约尔","CB",[.91,.09,.22,.94,.72,.97,0,0],"FIFA世界足球先生（旧制）"],
+  ["蒂亚戈·席尔瓦","CB",[.99,.15,.26,.87,.57,.48,0,0],"The Best（2016年后）"],
+  ["内斯塔","CB",[.93,.07,.15,.94,.77,.68,0,0],"FIFA世界足球先生（旧制）"],
+  ["卡福","RB",[.95,.16,.48,.92,.69,1,0,0],"FIFA世界足球先生（旧制）"]
  ];
  const VECTOR_KEYS=["长寿程度","进球效率","创造机会","国内荣誉","欧战荣誉","国家队成就","金球奖","国际足联个人大奖"];
  const SIM_WEIGHT=[.12,.16,.13,.11,.13,.11,.13,.11];
@@ -133,9 +151,10 @@
  function similarity(game,fifaAwards={},limit=5){
   if(!game?.player||num(game.player.career?.apps)<1)return [];
   const vector=careerVector(game,fifaAwards),pos=game.player.position||"LW",role=positionGroup(pos);
-  return COMPARE.map(ref=>{
-   const refRole=positionGroup(ref.position);
-   const penalty=pos===ref.position?0:role===refRole?3:role==="GK"||refRole==="GK"?24:10;
+  // Compare *only* like-for-like broad roles. An attacker can resemble a
+  // winger or striker, but never a centre-back or goalkeeper on style metrics.
+  return COMPARE.filter(ref=>positionGroup(ref.position)===role).map(ref=>{
+   const penalty=pos===ref.position?0:3;
    const variance=vector.reduce((s,n,i)=>s+SIM_WEIGHT[i]*(n-ref.vector[i])**2,0);
    const similarity=clamp(100-88*Math.sqrt(variance)-penalty,0,100);
    const close=VECTOR_KEYS.map((label,i)=>({label,diff:Math.abs(vector[i]-ref.vector[i])}))
