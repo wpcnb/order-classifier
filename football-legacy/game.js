@@ -998,16 +998,39 @@ function simulateNPCGame(home,away,hs,as,excludeHome=0,excludeAway=0,mode="leagu
  for(const [club,goals,excluded,assisted] of [[home,hs,excludeHome,assistHome],[away,as,excludeAway,assistAway]]){
   const roster=g.npcs.filter(n=>n.club===club);if(!roster.length)continue;
   const active=roster.filter(n=>Math.random()<.86);if(!active.length)active.push(P(roster));
+  // An all-keeper active draw must not turn the goalkeeper into the team's
+  // default striker or playmaker. Select an actual outfield reserve instead.
+  if(!active.some(n=>n.pos!=="GK")){
+   const reserves=roster.filter(n=>n.pos!=="GK");
+   if(reserves.length){const reserve=P(reserves);if(!active.includes(reserve))active.push(reserve)}
+  }
   active.forEach(n=>{n[appKey]=(n[appKey]||0)+1;if(n.pos==="GK"&&(club===home?as:hs)===0)n[cleanKey]=(n[cleanKey]||0)+1;if(!euro){const next=6.14+(Math.random()-.5)*1.3+(goals>0?.25:0)+C(((n.ov||76)-76)*.019,-.18,.38);n.rating=Number(((n.rating*(n.apps-1)+C(next,5,9.5))/n.apps).toFixed(2))}n.form=C(n.form+R(-3,4),0,100)});
-  const pool=active.filter(n=>n.pos!=="GK");if(!pool.length)pool.push(...active);
+  const pool=active.filter(n=>n.pos!=="GK"),keeper=active.find(n=>n.pos==="GK");
   let left=C(goals-excluded,0,goals);
-  while(left-->0){const weights=pool.map(n=>(n.pos==="ST"?6:["LW","RW","CAM"].includes(n.pos)?4:n.pos==="CM"?2:1)*C(Math.exp(((n.ov||76)-76)/16),.55,3.9));
-   let v=Math.random()*weights.reduce((x,y)=>x+y,0),scorer=pool[0];for(let j=0;j<pool.length;j++){v-=weights[j];if(v<=0){scorer=pool[j];break}}scorer[goalKey]=(scorer[goalKey]||0)+1}
-  for(let i=0;i<Math.max(0,goals-excluded-assisted);i++)if(Math.random()<.68){const creators=pool.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)),choices=creators.length?creators:pool;
+  while(left-->0){
+   // Rare keeper goals remain possible (e.g. long-range or a set piece),
+   // with at most one per keeper per season across all club competitions.
+   if(keeper&&(keeper.goals||0)+(keeper.europeGoals||0)<1&&Math.random()<.001){
+    keeper[goalKey]=(keeper[goalKey]||0)+1;continue;
+   }
+   // A team with no outfield players in its data keeps the real match score,
+   // but never fabricates a goalkeeper hat-trick to balance statistics.
+   if(!pool.length)continue;
+   const weights=pool.map(n=>(n.pos==="ST"?6:["LW","RW","CAM"].includes(n.pos)?4:n.pos==="CM"?2:1)*C(Math.exp(((n.ov||76)-76)/16),.55,3.9));
+   let v=Math.random()*weights.reduce((x,y)=>x+y,0),scorer=pool[0];for(let j=0;j<pool.length;j++){v-=weights[j];if(v<=0){scorer=pool[j];break}}scorer[goalKey]=(scorer[goalKey]||0)+1
+  }
+  for(let i=0;i<Math.max(0,goals-excluded-assisted);i++)if(Math.random()<.68){
+   // A goalkeeper assist can happen via a long kick, but not dozens of times.
+   if(keeper&&(keeper.assists||0)+(keeper.europeAssists||0)<2&&Math.random()<.009){
+    keeper[assistKey]=(keeper[assistKey]||0)+1;continue;
+   }
+   if(!pool.length)continue;
+   const creators=pool.filter(n=>["CM","CAM","LW","RW","CDM"].includes(n.pos)),choices=creators.length?creators:pool;
    const weights=choices.map(n=>C(Math.exp(((n.ov||76)-76)/16),.55,3.9)*(n.pos==="CAM"?1.35:1));
    let roll=Math.random()*weights.reduce((a,b)=>a+b,0),passer=choices[0];
    for(let j=0;j<choices.length;j++){roll-=weights[j];if(roll<=0){passer=choices[j];break}}
-   passer[assistKey]=(passer[assistKey]||0)+1}
+   passer[assistKey]=(passer[assistKey]||0)+1
+  }
  }
 }
 
@@ -1155,6 +1178,19 @@ function roleAdjustedRating(rating,position,goalsAgainst){
 // Allocate actual team goals to the player and teammates; no invented personal goals.
 // A scorer's probability is a share of the team's actual goals, not extra goals.
 function playerMatchContribution(p,ev,opponentPower,teamGoals,choice="balanced",minutes=90){
+ // Goalkeepers are not attackers. Use a separately calibrated, extremely rare
+ // scoring/long-pass assist path, bounded across league, cup and Europe.
+ // No extra team goals are invented: contributions use existing match goals.
+ if(p.position==="GK"){
+  const season=g?.season||{};
+  let goals=0,assists=0;
+  for(let i=0;i<teamGoals;i++){
+   if(minutes<90&&Math.random()>=C(minutes/90,0,1))continue;
+   if((season.goals||0)+goals<1&&Math.random()<.001){goals++;continue}
+   if((season.assists||0)+assists<2&&Math.random()<.009)assists++;
+  }
+  return {goals,assists};
+ }
  const ov=overall(p),advantage=C((ov-opponentPower)/35,-.65,.75);
  const attacker=["ST","LW","RW"].includes(p.position),creator=["CAM","CM","LW","RW"].includes(p.position);
  const shotBase=p.position==="ST"?.16:attacker?.125:p.position==="CAM"?.065:.018;
