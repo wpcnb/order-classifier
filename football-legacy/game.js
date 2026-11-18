@@ -1651,8 +1651,8 @@ function awardLeagueTier(club){
  for(const [id,l] of Object.entries(DB))if(l.teams.some(t=>t.name===club))return id==="CHN"?.55:["NED","POR","TUR","BEL","SCO","AUT","SUI","DEN"].includes(id)?.82:id==="BRA"?.78:1;
  return .76;
 }
-// Version 7 award model: verified club achievements are shared by every
-// player at that club, including NPCs. Old award records remain untouched.
+// Annual award model 9: club results are shared, European merit is weighted
+// by season participation, and historical award records remain untouched.
 function awardEuropeanHonourPoints(club,year,europeApps=0){
  const base=FA?.europeanPrestige?
   FA.europeanPrestige(club,year,sharedUniverse):
@@ -2387,7 +2387,7 @@ function simSeason(quiet=false){
 function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){const played=sharedAdvanceDates(3);notify(s1PendingIds().length?"已暂停，请先完成赛季中期决定":"双方同步推进"+played+"个比赛日");return}
  let n=0;while(n<3&&g.season.index<g.season.events.length){automaticPrep();playEvent(currentEvent(),"balanced",true);n++}if(g.season.index>=g.season.events.length)endSeason();else{save();page="dashboard";render()}
 }
-function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵信仰_S1.02_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
+function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵信仰_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
 async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if(DUO_IDS.some(id=>!DB[v.duoGames[id].player.leagueId])){notify("该旧存档包含已取消联赛。文件保持原样，不会覆盖当前存档");return}if(!confirm("导入双人生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();if(!ageMigrationBlocked)notify("同一足球世界双人生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
 function newGameDialog(){if(g&&!confirm("删除当前两人生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);localStorage.removeItem(S1_SAVED_YEAR);v3Paused=null;v3Replay=null;v3Allowed=null;resetDraw();render()}
 function choosePage(p){page=p;render()}
@@ -2531,7 +2531,7 @@ function exportBallotCsv(){
  const lines=[header.map(quote).join(",")];
  b.ballots.forEach((vote,i)=>lines.push([i+1,...vote.map(id=>name[id]||id)].map(quote).join(",")));
  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="绿茵信仰_S1.02_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
+ a.href=url;a.download="绿茵信仰_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
  setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},1200)
 }
 
@@ -2992,7 +2992,7 @@ function duoTransferPage(){
 function duoAwardsPage(){
  const history=sharedUniverse?.awards||{},bestHistory=sharedUniverse?.theBest||{},years=Object.keys(history).sort((a,b)=>b-a),chosen=history[g.awardWorldYear]||history[years[0]],bestYears=Object.keys(bestHistory).sort((a,b)=>b-a),best=bestHistory[g.awardWorldYear]||bestHistory[bestYears[0]];
  if(!chosen&&!best)return '<section class="card"><h2>年度大奖</h2><p>完成赛季后，这里会记录金球奖与世界足球先生两套独立评选。</p></section>';
- const gold=chosen?'<section class="card"><h2>金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><details class="item gap"><summary>评奖依据</summary><p class="muted small">游戏沿用独立金球奖模型：进球、助攻、平均评分、个人综合能力、出场、联赛系数及球队实际冠军，再由记者模拟投票。它与世界足球先生独立结算。</p></details><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>':"";
+ const gold=chosen?'<section class="card"><h2>金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><details class="item gap"><summary>评奖依据</summary><p class="muted small">金球奖根据当季进球、助攻、校准评分、出场、联赛含金量、真实结算的球队冠军和欧战晋级阶段评选。欧战荣誉与国籍无关，按欧战出场计算，不是获奖硬门槛。它与世界足球先生独立结算。</p></details><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助'+(x.europeanBonus?' · 欧战荣誉 +'+x.europeanBonus:'')+'</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>':"";
  const bestCard=best?'<section class="card"><h2>世界足球先生（FIFA The Best） · '+(best.year+1)+'年</h2><p>获奖者：<b>'+E(best.winner.name)+'</b> · '+best.winner.score+'%</p><p class="muted small">四类选民各占25%：国家队主教练、国家队队长、足球记者、球迷。每类选民模拟三选一，第一名5分、第二名3分、第三名1分。</p><div class="flex">'+bestYears.map(y=>'<button class="button" data-action="sharedBestYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+best.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.score+'%</strong></div>').join("")+'</div></section>':"";
  return gold+bestCard;
 }
