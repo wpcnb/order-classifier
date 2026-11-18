@@ -85,6 +85,9 @@ jobs:
       - name: Club qualification and retired-player integrity
         run: node football-legacy/tests/world-integrity.cjs
 
+      - name: S1.03 integrated shared cups, red cards and retirement
+        run: node football-legacy/tests/s103-world-regression.cjs
+
       - name: European trophies and annual award fairness regressions
         run: node football-legacy/tests/annual-awards-regression.cjs
 
