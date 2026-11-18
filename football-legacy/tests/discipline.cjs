@@ -36,6 +36,6 @@ for(const position of ["GK","CB","CDM","CM","LW","ST"]){
  assert(second>0,"second yellow dismissals must be possible at "+position);
  console.log(position,{yellow,red,second});
 }
-assert(source.includes("matchCards=applyMatchDiscipline(p,ev,choice)"),"playing a game must apply cards");
+assert(source.includes("matchCards=applyMatchDiscipline(p,ev,choice,Math.random,myPreview?.cards||null)"),"playing a game must apply the shared pre-rolled cards");
 assert(source.includes("yellowCards:matchCards.yellowCards,redCard:matchCards.redCard"),"match reports must persist card types");
 console.log("✓ Standard yellow, two yellows = red, direct red, bans, competition scope, and card frequency");
