@@ -1615,10 +1615,10 @@ function finishVote(){
   const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
   const rating=n.rating||6.3;
   return {id:n.id,name:n.name,club:n.club,goals,assists,apps,ov:n.ov,rating,
-   realPerson:true,score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating},g.year,awardTeamHonours(n.club,g.year))}
+   realPerson:true,score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating},g.year,awardTeamHonours(n.club,g.year,n.europeApps||0))}
  });
  const you={id:"USER",name:p.name,club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg,
-  realPerson:false,score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},g.year,honors)};
+  realPerson:false,score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg,position:p.position,cleanSheets:s.clean||0},g.year,awardTeamHonours(p.club,g.year,s.europeApps||0))};
  candidates.push(you);candidates.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
  const list=candidates.slice(0,30),qualified=list.some(x=>x.id==="USER");
  if(list.length!==30)throw Error("金球奖候选名单必须包含30位球员");
@@ -1653,24 +1653,34 @@ function awardLeagueTier(club){
 }
 // Version 7 award model: verified club achievements are shared by every
 // player at that club, including NPCs. Old award records remain untouched.
-function awardTeamHonours(club,year){
+function awardEuropeanHonourPoints(club,year,europeApps=0){
+ const base=FA?.europeanPrestige?
+  FA.europeanPrestige(club,year,sharedUniverse):
+  sharedUniverse?.europeFinals?.[year+":欧冠"]?.winner===club?30:
+  sharedUniverse?.europeFinals?.[year+":欧联"]?.winner===club?16:0;
+ // European performance is nationality-neutral, and requires actual UEFA appearances.
+ const played=Math.max(0,Number(europeApps)||0);
+ return Math.round(base*(played>=3?1:played>=2?.8:played>=1?.55:0));
+}
+function awardTeamHonours(club,year,europeApps=0){
  const tables=Object.entries(sharedUniverse?.rounds||{}).filter(([k])=>k.startsWith(year+":")).map(([,x])=>x.table)
   .concat(Object.values(g?.season?.world||{}).map(x=>x.table),[g?.season?.leagueTable]);
- // One league championship counts once, even if the same table is in multiple
- // shared-world ledgers. Domestic league prestige is a game estimate.
  const leagueWin=tables.some(t=>t&&sortedTable(t)[0]?.name===club);
- const leagueValue=leagueWin?Math.round(8*awardLeagueTier(club)):0;
- // European final results are unique to the shared football world.
- const ucl=sharedUniverse?.europeFinals?.[year+":欧冠"]?.winner===club;
- const uel=sharedUniverse?.europeFinals?.[year+":欧联"]?.winner===club;
- // Domestic cups are not yet fully simulated for NPC-only clubs. When a cup
- // title was actually recorded, credit the same club bonus to all its players.
+ const leagueValue=leagueWin?Math.round(10*awardLeagueTier(club)):0;
+ const europe=awardEuropeanHonourPoints(club,year,europeApps);
  const cup=!!duoGames&&DUO_IDS.some(id=>{
   const career=duoGames[id];
   return career.year===year&&career.player.club===club&&career.honors.some(h=>h.year===year&&h.type==="team"&&
    /杯冠军$/.test(h.name)&&h.name!=="欧冠冠军"&&h.name!=="欧联冠军");
  });
- return Math.min(32,leagueValue+(ucl?22:0)+(uel?12:0)+(cup?3:0));
+ return Math.min(48,leagueValue+europe+(cup?3:0));
+}
+function awardComparableRating(x){
+ const apps=Math.max(1,Number(x.apps)||0),goals=Math.max(0,x.goals||0),assists=Math.max(0,x.assists||0);
+ const raw=C(x.rating??6.5,5,10);
+ const involvement=(goals+assists*.72)/apps*C(apps/28,0,1);
+ const comparable=C(6.4+Math.min(1.6,involvement)*1.18+C(((x.ov||76)-80)*.018,-.3,.32),6.1,8.8);
+ return .30*raw+.70*comparable;
 }
 function awardCandidateScore(x,year,teamBonus=0,random=()=>R(-8,8)){
  const quality=awardLeagueTier(x.club);
@@ -1678,9 +1688,10 @@ function awardCandidateScore(x,year,teamBonus=0,random=()=>R(-8,8)){
  // Elite attacking output still matters beyond 24 goals and 15 assists.
  const attack=(Math.min(goals,35)*1.34+Math.max(0,goals-35)*.78+
   Math.min(assists,25)*.95+Math.max(0,assists-25)*.56)*quality;
- const rating=C(x.rating??6.5,5,10);
- return (x.ov||76)*.58+attack+(rating-6.5)*15+apps*.12+
-  C(teamBonus,0,32)+quality*14+random();
+ const rating=awardComparableRating(x),clean=Math.min(28,Math.max(0,x.cleanSheets||0));
+ const defending=x.position==="GK"?clean*.72:["CB","CDM"].includes(x.position)?clean*.24:0;
+ return (x.ov||76)*.58+attack+(rating-6.5)*15+apps*.12+defending+
+  C(teamBonus,0,48)+quality*14+random();
 }
 // A retired player remains eligible for the season they actually played.
 // Retired players' old season totals are retained while the other career
@@ -1745,20 +1756,20 @@ function finalizeSharedSeason(){
  // Keep 100 jurors × 67 points = 6700 even in 2048+ seasons.
  const roster=duoGames.wang.npcs.filter(n=>Number.isFinite(n.ov)&&(n.apps||0)+(n.europeApps||0)>0&&!DUO_IDS.some(id=>n.name===duoGames[id].player.name));
  const nominees=roster.map(n=>{const goals=(n.goals||0)+(n.europeGoals||0),assists=(n.assists||0)+(n.europeAssists||0),apps=(n.apps||0)+(n.europeApps||0);
- return {id:n.id,name:n.name,club:n.club,position:n.pos||"ST",cleanSheets:(n.clean||0)+(n.europeClean||0),goals,assists,apps,ov:n.ov,rating:n.rating??6.3,teamBonus:awardTeamHonours(n.club,year),score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating??6.3},year,awardTeamHonours(n.club,year))}});
+ return {id:n.id,name:n.name,club:n.club,position:n.pos||"ST",cleanSheets:(n.clean||0)+(n.europeClean||0),goals,assists,apps,ov:n.ov,rating:n.rating??6.3,awardRating:awardComparableRating({goals,assists,apps,ov:n.ov,rating:n.rating??6.3}),europeanBonus:awardEuropeanHonourPoints(n.club,year,n.europeApps||0),teamBonus:awardTeamHonours(n.club,year,n.europeApps||0),score:awardCandidateScore({club:n.club,goals,assists,apps,ov:n.ov,rating:n.rating??6.3,position:n.pos,cleanSheets:(n.clean||0)+(n.europeClean||0)},year,awardTeamHonours(n.club,year,n.europeApps||0))}});
  for(const id of DUO_IDS){const x=duoGames[id],p=x.player,s=x.season,r=s.ratings,avg=r.length?r.reduce((a,b)=>a+b,0)/r.length:6.2,honors=x.honors.filter(h=>h.year===year).length;
  if(!awardSeasonParticipant(x,year))continue;
  nominees.push({id:"DUO_"+id,name:p.name,club:p.club,position:p.position,cleanSheets:s.clean||0,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),
- rating:avg,teamBonus:awardTeamHonours(p.club,year),
- score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg},year,awardTeamHonours(p.club,year))})}
+ rating:avg,awardRating:awardComparableRating({goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg}),europeanBonus:awardEuropeanHonourPoints(p.club,year,s.europeApps||0),teamBonus:awardTeamHonours(p.club,year,s.europeApps||0),
+ score:awardCandidateScore({club:p.club,goals:s.goals,assists:s.assists,apps:s.apps,ov:overall(p),rating:avg,position:p.position,cleanSheets:s.clean||0},year,awardTeamHonours(p.club,year,s.europeApps||0))})}
  nominees.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
  if(nominees.length<10)throw Error("当季活跃球员不足10人：无法进行合法金球奖投票");
  const list=nominees.slice(0,30),points=Object.fromEntries(list.map(x=>[x.id,0])),votes=Object.fromEntries(list.map(x=>[x.id,Array(10).fill(0)])),ballots=[];
  for(let juror=0;juror<100;juror++){const pick=list.map(x=>({id:x.id,score:x.score+R(-19,19)+.16*x.goals*Math.sin(juror*1.41)})).sort((a,b)=>b.score-a.score).slice(0,10);
  pick.forEach((x,i)=>{points[x.id]+=UCL_PTS[i];votes[x.id][i]++});ballots.push(pick.map(x=>x.id))}
- const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,averageRating:Number((x.rating??6.5).toFixed(2)),teamBonus:x.teamBonus,points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id]})).sort((a,b)=>b.points-a.points||b.firstPlaceVotes-a.firstPlaceVotes||a.name.localeCompare(b.name));
+ const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,averageRating:Number((x.rating??6.5).toFixed(2)),teamBonus:x.teamBonus,europeanBonus:x.europeanBonus||0,points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id]})).sort((a,b)=>b.points-a.points||b.firstPlaceVotes-a.firstPlaceVotes||a.name.localeCompare(b.name));
  if(ranked.reduce((a,b)=>a+b.points,0)!==6700)throw Error("双人统一金球奖计票错误");
- const awardData={year,model:7,rankings:ranked,ballots,winner:ranked[0],totalPoints:6700};sharedUniverse.awards[year]=awardData;
+ const awardData={year,model:9,rankings:ranked,ballots,winner:ranked[0],totalPoints:6700};sharedUniverse.awards[year]=awardData;
  const theBest=FA?FA.electTheBest(nominees,year):null;
  if(theBest){sharedUniverse.theBest=sharedUniverse.theBest||{};sharedUniverse.theBest[year]=theBest;}
  const leagues=new Set(DUO_IDS.filter(id=>awardSeasonParticipant(duoGames[id],year)).map(id=>duoGames[id].player.leagueId));
