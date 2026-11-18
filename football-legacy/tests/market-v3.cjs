@@ -14,11 +14,19 @@ test("non-award elite players can exceed €100m and €200m",()=>{
  assert(M.marketValue(p("CM"),95,5,season)>100000000);
  assert(M.marketValue(p("ST"),95,5,season)>200000000);
 });
-test("defender/goalkeeper value never requires goals or assists",()=>{
- for(const pos of ["GK","CB","CDM","CM"]){
+test("goalkeepers and defenders do not need goals or assists for valuation",()=>{
+ for(const pos of ["GK","CB","LB","RB"]){
   const zero=M.marketValue(p(pos),90,4,season);
   const goals=M.marketValue(p(pos),90,4,{...season,goals:25,assists:12});
   assert.equal(zero,goals,pos);
+ }
+ // Midfielders can be valuable without attacking output, yet season
+ // involvement is relevant for Palmer/Anderson-style breakout valuation.
+ for(const pos of ["CM","CDM"]){
+  const zero=M.marketValue(p(pos),90,4,season);
+  const goals=M.marketValue(p(pos),90,4,{...season,goals:25,assists:12});
+  assert(zero>0);
+  assert(goals>zero,pos+" creative breakout should earn a premium");
  }
 });
 test("verified annual award history raises value, but is never required for €100m",()=>{
