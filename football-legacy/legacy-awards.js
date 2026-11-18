@@ -34,7 +34,7 @@
   const apps=clamp(num(p.apps),0,65);
   const involvement=clamp((dim(p.goals,goalsMax)*.56+dim(p.assists,assistsMax)*.44));
   const sheets=apps?clamp(num(p.cleanSheets)/apps/.48):0;
-  const form=clamp((num(p.rating)-5.9)/2.9);
+  const form=clamp((num(p.awardRating??p.rating)-5.9)/2.9);
   const ability=clamp((num(p.ov)-58)/41);
   const team=dim(p.teamBonus,48);
   // Defensive players are evaluated on their role. Unknown historical clean
