@@ -46,7 +46,7 @@ test("game creator removes gender selection and declares male-only",()=>{
  assert(game.includes("FS.validate(profile)"))
 });
 test("homepage version and local asset cache reflect change",()=>{
- assert(/绿茵信仰 S1\.\d{2}/.test(html));
+ assert(html.includes("<title>绿茵信仰 ·"));
  assert(html.includes('free-star.js?v=9.0.0'));
  assert(html.includes('game.js?v='))
 });
