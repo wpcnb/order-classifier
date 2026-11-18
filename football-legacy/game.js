@@ -344,7 +344,7 @@ function duoPayload(){
   europeFinals:shared.europeFinals||{},
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
-  awards:shared.awards||{},theBest:shared.theBest||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},nationalFinals:shared.nationalFinals||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
+  awards:shared.awards||{},theBest:shared.theBest||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},nationalFinals:shared.nationalFinals||{},nationalTitleConflicts:(shared.nationalTitleConflicts||[]).slice(-35),npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
   offseasonYears:(shared.offseasonYears||[]).slice(-3),npcOffseasonYears:(shared.npcOffseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -396,7 +396,7 @@ function hydratePayload(data){
  activeDuo="wang";g=duoGames.wang;
  for(const id of overdue)recordPlayerRetirement(id,true);
  linkSharedWorld();
- if(reconcileEuropeanHonors())save();
+ if(reconcileEuropeanHonors()||reconcileNationalHonors())save();
  if(DUO_IDS.every(id=>duoGames[id].season.stage==="playing"&&duoGames[id].season.index===0))
   setupSharedUefaSeason();
  if(overdue.length){finalizeRetiredSeasonIfReady();save()}
@@ -714,7 +714,7 @@ function linkSharedWorld(){
  if(!duoGames)return;
  const a=duoGames.wang,b=duoGames.vini;
  sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{},national:{},awards:{},theBest:{}};
- sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};sharedUniverse.nationalFinals=sharedUniverse.nationalFinals||{};sharedUniverse.awards=sharedUniverse.awards||{};sharedUniverse.theBest=sharedUniverse.theBest||{};
+ sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};sharedUniverse.nationalFinals=sharedUniverse.nationalFinals||{};sharedUniverse.nationalTitleConflicts=sharedUniverse.nationalTitleConflicts||[];sharedUniverse.awards=sharedUniverse.awards||{};sharedUniverse.theBest=sharedUniverse.theBest||{};
  sharedUniverse.offseasonYears=sharedUniverse.offseasonYears||[];
  sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
  sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
@@ -897,6 +897,36 @@ function reconcileEuropeanHonors(){
  return changed;
 }
 
+// Preserve legacy honors, flag conflicting national champions as disputed.
+function reconcileNationalHonors(){
+ if(!duoGames||!sharedUniverse)return false;
+ const byTournament={};
+ for(const id of DUO_IDS){
+  const x=duoGames[id],country=x.player.country;
+  for(const h of x.honors||[]){
+   if(h.type!=="national"||!/冠军$/.test(String(h.name))||!/世界杯|亚洲杯|欧洲杯|美洲杯/.test(String(h.name)))continue;
+   const year=h.eventYear||h.year+1,key=year+":"+h.name.replace(/冠军$/,"");
+   (byTournament[key]||(byTournament[key]=[])).push({h,id,country});
+  }
+ }
+ let changed=false;
+ for(const [key,claims] of Object.entries(byTournament)){
+  const countries=[...new Set(claims.map(x=>x.country))];
+  if(countries.length<2)continue;
+  const winner=sharedUniverse.nationalFinals?.[key]?.winner||null;
+  for(const claim of claims){
+   const disputed=!winner||claim.country!==winner;
+   if(claim.h.legacyDisputed!==disputed||claim.h.legacyConflictKey!==key){
+    claim.h.legacyDisputed=disputed;claim.h.legacyConflictKey=key;changed=true;
+   }
+  }
+  const issues=sharedUniverse.nationalTitleConflicts||(sharedUniverse.nationalTitleConflicts=[]);
+  if(!issues.some(x=>x.key===key)){
+   issues.push({key,countries,winner,reason:"旧档同届国家队冠军冲突，保留原记录并标注争议"});changed=true;
+  }
+ }
+ return changed;
+}
 function runSharedDay(date,focusId=null,focusChoice="balanced"){
  const original=activeDuo;
  let total=0;
@@ -1632,7 +1662,7 @@ function finalizeSharedSeason(){
  const year=duoGames.wang.year;
  if(duoGames.vini.year!==year||sharedUniverse.awards[year])return;
  settleSharedUefaWinners(year);
- if(reconcileEuropeanHonors())save();
+ if(reconcileEuropeanHonors()||reconcileNationalHonors())save();
  const original=activeDuo,originalGame=g;
  // Later generations remain eligible for annual awards after original real-person seeds retire.
  // Keep 100 jurors × 67 points = 6700 even in 2048+ seasons.
@@ -1859,12 +1889,12 @@ function renderHonorsSummary(){
   const worldBest=h.filter(v=>v.type==="individual"&&/世界足球先生/.test(v.name)).length;
   const individual=h.filter(v=>v.type==="individual"&&!v.name.includes("金球奖")&&!/世界足球先生/.test(v.name)).length;
   const counts=[["联赛冠军",league],["国内杯赛冠军",cup],["欧战冠军",euro],["国家队冠军",national.filter(v=>v.name.includes("冠军")).length],["金球奖",gold.length],["世界足球先生",worldBest],["其他个人荣誉",individual]];
-  const timeline=h.slice().sort((a,b)=>b.year-a.year).map(v=>'<div class="item row"><span><span class="cap">'+(v.year+ (v.type==="national"?"":""))+'</span> · '+E(v.name)+'</span><span class="chip">'+(v.type==="team"?"俱乐部":v.type==="national"?"国家队":"个人")+'</span></div>');
+  const timeline=h.slice().sort((a,b)=>b.year-a.year).map(v=>'<div class="item row"><span><span class="cap">'+(v.year+ (v.type==="national"?"":""))+'</span> · '+E(v.name)+(v.eventYear&&v.eventYear!==v.year?'（赛事'+v.eventYear+'年）':'')+(v.legacyDisputed?'（旧档争议）':'')+'</span><span class="chip">'+(v.type==="team"?"俱乐部":v.type==="national"?"国家队":"个人")+'</span></div>');
   const rankHistory=(x.ballonHistory||[]).slice().reverse().map(v=>'<div class="item row"><span>'+E(String((v.year||0)))+'年金球奖</span><strong class="'+(v.rank===1?"gold":"")+'">'+(v.rank?"第"+v.rank+"名":"未入围")+(v.rank===1?" · 获奖":"")+'</strong></div>');
   const bestHistory=h.filter(v=>v.type==="individual"&&/世界足球先生/.test(v.name)).sort((a,b)=>b.year-a.year).map(v=>'<div class="item row"><span>'+E(String(v.year||0))+'年世界足球先生</span><strong class="gold">获奖</strong></div>');
   return '<section class="card"><div class="row"><h2>'+E(x.player.name)+' · 荣誉殿堂</h2><span class="chip">累计'+h.length+'项官方模拟荣誉</span></div>'+
    '<div class="grid3">'+counts.map(([name,n])=>metric(name,n)).join("")+'</div>'+
-   '<h3 class="gap">历年冠军与个人荣誉</h3><div class="list">'+(timeline.join("")||'<p class="muted">暂无冠军和个人奖项。</p>')+'</div>'+
+   '<h3 class="gap">历年冠军与个人荣誉</h3><p class="muted small">旧版存档里同届国家队冠军存在冲突时，保留原记录并标注旧档争议，相关荣誉不参与有效成就评分。</p><div class="list">'+(timeline.join("")||'<p class="muted">暂无冠军和个人奖项。</p>')+'</div>'+
    '<h3 class="gap">金球奖逐年排名</h3><div class="list">'+(rankHistory.join("")||'<p class="muted">赛季结算后显示金球奖排名。</p>')+'</div>'+
    '<h3 class="gap">世界足球先生逐年记录</h3><div class="list">'+(bestHistory.join("")||'<p class="muted">赛季结算后显示世界足球先生记录。</p>')+'</div></section>';
  }).join("")+'</div>';
@@ -2760,13 +2790,13 @@ function v3Scores(){
  v3Sync();
  return '<section class="card gap"><h2>职业生涯成就与评分</h2><div class="grid2">'+DUO_IDS.map(id=>{
  const x=duoGames[id],v=V3.score(x);
- return '<div class="item"><b>'+E(x.player.name)+' · '+v.total+'分</b><p class="muted small">竞技 '+v.base+' / 成就 +'+v.bonus+' / 竞技低谷 '+v.penalty+'</p></div>'
+ return '<div class="item"><b>'+E(x.player.name)+' · '+v.total+'分</b><p class="muted small">竞技 '+v.base+' / 首次成就 +'+(v.milestone??v.bonus)+' / 累计荣誉 +'+(v.repeat||0)+' / 竞技低谷 '+v.penalty+'</p></div>'
  }).join("")+'</div><button class="button" data-page="achievements">查看成就与遗憾</button></section>';
 }
 function v3AchievementPage(){
  if(!V3)return '<section class="card"><h2>成就模块未加载</h2></section>';v3Sync();
  return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player,s=V3.score(x),d=p.legendV3||{};
- return '<section class="card"><h2>'+E(p.name)+' · '+s.total+'分</h2><p class="muted">基础 '+s.base+' · 成就 +'+s.bonus+' · 扣分 '+s.penalty+'</p>'+
+ return '<section class="card"><h2>'+E(p.name)+' · '+s.total+'分</h2><p class="muted">竞技 '+s.base+' · 首次成就 +'+(s.milestone??s.bonus)+' · 累计荣誉 +'+(s.repeat||0)+' · 扣分 '+s.penalty+'</p>'+
  '<h3>成就</h3><div class="list">'+((d.achievements||[]).map(a=>'<div class="item row"><span>'+E(a.name)+' · '+E(a.year)+'</span><b class="green">+'+a.points+'</b></div>').join("")||'暂无')+'</div>'+
  '<h3 class="gap">生涯遗憾（不扣分）</h3><div class="list">'+((d.regrets||[]).map(a=>'<div class="item">'+E(a.title)+'</div>').join("")||'暂无')+'</div>'+
  '<h3 class="gap">竞技低谷扣分</h3><div class="list">'+((d.penalties||[]).map(a=>'<div class="item">'+E(a.title)+' '+a.points+'</div>').join("")||'暂无')+'</div></section>'
