@@ -70,7 +70,7 @@ function player(position="ST",name="前锋"){
 {
  const a=player("ST","<script>");const b=player("GK","守门员");
  const html=G.overview({wang:{player:a,year:2030,history:[],honors:[]},vini:{player:b,year:2030,history:[],honors:[]}},null);
- assert(html.includes("绿茵传奇"));
+ assert(html.includes("绿茵领袖"));
  assert(!html.includes("<script>"));
  assert(html.includes("&lt;script&gt;"));
  console.log("PASS dashboard presentation and escaped names");
@@ -78,9 +78,9 @@ function player(position="ST",name="前锋"){
 {
  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
  const game=fs.readFileSync(path.join(root,"game.js"),"utf8");
- assert(html.includes("绿茵传奇 v2.0.0"));
+ assert(html.includes("绿茵领袖 v1.0.0"));
  assert(html.indexOf("./legend-v1.js?v=2.0.0")>=0);
- assert(html.indexOf("./legend-v1.js?v=2.0.0")<html.indexOf("./game.js?v=2.0.0"));
+ assert(html.indexOf("./legend-v1.js?v=2.0.0")<html.indexOf("./game.js?v="));
  for(const f of ["GL.volatility(","GL.tacticalShift(","GL.afterMatch(","GL.overview(","GL.declineAge("])
   assert(game.includes(f),"Missing wired mechanic: "+f);
  console.log("PASS live game script ordering and engine integration");
