@@ -5,7 +5,7 @@ function extract(start,end){const a=source.indexOf(start),b=source.indexOf(end,a
 const code=extract("function roleAdjustedRating(","// Allocate actual team goals")+
  extract("function clubSeasonNumbers(","function generateOffers(");
 const gate={g:4,a:4,sum:7,apps:14,avg:6.70,ov:0};
-const context={Math,C:(x,a,b)=>Math.max(a,Math.min(b,x)),overall:()=>85,transferLevel:()=>0,
+const context={Math,RV3:require(path.resolve(__dirname,"../role-v3.js")),C:(x,a,b)=>Math.max(a,Math.min(b,x)),overall:()=>85,transferLevel:()=>0,
  TRANSFER_GATES:[gate],TRANSFER_LEVELS:["中超","非五大普通","非五大豪门","五大普通","五大豪门","传奇"],g:null};
 vm.createContext(context);vm.runInContext(code+";this.api={roleAdjustedRating,clubSeasonNumbers,transferQualified,seasonPerformance}",context);
 const {api}=context;
