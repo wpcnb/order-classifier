@@ -343,7 +343,7 @@ function duoPayload(){
   europeFinals:shared.europeFinals||{},
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
-  awards:shared.awards||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
+  awards:shared.awards||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},cup:Object.fromEntries(Object.entries(shared.cup||{}).filter(([key])=>Number(key.split("|")[0])===now)),npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
   offseasonYears:(shared.offseasonYears||[]).slice(-3),npcOffseasonYears:(shared.npcOffseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -922,8 +922,12 @@ function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
  let count=0,days=0,date;
  while((date=nextSharedDate())&&days<maxDays&&(!focusDate||date<=focusDate)){
   const critical=V3&&V3.criticalDay(duoGames,date);
-  // User preference: all finals, derbies and title deciders are automatically simulated by one-click advance.
-  // Results remain in the career archive; do not interrupt the shared calendar.
+  // Critical fixtures are a hard pause. v3Play sets v3Allowed for exactly this
+  // date after the player chooses a tactic, preventing accidental fast-forward.
+  if(critical&&v3Allowed!==date){
+   v3Paused=critical;
+   break;
+  }
   runSharedDay(date,focusDate===date?activeDuo:null,focusChoice);days++;count++;
   if(v3Allowed===date)v3Allowed=null;
  }
@@ -1189,6 +1193,29 @@ function sharedTeammateResult(p,ev,home,away){
   m.home===home&&m.away===away&&m.competition===ev.competition&&
   m.stage===ev.stage&&(!ev.fixtureId||m.fixtureId===ev.fixtureId))||null;
 }
+// When the two protagonists meet as opponents in a domestic cup, the match
+// belongs to the shared football world just like a shared league/UEFA fixture.
+// Persist the first simulated result and the shootout winner so the second
+// protagonist sees exactly the same match from the opposite perspective.
+function sharedDirectCupFixture(p,ev,home,away,hs,as,winnerTeam=null){
+ if(!duoGames||!sharedUniverse||ev.kind!=="cup")return null;
+ const other=DUO_IDS.map(id=>duoGames[id]).find(x=>x&&x!==g&&x.year===g.year&&!x.player.retired);
+ if(!other||other.player.club===p.club)return null;
+ const sameLeague=other.player.leagueId===p.leagueId&&!!other.player.youth===!!p.youth;
+ if(!sameLeague||![home,away].includes(p.club)||![home,away].includes(other.player.club))return null;
+ sharedUniverse.cup=sharedUniverse.cup||{};
+ const clubs=[home,away].slice().sort();
+ const key=[g.year,ev.competition||"国内杯",ev.stage||"",clubs[0],clubs[1],ev.date||"",ev.fixtureId||""].join("|");
+ const existing=sharedUniverse.cup[key];
+ if(existing){
+  if(existing.home===home&&existing.away===away)return existing;
+  return {...existing,home,away,hs:existing.as,as:existing.hs};
+ }
+ if(!winnerTeam)return null;
+ const entry={year:g.year,competition:ev.competition||"国内杯",stage:ev.stage||"",date:ev.date||"",fixtureId:ev.fixtureId||"",home,away,hs,as,winner:winnerTeam,penalties:hs===as};
+ sharedUniverse.cup[key]=entry;
+ return entry;
+}
 function capSharedContributions(p,ev,home,away,teamGoals,contribution){
  const prior=sharedTeammateResult(p,ev,home,away);
  if(!prior)return contribution;
@@ -1346,6 +1373,8 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  const baseline=simulateScore(home,away,targetDiff-(power(home)-power(away)),(defending?(ownHome?.2:.55):choice==="attack"?(ownHome?-.35:-.2):0)+(baselineImpact?.home||0),(defending?(ownHome?.55:.2):choice==="attack"?(ownHome?-.2:-.35):0)+(baselineImpact?.away||0));
  let hs=baseline[0],as=baseline[1];
  if(sharedMatch){hs=sharedMatch.fixture.hs;as=sharedMatch.fixture.as;}
+ const sharedCup=ev.kind==="cup"?sharedDirectCupFixture(p,ev,home,away,hs,as):null;
+ if(sharedCup){hs=sharedCup.hs;as=sharedCup.as;}
  let redScoreEffect=!!baselineImpact;
  if(ev.kind==="league"){const fixture=sharedLeagueRound(ev,redScore);if(fixture){hs=fixture.hs;as=fixture.as;redScoreEffect=!!fixture.redScoreEffect}}else if(ev.kind==="national"&&sharedUniverse){const key=g.year+":"+ev.date+":"+ev.stage+":"+home+":"+away,existing=sharedUniverse.national[key];if(existing){hs=existing.hs;as=existing.as;redScoreEffect=false}else sharedUniverse.national[key]={hs,as}}let our=ownHome?hs:as,their=ownHome?as:hs;
  // Teammates play one domestic cup fixture, including a shared shootout.
@@ -1372,9 +1401,15 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  if(ev.kind==="cup"){
   const penalties=our===their,peer=DUO_IDS.map(id=>duoGames?.[id]).find(x=>x&&x!==g&&x.year===g.year);
   // Old saves may have the shootout in cup.results rather than on the match.
-  const recorded=priorCup?(typeof priorCup.cupWin==="boolean"?priorCup.cupWin:peer?.season.cup?.results?.findLast(r=>r.stage===ev.stage&&r.hs===hs&&r.as===as)?.win):null;
+  const recorded=sharedCup?sharedCup.winner===p.club:
+   (priorCup?(typeof priorCup.cupWin==="boolean"?priorCup.cupWin:peer?.season.cup?.results?.findLast(r=>r.stage===ev.stage&&r.hs===hs&&r.as===as)?.win):null);
   const win=typeof recorded==="boolean"?recorded:our>their||(penalties&&Math.random()<C(.5+(overall(p)-75)/250,.35,.68));
-  cupWin=win;s.cup.results.push({stage:ev.stage,hs,as,win,penalties});if(penalties)log(s.cup.name+ev.stage+"90分钟战平，"+(win?"点球晋级。":"点球出局。"));if(!win){s.cup.active=false;log(s.cup.name+" "+ev.stage+"止步。")}else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军","team")}}}
+  cupWin=win;
+  if(!sharedCup)sharedDirectCupFixture(p,ev,home,away,hs,as,win?p.club:opponent);
+  s.cup.results.push({stage:ev.stage,hs,as,win,penalties});
+  if(penalties)log(s.cup.name+ev.stage+"90分钟战平，"+(win?"点球晋级。":"点球出局。"));
+  if(!win){s.cup.active=false;log(s.cup.name+" "+ev.stage+"止步。")}
+  else{s.cup.stage++;if(ev.stage==="决赛"){s.cup.active=false;award(s.cup.name+"冠军","team")}}}
  if(ev.kind==="national"){s.nationalApps++;if(played)p.career.national++;const n=s.national;
  if(n){n.results.push({stage:ev.stage,home,away,hs,as});if(n.knockout){
   if(ev.nationalIndex<=2){n.groupPlayed++;n.groupPoints+=our>their?3:our===their?1:0;if(n.groupPlayed===3){if(n.groupPoints>=4){n.stage="knockout";log(p.country+" "+n.name+"小组赛出线！")}else{n.active=false;n.stage="eliminated";log(p.country+" "+n.name+"小组赛出局。")}}}
@@ -2712,9 +2747,16 @@ function duoDashboard(){
  const both=DUO_IDS.map(id=>duoGames[id]);
  const retired=both.every(x=>x.player.retired);
  const allReview=both.every(x=>x.player.retired||x.season.stage==="review");
+ const pendingDate=nextSharedDate();
+ if(!v3Paused&&!v3Replay&&!retired&&!allReview&&V3&&pendingDate){
+  const critical=V3.criticalDay(duoGames,pendingDate);
+  if(critical)v3Paused=critical;
+ }
  const missing=allReview&&!retired?missingPromotionDraws():[];
- const date=nextSharedDate();
- const action=retired?'<button class="button" data-page="career">查看生涯总结</button>':
+ const date=pendingDate;
+ const criticalBlocked=!!v3Paused||!!v3Replay;
+ const action=criticalBlocked?'<button class="button" disabled>关键比赛待处理</button>':
+  retired?'<button class="button" data-page="career">查看生涯总结</button>':
   allReview?(missing.length?'<button class="button primary" data-page="transfer">处理转会决定</button>':'<button class="button primary" data-action="nextSeason">进入下一赛季</button>'):
   '<button class="button primary career-main-action" data-action="quickCareerAdvance">'+({day:"推进下一比赛日",season:"模拟剩余赛季"}[careerPace])+'</button><label class="pace-picker">节奏 <select data-career-pace="1" aria-label="生涯推进节奏">'+[["season","整个赛季"],["day","下个比赛日"]].map(([v,title])=>'<option value="'+v+'" '+(careerPace===v?"selected":"")+'>'+title+'</option>').join("")+'</select></label>';
  const summary=allReview&&!retired?'<section class="card gap season-scene"><h2>赛季总结</h2>'+DUO_IDS.map(id=>{const x=duoGames[id];return '<div class="item"><b>'+E(x.player.name)+'</b> · '+E(x.player.club)+' · '+x.season.apps+'场 '+x.season.goals+'球 '+x.season.assists+'助<br><span class="muted small">'+E(x.lastReview?.performance?.comment||"已结算")+'</span></div>'}).join("")+duoSeasonComparison(both[0],both[1])+'</section>':'';
@@ -2722,7 +2764,7 @@ function duoDashboard(){
  // their presentation so match results remain visible on small screens.
  const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
  const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
- return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+v3Scores()+summary+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
+ return '<div class="hero career-hero hero-match"><div><div class="cap">GREEN LEADER 1.0 · TWO PLAYERS, ONE WORLD</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+v3Panel()+v3Scores()+summary+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
