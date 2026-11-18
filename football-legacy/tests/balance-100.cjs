@@ -7,7 +7,8 @@ function run(seed){
  const storage=new Map(),timers=[],events={};
  const nodes={},node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(k,fn){events[id+":"+k]=fn},click(){}});
  const ctx={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},Math:math,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{},Blob,URL};
- for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
+ for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","role-v3.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
+ ctx.window.FootballRolesV3=ctx.FootballRolesV3; // Mirror the browser global so promotion is actually evaluated.
  vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
  function click(action,id,choice){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id,choice}})}})}
  function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.accepted&&!d.declined){if(!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}click("acceptDraw",id)}}}
