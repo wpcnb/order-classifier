@@ -1354,7 +1354,11 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  let goals=contribution.goals,assists=contribution.assists;
  let rating=played?roleAdjustedRating(calcRating(choice==="attack"||choice==="creative",goals,assists,our>their,{opponentPower:oppStrength,teamPower:ourPower,leagueId:p.leagueId,seasonForm:p.seasonForm||0}),p.position,their):0;
  const bodyContests=played&&BP?BP.simulateContests(p,Math.random,minutesPlayed):null;
+ // Simulated individual defensive, duel, passing and GK events for this exact played fixture.
+ // Actions are derived only after the shared score is known; none can change the result.
+ const roleActions=played&&RV3?RV3.simulateMatch(p,{minutesPlayed,goalsAgainst:their,teamPower:ourPower,opponentPower:oppStrength},Math.random):null;
  if(played&&BP)rating=Math.round(C(rating+BP.matchScoreBonus(p)+(bodyContests?.ratingDelta||0),4.6,9.8)*10)/10;
+ if(roleActions)rating=Math.round(C(rating+roleActions.ratingBonus,4.6,9.8)*10)/10;
  if(played&&p.positionTarget)rating=Math.max(4.6,Math.round((rating-.10)*10)/10);
  if(matchCards.redCard)rating=Math.max(4.6,Math.round((rating-.4)*10)/10);
  if(ev.kind==="league"){if(!sharedUniverse){const round=s.leagueRounds.find(r=>r.round===ev.round);otherLeagueGames(round,ev);updateTable(s.leagueTable,home,away,hs,as);simulateNPCGame(home,away,hs,as,ownHome?goals:0,ownHome?0:goals)}s.leaguePlayed++;if(our>their)s.points+=3;else if(our===their)s.points++;advanceWorld()}
@@ -1400,7 +1404,7 @@ function playEvent(ev,choice="balanced",batch=false){if(g.mode==="coach")return 
  refreshSuspensionSummary(p);p.trainingUsed=false;p.morale=percent(p.morale+(our>their?3:our===their?0:-3));p.cash+=p.wage/2;if(p.parentCoach)p.parentCoach.points+=ev.kind==="league"&&Math.random()<.25?1:0;
  eventResult={...ev,home,away,hs,as,played,started:played?started:null,entryMinute:played?entryMinute:null,lineupRole:played?(started?"首发":"替补"):null,goals,assists,rating,real:false,
   injury:p.injuryMatches||0,newInjury,suspension:disciplinary.ban||0,competitionBan:disciplinaryScope(ev),yellowCards:matchCards.yellowCards,redCard:matchCards.redCard,redMinute:matchCards.redMinute||null,redMinuteSource:matchCards.redCard?"simulation":null,redScoreEffect,minutesPlayed,cupWin,
-  missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null,bodyContests};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
+  missedReason:injuredBefore?"injury":suspendedBefore?"suspension":!played?"rotation":null,bodyContests,roleActions};s.results.push(eventResult);g.lastMatch=eventResult;log((ev.competition||DB[p.leagueId].name)+"："+home+" "+hs+"–"+as+" "+away+(played?"，"+p.name+" "+goals+"球"+assists+"助，评分"+rating:"，未出场"));
  if(GL){GL.afterMatch(p,played,rating,our,their);const highlight=GL.highlight(p,eventResult,ourPower,oppStrength);if(highlight)log(highlight);}
  s.index++;s.completed++;g.live=null;
  if(!batch){if(s.index>=s.events.length)endSeason();else{save();page="report";render()}}
@@ -1620,6 +1624,7 @@ function transferLevel(id,club){
 function clubSeasonNumbers(s,club=null){
  const played=(s.results||[]).filter(x=>x.played&&x.kind!=="national");
  const n={apps:played.length,goals:0,assists:0,avg:0,cleanSheets:0,matchesWithScore:0,goalsAgainst:0},ratings=[];
+ n.role=RV3?RV3.summarize(played,club):null;
  for(const match of played){
   n.goals+=match.goals||0;n.assists+=match.assists||0;if(match.rating>0)ratings.push(match.rating);
   const against=club&&match.home===club?match.as:club&&match.away===club?match.hs:null;
@@ -1637,7 +1642,7 @@ function seasonPerformance(){
  const gate=TRANSFER_GATES[tier]||null;
  const evaluated=RV3&&gate?RV3.evaluate(p,n,gate,ov,tier):null;
  const offense=["ST","LW","RW","CAM"].includes(p.position);
- const exempt=p.youth||n.apps<23||p.injuryMatches>0||p.age>=35;
+ const exempt=p.youth||n.apps<22||p.injuryMatches>0||p.age>=35;
  const poor=!exempt&&!!evaluated?.poor;
  p.poorStreak=poor?(p.poorStreak||0)+1:0;
  const teamChampion=(g.honors||[]).some(h=>h.year===g.year&&h.generation===g.generation&&h.type==="team"&&h.name.includes("冠军"));
@@ -1659,7 +1664,7 @@ function seasonPerformance(){
  tier,maxTier,poor,exempt,offense,expectedByTier:evaluated?.requiredOutput||0,
  performanceRatio:evaluated?.requiredOutput?n.goals+n.assists>=0?Number(((n.goals+n.assists)/evaluated.requiredOutput).toFixed(2)):0:0,
  scoutingChance,poorStreak:p.poorStreak,forcedMove:p.forcedMove,forcedSameTier:p.forcedSameTier,
- trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment,roleGroup:evaluated?.group||"unknown"};
+ trophylessStreak:p.trophylessStreak,teamChampion,qualified,comment,roleGroup:evaluated?.group||"unknown",rolePerformance:evaluated?.performanceIndex||0,roleSource:evaluated?.hasActions?"simulated":"legacy"};
  p.transferAssessment={...assessment,year:g.year};
  if(eligible&&!poor&&maxTier>tier)p.points=Math.min(15,(p.points||0)+2);
  return assessment;
@@ -2701,6 +2706,7 @@ function duoTransferPage(){
    '<div class="grid3">'+metric("比赛",n.apps)+metric("进球",n.goals)+metric("助攻",n.assists)+'</div>'+
    '<p class="muted small">游戏市场估值 '+(CD?CD.money(CD.marketValue(p,overall(p),level,x.season)):'待评估')+' · '+E(RV3?RV3.evaluate(p,n,TRANSFER_GATES[level]||TRANSFER_GATES[4],overall(p),Math.min(level,4)).description:'按位置综合考核')+'</p>'+ '<details class="item"><summary>查看身价模型依据</summary><p class="muted small">根据年龄、位置、综合能力、俱乐部档次、出场、评分、合同、伤病及青年潜力估算；前锋数据仅微调前场球员身价。不以金球奖作为估值门槛。原创游戏模型，不是德转实时身价，也不包含外部抓取数据库。</p></details>'+
    '<p class="gold gap">'+E(r?.comment||"赛季进行中，尚待考核")+'</p>'+
+   (n.role?.recorded?'<p class="muted small">本赛季位置数据（游戏模拟）：'+E(RV3?.LABELS[RV3.group(p.position)]||p.position)+' · 记录 '+n.role.recorded+' 场 · '+E(["GK"].includes(p.position)?"扑救 "+n.role.saves+"次 / 扑救率 "+Math.round(n.role.saveRate*100)+"%":["CB","LB","RB","CDM"].includes(p.position)?"抢断成功 "+n.role.tacklesWon+"次 · 拦截 "+n.role.interceptions+"次 · 对抗胜率 "+Math.round(n.role.duelRate*100)+"%":"向前传球 "+n.role.progressivePasses+"次 · 创造机会 "+n.role.chancesCreated+"次 · 传球成功率 "+Math.round(n.role.passRate*100)+"%")+'</p>':'')+
    '<p class="muted small">连续无冠 '+(p.trophylessStreak||0)+' 季 · 连续表现不佳 '+(p.poorStreak||0)+' 季</p>'+
    promotionDrawCard(id)+transferCriteria(p,n,level)+
    lateralOfferPanel(id)+'</section>';
