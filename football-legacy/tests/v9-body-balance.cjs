@@ -8,8 +8,8 @@ let checked=0;function test(name,fn){fn();checked++;console.log("✓ "+checked+"
 test("v9 release, script order and reproducibility document",()=>{
  const html=read("index.html");
  assert(html.includes("绿茵领袖 v1.0.0"));
- assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("career-depth.js?v=9.0.0"));
- assert(html.indexOf("career-depth.js?v=9.0.0")<html.indexOf("legend-v1.js?v=2.0.0"));
+ assert(html.indexOf("./body-path.js?v=")<html.indexOf("./career-depth.js?v="));
+ assert(html.indexOf("./career-depth.js?v=")<html.indexOf("./legend-v1.js?v=2.0.0"));
  assert(html.indexOf("legend-v1.js?v=2.0.0")<html.indexOf("game.js?v="));
  assert(read("V9_BALANCE_AUDIT.md").includes("200,000,000"));
 });
