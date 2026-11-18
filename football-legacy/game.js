@@ -5,6 +5,7 @@ const V10=window.DualV10||null, V10UI=window.DualV10UI||null; // Optional for ol
 const CD=window.CareerDepth||null; // Optional: legacy tests and old saves still load without the new module.
 const GL=window.GreenLegend||null; // v1.0.0 optional mechanics; old test harnesses retain the original behavior.
 const V3=window.LegendV3||null; // Career score never changes Ballon d'Or voting.
+const FA=window.FootballLegacyAwards||null; // FIFA The Best simulation + retirement likeness.
 const RV3=window.FootballRolesV3||null; // Role-specific promotion and relegation rules.
 const TV3=window.FootballTransferV3||null; // Assisted career transfers, never for deep/manual mode.
 const STORE="football-dynasty-duo-v2-20261110",LEGACY_STORE="football-dynasty-v4-independent-20261101",CUT="2026-11-01";
@@ -343,7 +344,7 @@ function duoPayload(){
   europeFinals:shared.europeFinals||{},
   europeTitleCorrections:(shared.europeTitleCorrections||[]).slice(-30),
   rounds:Object.fromEntries(Object.entries(shared.rounds||{}).filter(([key])=>Number(key.split(":")[0])===now)),
-  awards:shared.awards||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
+  awards:shared.awards||{},theBest:shared.theBest||{},leagueYouthAwards:shared.leagueYouthAwards||{},national:shared.national||{},npcRetirements:(shared.npcRetirements||[]).slice(-140),retiredRealPeople:shared.retiredRealPeople||[],
   offseasonYears:(shared.offseasonYears||[]).slice(-3),npcOffseasonYears:(shared.npcOffseasonYears||[]).slice(-3),
   clubRatings:shared.clubRatings||{},npcs:a.npcs||[],
   world:compactWorld(a.season.world||b.season.world)
@@ -704,7 +705,7 @@ function buildDuoGame(){
   notify("随机人物数据未锁定，请重新翻牌或导出开局备份");return
  }
  const wang=makeDuoCareer("wang"),vini=makeDuoCareer("vini");
- duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";
+ duoGames={wang,vini};sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},awards:{},theBest:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=wang;page="dashboard";
  if(!save()){duoGames=null;g=null;sharedUniverse=null;render();notify("无法保存新生涯，已保留开局抽卡；请先清理浏览器存储空间。");return}
  try{localStorage.removeItem?.(OPENING_STORE)}catch(e){}render();
 }
@@ -712,8 +713,8 @@ function buildGame(){buildDuoGame()}
 function linkSharedWorld(){
  if(!duoGames)return;
  const a=duoGames.wang,b=duoGames.vini;
- sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{},national:{}};
- sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};sharedUniverse.awards=sharedUniverse.awards||{};
+ sharedUniverse=sharedUniverse||{rounds:{},offseasonYears:[],clubRatings:{},national:{},awards:{},theBest:{}};
+ sharedUniverse.rounds=sharedUniverse.rounds||{};sharedUniverse.national=sharedUniverse.national||{};sharedUniverse.awards=sharedUniverse.awards||{};sharedUniverse.theBest=sharedUniverse.theBest||{};
  sharedUniverse.offseasonYears=sharedUniverse.offseasonYears||[];
  sharedUniverse.europeFinals=sharedUniverse.europeFinals||{};
  sharedUniverse.europeCompetitions=sharedUniverse.europeCompetitions||{};
@@ -778,7 +779,8 @@ function recordPlayerRetirement(id,automatic=false,completedSeasonYear=null){
  p.retired=true;p.retiredAt={year:x.year,age:p.age,club:p.club,league:DB[p.leagueId]?.name,automatic};
  const completed=x.season.stage==="review"?(completedSeasonYear??x.year):null;
  x.retirementSummary={at:{...p.retiredAt},completedSeasonYear:completed,career:{...p.career},academy:{...(p.academyCareer||{})},
-  honors:x.honors.map(h=>({...h})),history:x.history.map(h=>({...h})),transfers:(p.transferHistory||[]).map(t=>({...t})),partialSeason:partial};
+  honors:x.honors.map(h=>({...h})),history:x.history.map(h=>({...h})),transfers:(p.transferHistory||[]).map(t=>({...t})),partialSeason:partial,
+  likeness:FA?FA.similarity(x,sharedUniverse?.theBest||{},5):[]};
  delete p.transferDraw;p.forcedMove=false;p.forcedSameTier=false;x.offers=[];
  x.season.stage="retired";
 }
@@ -1581,6 +1583,8 @@ function finalizeSharedSeason(){
  const ranked=list.map(x=>({id:x.id,name:x.name,club:x.club,goals:x.goals,assists:x.assists,apps:x.apps,averageRating:Number((x.rating??6.5).toFixed(2)),teamBonus:x.teamBonus,points:points[x.id],firstPlaceVotes:votes[x.id][0],voteRanks:votes[x.id]})).sort((a,b)=>b.points-a.points||b.firstPlaceVotes-a.firstPlaceVotes||a.name.localeCompare(b.name));
  if(ranked.reduce((a,b)=>a+b.points,0)!==6700)throw Error("双人统一金球奖计票错误");
  const awardData={year,model:7,rankings:ranked,ballots,winner:ranked[0],totalPoints:6700};sharedUniverse.awards[year]=awardData;
+ const theBest=FA?FA.electTheBest(nominees,year):null;
+ if(theBest){sharedUniverse.theBest=sharedUniverse.theBest||{};sharedUniverse.theBest[year]=theBest;}
  const leagues=new Set(DUO_IDS.filter(id=>awardSeasonParticipant(duoGames[id],year)).map(id=>duoGames[id].player.leagueId));
  for(const id of leagues){
  const entries=duoGames.wang.npcs.filter(n=>DB[id].teams.some(t=>t.name===n.club)&&n.pos!=="GK").map(n=>({id:n.id,goals:n.goals||0,assists:n.assists||0,apps:n.apps||0}));
@@ -1595,7 +1599,9 @@ function finalizeSharedSeason(){
  for(const id of DUO_IDS){const x=duoGames[id],key="DUO_"+id,place=ranked.findIndex(r=>r.id===key),personal={...awardData,rank:place>=0?place+1:null,playerNominated:place>=0,playerPoints:place>=0?points[key]:0};
  x.ballonHistory.push(personal);x.awardViewIndex=x.ballonHistory.length-1;
  if(place===0){activeDuo=id;g=x;award("金球奖（法国足球规则）","individual")}
- if(x.player.retired&&x.retirementSummary?.at?.year===year)x.retirementSummary.honors=x.honors.map(h=>({...h}));
+ const bestWinner=sharedUniverse.theBest?.[year]?.winner;
+ if(bestWinner?.id===key){activeDuo=id;g=x;award("世界足球先生（FIFA The Best）","individual")}
+ if(x.player.retired&&x.retirementSummary?.at?.year===year){x.retirementSummary.honors=x.honors.map(h=>({...h}));x.retirementSummary.likeness=FA?FA.similarity(x,sharedUniverse.theBest||{},5):[];}
  }
  activeDuo=original;g=originalGame;
 }
@@ -2188,7 +2194,7 @@ function simSeason(quiet=false){
 function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){sharedAdvanceDates(3);notify("双方同步推进3个比赛日");return}
  let n=0;while(n<3&&g.season.index<g.season.events.length){automaticPrep();playEvent(currentEvent(),"balanced",true);n++}if(g.season.index>=g.season.events.length)endSeason();else{save();page="dashboard";render()}
 }
-function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵世代_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
+function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵领袖_双人生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
 async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if(DUO_IDS.some(id=>!DB[v.duoGames[id].player.leagueId])){notify("该旧存档包含已取消联赛。文件保持原样，不会覆盖当前存档");return}if(!confirm("导入双人生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();if(!ageMigrationBlocked)notify("同一足球世界双人生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
 function newGameDialog(){if(g&&!confirm("删除当前两人生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);v3Paused=null;v3Replay=null;v3Allowed=null;resetDraw();render()}
 function choosePage(p){page=p;render()}
@@ -2332,7 +2338,7 @@ function exportBallotCsv(){
  const lines=[header.map(quote).join(",")];
  b.ballots.forEach((vote,i)=>lines.push([i+1,...vote.map(id=>name[id]||id)].map(quote).join(",")));
  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="绿茵世代_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
+ a.href=url;a.download="绿茵领袖_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
  setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},1200)
 }
 
@@ -2760,10 +2766,11 @@ function duoTransferPage(){
  }).join("")+'</div><section class="card gap"><h3>六档逐级晋升</h3><p>'+TRANSFER_LEVELS.map((name,i)=>(i+1)+'. '+name).join(" → ")+'</p><p class="muted small">普通升级一档；抽中唯一幸运卡可以跳两档。同档转会不计算晋升。必须通过赛季考核才可参与升级抽卡。</p></section>';
 }
 function duoAwardsPage(){
- const y=duoGames.wang.year;
- const history=sharedUniverse?.awards||{},years=Object.keys(history).sort((a,b)=>b-a),chosen=history[g.awardWorldYear]||history[years[0]];
- if(!chosen)return '<section class="card"><h2>统一金球奖</h2><p>两人所在世界每年仅举办一次金球奖评选。完成本赛季后可同时查看两名球员、其他球星的统一排名。</p></section>';
- return '<section class="card"><h2>同一届金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><details class="item gap"><summary>v8.0 评奖依据与公平性说明</summary><p class="muted small">当前赛季使用第7代评分模型：进球、助攻、平均评分、个人综合能力、出场、联赛系数及球队实际冠军。冠军加分统一封顶32，之后由100名记者的十人选票产生唯一得主。此机制不承诺主角获奖，旧存档奖项不改写。旧版第6代更重视冠军和综合能力。</p></details><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>';
+ const history=sharedUniverse?.awards||{},bestHistory=sharedUniverse?.theBest||{},years=Object.keys(history).sort((a,b)=>b-a),chosen=history[g.awardWorldYear]||history[years[0]],bestYears=Object.keys(bestHistory).sort((a,b)=>b-a),best=bestHistory[g.awardWorldYear]||bestHistory[bestYears[0]];
+ if(!chosen&&!best)return '<section class="card"><h2>年度大奖</h2><p>完成赛季后，这里会记录金球奖与世界足球先生两套独立评选。</p></section>';
+ const gold=chosen?'<section class="card"><h2>金球奖 · '+(chosen.year+1)+'年</h2><p>获奖者：<b>'+E(chosen.winner.name)+'</b> · '+chosen.winner.points+'分</p><details class="item gap"><summary>评奖依据</summary><p class="muted small">游戏沿用独立金球奖模型：进球、助攻、平均评分、个人综合能力、出场、联赛系数及球队实际冠军，再由记者模拟投票。它与世界足球先生独立结算。</p></details><div class="flex">'+years.map(y=>'<button class="button" data-action="sharedAwardYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+chosen.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.points+'分</strong></div>').join("")+'</div></section>':"";
+ const bestCard=best?'<section class="card"><h2>世界足球先生（FIFA The Best） · '+(best.year+1)+'年</h2><p>获奖者：<b>'+E(best.winner.name)+'</b> · '+best.winner.score+'%</p><p class="muted small">四类选民各占25%：国家队主教练、国家队队长、足球记者、球迷。每类选民模拟三选一，第一名5分、第二名3分、第三名1分。</p><div class="flex">'+bestYears.map(y=>'<button class="button" data-action="sharedBestYear" data-year="'+y+'">'+(Number(y)+1)+'年</button>').join("")+'</div><div class="list gap">'+best.rankings.map((x,i)=>'<div class="item row '+(x.id.startsWith("DUO_")?"mine":"")+'"><span><b>'+(i+1)+'. '+E(x.name)+'</b><br><small class="muted">'+E(x.club)+' · '+x.goals+'球 '+x.assists+'助</small></span><strong>'+x.score+'%</strong></div>').join("")+'</div></section>':"";
+ return gold+bestCard;
 }
 function partialRetirementHistory(x){
  const part=x.retirementSummary?.partialSeason,at=x.retirementSummary?.at;
