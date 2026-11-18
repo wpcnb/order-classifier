@@ -92,20 +92,32 @@ function objectiveTargets(p,year,tier,season){
  const S=season||{},results=(S.results||[]).filter(m=>m.played&&m.kind!=="national");
  const apps=results.length||Number(S.apps)||0;
  const ratings=results.map(m=>m.rating).filter(Number.isFinite);
- const avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:(S.ratings||[]).length?(S.ratings.reduce((a,b)=>a+b,0)/S.ratings.length):0;
- const eligibleScores=results.filter(m=>Number.isFinite(m.hs)&&Number.isFinite(m.as)&&(m.home===p.club||m.away===p.club));
- const clean=eligibleScores.filter(m=>(m.home===p.club?m.as:m.hs)===0).length;
- const group=p.position==="GK"?"keeper":["CB","LB","RB"].includes(p.position)?"defender":p.position==="CDM"?"holding":p.position==="CM"?"midfield":p.position==="CAM"?"creator":"forward";
- const appearances=p.youth?13:clamp(18+Math.floor((tier||0)/2)+(p.age>34?-4:0),10,27);
+ const avg=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:
+  (S.ratings||[]).length?S.ratings.reduce((a,b)=>a+b,0)/S.ratings.length:0;
+ const known=results.filter(m=>Number.isFinite(m.hs)&&Number.isFinite(m.as)&&(m.home===p.club||m.away===p.club));
+ const clean=known.filter(m=>(m.home===p.club?m.as:m.hs)===0).length;
+ const role=window.FootballRolesV3||null,actions=role?role.summarize(results,p.club):null;
+ const pos=role?role.group(p.position):(p.position==="GK"?"keeper":["CB","LB","RB"].includes(p.position)?"defender":p.position==="CDM"?"holding":p.position==="CM"?"midfield":p.position==="CAM"?"creator":"forward");
+ const targetApps=p.youth?13:clamp(18+Math.floor((tier||0)/2)+(p.age>34?-4:0),10,27);
  const output=(Number(S.goals)||0)+(Number(S.assists)||0);
- const goal=group==="forward"?{key:"output",label:"进球与助攻",value:output,target:p.youth?5:clamp(8+Math.floor((tier||0)*1.4),6,16)}:
- group==="creator"?{key:"creation",label:"助攻或稳定高评分",value:Math.max((Number(S.assists)||0),avg>=7.25?5:0),target:5}:
- group==="midfield"?{key:"midfield",label:"组织表现（助攻或高评分）",value:Math.max((Number(S.assists)||0),avg>=7.15?4:0),target:4}:
- {key:"defence",label:"防守稳定（真实零封或高评分）",value:Math.max(clean,avg>=7.2?5:0),target:Math.min(5,Math.max(3,Math.floor(eligibleScores.length*.17)))};
+ let goal;
+ if(actions&&actions.recorded>=Math.min(10,Math.ceil(apps*.5))){
+  if(pos==="keeper")goal={key:"keeperActions",label:"模拟扑救 / 90分钟",value:actions.savesPer90,target:1.5};
+  else if(pos==="defender")goal={key:"defenceActions",label:"每90分钟成功抢断＋拦截",value:Number((actions.tacklesPer90+actions.interceptionsPer90).toFixed(2)),target:1.6};
+  else if(pos==="holding")goal={key:"holdingActions",label:"每90分钟球权回收",value:actions.recoveriesPer90,target:2.0};
+  else if(pos==="midfield")goal={key:"midfieldActions",label:"每90分钟向前传球",value:actions.progressivePer90,target:2.3};
+  else if(pos==="creator")goal={key:"creatorActions",label:"每90分钟创造机会",value:actions.chancesPer90,target:.8};
+ }
+ if(!goal){
+  if(pos==="forward")goal={key:"output",label:"进球与助攻",value:output,target:p.youth?5:clamp(8+Math.floor((tier||0)*1.4),6,16)};
+  else if(pos==="creator")goal={key:"creation",label:"助攻或优秀比赛评分",value:Math.max(Number(S.assists)||0,avg>=7.25?5:0),target:5};
+  else if(pos==="midfield")goal={key:"midfield",label:"组织评分",value:avg,target:6.9};
+  else goal={key:"defence",label:"真实比赛零封或优秀评分",value:Math.max(clean,avg>=7.2?5:0),target:Math.min(5,Math.max(3,Math.floor(known.length*.17)))};
+ }
  return [
-  {key:"apps",label:"赛季出场",value:apps,target:appearances},
+  {key:"apps",label:"赛季出场",value:apps,target:targetApps},
   goal,
-  {key:"rating",label:"平均评分",value:Math.round(avg*100)/100,target:p.youth?6.5:6.75}
+  {key:"rating",label:"平均评分",value:Math.round(avg*100)/100,target:p.youth?6.4:6.62}
  ].map(item=>({...item,done:item.value>=item.target}));
 }
 function settleObjectives(p,year,tier,season){
