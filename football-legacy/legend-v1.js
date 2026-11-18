@@ -1,6 +1,6 @@
 (function(root){
 "use strict";
-// 绿茵信仰 S1.01: additive game mechanics. Optional in older smoke-test harnesses.
+// 绿茵信仰 S1.02: additive game mechanics. Optional in older smoke-test harnesses.
 // Player properties are persisted in the existing dual-career save; no new storage key.
 const cap=(v,lo,hi)=>Math.max(lo,Math.min(hi,Number.isFinite(v)?v:0));
 const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -98,7 +98,7 @@ function overview(games,shared){
  const rivalry=aInfluence===bInfluence?"职业生涯直接贡献持平":aInfluence>bInfluence?escape(a.name)+"暂时领先":" "+escape(b.name)+"暂时领先";
  const current=Math.max(Number(games.wang.year)||0,Number(games.vini.year)||0);
  const ceremony=shared?.awards?.[current-1];
- return '<section class="card gap"><h2>绿茵信仰 S1.01 · 生涯动态</h2><div class="grid2">'+html+
+ return '<section class="card gap"><h2>绿茵信仰 S1.02 · 生涯动态</h2><div class="grid2">'+html+
  '</div><p class="muted small gap">双星竞争：'+rivalry+'（只比较一线队进球与助攻，不影响更衣室和谐）。</p>'+
  (ceremony?.winner?'<p class="gold">上届年度盛典 · '+escape(ceremony.year)+'年金球奖：'+escape(ceremony.winner.name)+'（'+escape(ceremony.winner.points)+'分）</p>':'')+
  '<p class="muted small">本模块为新增生涯机制；旧存档使用原有存储键，比赛仍遵循双星共享比分。</p></section>';
