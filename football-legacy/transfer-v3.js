@@ -29,7 +29,7 @@
   if(options.drawOpen)return {type:"stay",reason:"waiting-for-manual-draw"};
   const years=tenure(game),roleIndex=Math.max(0,num(assessment?.rolePerformance));
   // Focus on sustained performance rather than Ballon d'Or or goals for defenders.
-  const stamina=num(p.stamina),eligible=options.candidateCount>0&&years>=3&&!p.injuryMatches&&stamina>=25;
+  const eligible=options.candidateCount>0&&years>=3&&num(p.injuryMatches)<=3;
   if(!eligible)return {type:"stay",reason:"candidate-or-tenure"};
   // Deterministic for the same saved season; no rerolling by refreshing the page.
   const roll=hash(game.year+"|"+p.name+"|"+p.club+"|"+p.position)%1000/1000;
