@@ -362,10 +362,10 @@ assert(api.awardCandidateScore({...matching,rating:8.2},2046,0,deterministic)>
  api.awardCandidateScore(matching,2046,0,deterministic),"A higher match rating must matter");
 assert(Math.abs(api.awardCandidateScore(matching,2046,32,deterministic)-api.awardCandidateScore(matching,2046,0,deterministic)-32)<1e-9,
  "A team trophy contribution of 32 must add 32 points");
-assert.equal(api.awardCandidateScore(matching,2046,100,deterministic),api.awardCandidateScore(matching,2046,32,deterministic),
- "Team trophy contribution must be capped at 32 points for all candidates");
+assert.equal(api.awardCandidateScore(matching,2046,100,deterministic),api.awardCandidateScore(matching,2046,48,deterministic),
+ "Team trophy contribution must be capped at 48 points for all candidates");
 assert.equal(api.awardTeamHonours("无法识别的俱乐部",2099),0);
-log("Ballon d'Or v7 rewards extraordinary performance and applies identical capped title bonuses");
+log("Ballon d'Or annual awards reward extraordinary performance with bounded trophy bonuses");
 
 // Two trophyless seasons force a lateral transfer, not a demotion or upgrade.
 p.leagueId="ENG";p.club="布莱顿";p.trophylessStreak=0;p.poorStreak=0;p.forcedMove=false;p.forcedSameTier=false;
