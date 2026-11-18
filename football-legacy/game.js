@@ -2622,6 +2622,33 @@ function exportLegacy(key){
 function createSafetyBackup(){try{if(!duoGames)return;localStorage.setItem(SAFETY_STORE,JSON.stringify(duoPayload()));notify("已保存精简版双人生涯保险备份");render()}catch(e){notify("本机空间不足，建议直接导出 JSON 存档")}}
 function restoreSafetyBackup(){try{const raw=localStorage.getItem(SAFETY_STORE);if(!raw){notify("还没有保险备份");return}const backup=JSON.parse(raw);if(backup.version!==2||!backup.duoGames?.wang||!backup.duoGames?.vini)throw Error("invalid");if(!confirm("恢复双人生涯保险备份会覆盖当前进度。确定？"))return;hydratePayload(backup);page="dashboard";save();render();if(!ageMigrationBlocked)notify("已恢复双人生涯保险备份")}catch(e){notify("备份无法读取，请使用导出的双人生涯 JSON 存档")}}
 
+
+function s1RestoreYearlyBackup(){
+ let original=null;
+ try{
+  const raw=localStorage.getItem(S1_AUTO_BACKUP);
+  if(!raw){notify("没有可恢复的上赛季自动备份");return}
+  const data=JSON.parse(raw);
+  if(data.version!==2||!data.duoGames?.wang?.player||!data.duoGames?.vini?.player)throw Error("invalid");
+  if(!confirm("将恢复到"+data.duoGames.wang.year+"赛季，覆盖当前生涯。确定继续？"))return;
+  original=localStorage.getItem(STORE);
+  if(original){localStorage.setItem(SAFETY_STORE,original);
+   if(localStorage.getItem(SAFETY_STORE)!==original)throw Error("backup quota")}
+  localStorage.setItem(STORE,raw);
+  if(localStorage.getItem(STORE)!==raw)throw Error("restore write failed");
+  hydratePayload(data);
+  localStorage.setItem(S1_SAVED_YEAR,String(duoGames.wang.year));
+  page="dashboard";render();notify("已恢复自动赛季备份，恢复前进度已保存为保险备份");
+ }catch(e){
+  if(original)try{localStorage.setItem(STORE,original);hydratePayload(JSON.parse(original))}catch(_){}
+  render();notify("自动备份恢复失败，原进度未被主动删除");
+ }
+}
+function s1BackupReminder(){
+ if(!duoGames||duoGames.wang.year%3!==0&&!DUO_IDS.every(id=>duoGames[id].player.retired))return "";
+ return '<section class="item gap"><b>建议导出当前生涯存档</b><p class="muted small">本机自动赛季备份也会随浏览器数据一起丢失。完成多个赛季或退役后，请将 JSON 保存到设备文件夹。</p><button class="button outline" data-action="export">导出离线 JSON</button></section>';
+}
+
 function v10SaveSnapshot(){
  if(!V10||!duoGames)return;
  if(!save())return notify("当前生涯无法保存，请先导出JSON");
