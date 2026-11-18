@@ -1015,11 +1015,12 @@ function s1Decide(id,choice){
  render();
 }
 
-function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
+function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced",pauseForChoices=false){
  if(!duoGames)return;
  let count=0,days=0,date;
  while((date=nextSharedDate())&&days<maxDays&&(!focusDate||date<=focusDate)){
   const critical=V3&&V3.criticalDay(duoGames,date);
+  if(pauseForChoices&&s1PauseOnDate(date)){page="dashboard";break}
   // User preference: all finals, derbies and title deciders are automatically simulated by one-click advance.
   // Results remain in the career archive; do not interrupt the shared calendar.
   runSharedDay(date,focusDate===date?activeDuo:null,focusChoice);days++;count++;
@@ -1043,7 +1044,7 @@ function simNext(){
  if(!duoGames||DUO_IDS.every(id=>duoGames[id].player.retired))return;
  const done=DUO_IDS.every(id=>duoGames[id].player.retired||duoGames[id].season.stage==="review");
  if(done){const old=duoGames.wang.year;nextSeason();if(duoGames.wang.year===old)return}
- sharedAdvanceDates(1);
+ sharedAdvanceDates(1,null,"balanced",true);
 }
 function simBoth(){
  if(!duoGames)return;
@@ -2733,8 +2734,8 @@ function quickCareerAdvance(){
   const manual=DUO_IDS.filter(id=>!duoGames[id].player.retired&&duoOperationMode(duoGames[id].player)==="deep");
   if(manual.length&&!confirm("深度生涯快进会跳过手动训练机会："+manual.map(id=>duoGames[id].player.name).join("、")+"。本次仍要快进吗？"))return;
  }
- if(careerPace==="day")sharedAdvanceDates(1);
- else sharedAdvanceDates(400);
+ if(careerPace==="day")sharedAdvanceDates(1,null,"balanced",true);
+ else sharedAdvanceDates(400,null,"balanced",true);
 }
 
 function verifiedDuoFixtures(a,b){
