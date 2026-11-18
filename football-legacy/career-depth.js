@@ -70,14 +70,14 @@ function contributionModifiers(p,ev){
 function injuryFactor(p){return traitFor(p)==="robust"?.83:1;}
 // 游戏内估值（欧元），不是现实身价。获奖不是高身价的必要条件。
 // 估值由独立模块实现；旧存档格式、其他比赛计算与奖项均不受影响。
-function marketValueDetails(p,overall,tier,season){
+function marketValueDetails(p,overall,tier,season,career){
  const market=window.FootballMarketV3;
- if(market)return market.details(p,overall,tier,season);
+ if(market)return market.details(p,overall,tier,season,career);
  return {value:0,source:"估值模块未加载",model:"unavailable"};
 }
-function marketValue(p,overall,tier,season){
+function marketValue(p,overall,tier,season,career){
  const market=window.FootballMarketV3;
- if(market)return market.marketValue(p,overall,tier,season);
+ if(market)return market.marketValue(p,overall,tier,season,career);
  // Fail closed instead of showing fabricated valuations if the JS file fails to load.
  return 0;
 }
@@ -132,12 +132,17 @@ function settleObjectives(p,year,tier,season){
  p.goalHistory.push(record);p.goalHistory=p.goalHistory.slice(-42);
  return record;
 }
-function recordMarketValue(p,year,overall,tier,season){
+function recordMarketValue(p,year,overall,tier,season,career){
  if(!p||p.retired)return null;
  p.marketValueHistory=p.marketValueHistory||[];
  let entry=p.marketValueHistory.find(x=>x.year===year);
- if(entry)return entry;
- entry={year,value:marketValue(p,overall,tier,season)};
+ // Recalculate the same year only after the annual Ballon d'Or/FIFA awards
+ // have been finalized. Never rewrite completed older-year snapshots.
+ if(entry){
+  if(career?.refreshAnnualValue)entry.value=marketValue(p,overall,tier,season,career);
+  return entry;
+ }
+ entry={year,value:marketValue(p,overall,tier,season,career)};
  p.marketValueHistory.push(entry);p.marketValueHistory=p.marketValueHistory.slice(-42);
  return entry;
 }
