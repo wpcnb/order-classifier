@@ -949,6 +949,72 @@ function runSharedDay(date,focusId=null,focusChoice="balanced"){
  }
  activeDuo=original;g=duoGames[original];allocateSharedNpcForDay(date);allocateSharedUefaNPC(date);linkSharedWorld();return total;
 }
+
+/* S1.01: mid-season career decisions, preserved in the existing season save. */
+const S1_OPTIONS={
+ rehab:[["rest","稳妥康复 · 剩余伤停-1场、体能+10"],["wait","服从队医安排 · 士气+4"]],
+ contract:[["renew","接受续约 · 合同3年、薪水+8%"],["wait","暂缓续约 · 保留选择权"]],
+ locker:[["talk","沟通协调 · 士气+8、教练信任+3"],["focus","专心训练 · 状态+3、体能-5"]],
+ veteran:[["light","减轻训练 · 体能+16"],["hard","保持强度 · 状态+3、体能-10"]],
+ training:[["extra","专项加练 · 训练进度+2、体能-10"],["rest","安排轮休 · 体能+15"]]
+};
+function s1ChoiceType(p){
+ if((p.injuryMatches||0)>0)return "rehab";
+ if(!p.youth&&(p.contract||0)<=1&&p.age<39)return "contract";
+ if((p.morale||0)<50)return "locker";
+ return p.age>=35?"veteran":"training";
+}
+function s1PendingIds(){
+ if(!duoGames)return [];
+ return DUO_IDS.filter(id=>{const x=duoGames[id],d=x.season?.midseasonDecision;
+  return !x.player.retired&&x.season?.stage==="playing"&&d?.year===x.year&&!d.done});
+}
+function s1PauseOnDate(date){
+ let waiting=false;
+ for(const id of DUO_IDS){
+  const x=duoGames[id],s=x.season,p=x.player;
+  if(p.retired||p.youth||s.stage!=="playing")continue;
+  if(!s.midseasonDecision||s.midseasonDecision.year!==x.year){
+   const threshold=Math.max(10,Math.ceil((s.events?.length||0)*.35));
+   if((s.completed||0)>=threshold)s.midseasonDecision={year:x.year,date,kind:s1ChoiceType(p),done:false};
+  }
+  if(s.midseasonDecision?.year===x.year&&!s.midseasonDecision.done)waiting=true;
+ }
+ return waiting;
+}
+function s1ChoicePanel(){
+ const waiting=s1PendingIds();
+ if(!waiting.length)return "";
+ const topic={rehab:"伤后复出",contract:"续约谈判",locker:"更衣室沟通",veteran:"老将体能",training:"训练安排"};
+ return '<section class="card gap"><h2>赛季中期 · 由你决定</h2><p class="muted small">一键快进已在比赛前暂停。每位成年球员每赛季最多一次；作出选择后才能继续。</p>'+
+ waiting.map(id=>{const x=duoGames[id],p=x.player,d=x.season.midseasonDecision;
+  return '<div class="item gap"><b>'+E(p.name)+' · '+topic[d.kind]+'</b><p class="muted small">体能 '+(p.stamina||0)+' · 士气 '+(p.morale||0)+' · 合同 '+(p.contract||0)+'年 · 伤停 '+(p.injuryMatches||0)+'场</p><div class="list">'+
+   S1_OPTIONS[d.kind].map(([key,label])=>'<button class="button outline" data-action="s1Choice" data-id="'+id+'" data-choice="'+key+'">'+E(label)+'</button>').join("")+'</div></div>';
+ }).join("")+'</section>';
+}
+function s1Decide(id,choice){
+ if(!duoGames||!DUO_IDS.includes(id))return;
+ const x=duoGames[id],p=x.player,d=x.season?.midseasonDecision;
+ if(!d||d.year!==x.year||d.done||!S1_OPTIONS[d.kind]?.some(row=>row[0]===choice))return;
+ const old={stamina:p.stamina,morale:p.morale,form:p.form,coachTrust:p.coachTrust,
+  injuryMatches:p.injuryMatches,contract:p.contract,wage:p.wage,trainingProgress:{...(p.trainingProgress||{})}};
+ const adjust=(k,n)=>p[k]=percent((p[k]||0)+n);
+ if(d.kind==="rehab"){if(choice==="rest"){p.injuryMatches=Math.max(0,(p.injuryMatches||0)-1);adjust("stamina",10)}else adjust("morale",4)}
+ if(d.kind==="contract"&&choice==="renew"){p.contract=Math.max(3,p.contract||0);p.wage=Math.round((p.wage||0)*1.08)}
+ if(d.kind==="locker"){if(choice==="talk"){adjust("morale",8);adjust("coachTrust",3)}else{adjust("form",3);adjust("stamina",-5)}}
+ if(d.kind==="veteran"){if(choice==="light")adjust("stamina",16);else{adjust("form",3);adjust("stamina",-10)}}
+ if(d.kind==="training"){if(choice==="extra"){
+  const k={ST:"shoot",LW:"dribble",RW:"dribble",CAM:"pass",CM:"pass",CDM:"defense",CB:"defense",GK:"defense"}[p.position]||"pass";
+  p.trainingProgress=p.trainingProgress||{};p.trainingProgress[k]=(p.trainingProgress[k]||0)+2;adjust("stamina",-10);
+ }else adjust("stamina",15)}
+ d.done=true;d.choice=choice;
+ if(!save()){
+  for(const [k,v] of Object.entries(old))p[k]=v;
+  d.done=false;delete d.choice;notify("存档空间不足，已撤回该选择，请先导出 JSON");
+ }else{logGuided(id,p.name+"决定："+S1_OPTIONS[d.kind].find(row=>row[0]===choice)[1]);notify(p.name+"的中期决定已保存")}
+ render();
+}
+
 function sharedAdvanceDates(maxDays=1,focusDate=null,focusChoice="balanced"){
  if(!duoGames)return;
  let count=0,days=0,date;
