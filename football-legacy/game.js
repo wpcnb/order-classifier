@@ -3080,6 +3080,23 @@ function v3Play(watch){
  v3Sync();
  page="dashboard";save();render();
 }
+function dragonChallengePanel(careers){
+ const challenge=window.DragonChallenge;
+ if(!challenge)return "";
+ const cards=careers.map(career=>{
+  const {player,season}=career;
+  const state=challenge.progress(season.results,player.club);
+  const labels={
+   climb:"登峰 · 连胜 "+state.wins+"/"+challenge.winsRequired,
+   peak:"亢龙 · 已达成三连胜，等待首败",
+   recover:"有悔 · 还剩 "+state.remaining+" 轮争取一胜",
+   complete:"再起 · 已于 "+E(state.completedOn)+" 完成挑战"
+  };
+  const ended=state.phase!=="complete"&&(season.stage==="review"||player.retired);
+  return '<div class="item"><b>'+E(player.name)+'</b> · '+E(player.club)+'<br>'+labels[state.phase]+(ended?' · 本季已结束':'')+'</div>';
+ }).join("");
+ return '<section class="card gap"><h2>亢龙有悔 · 赛季挑战</h2><p>联赛三连胜后，首场失利触发反弹挑战。接下来三轮内赢一场即可过关；逾期从连胜重新开始。按球队本季赛果计算，每季重置。</p><div class="grid2">'+cards+'</div></section>';
+}
 function duoDashboard(){
  const both=DUO_IDS.map(id=>duoGames[id]);
  const retired=both.every(x=>x.player.retired);
@@ -3096,7 +3113,7 @@ function duoDashboard(){
  // their presentation so match results remain visible on small screens.
  const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
  const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
- return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+s1ChoicePanel()+s1BackupReminder()+v3Scores()+summary+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
+ return '<div class="hero career-hero hero-match"><div><div class="cap">ONE WORLD · TWO PLAYERS</div><h1>双星同步职业生涯</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?'本赛季已结束，处理决定后进入下一季。':'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>'+s1ChoicePanel()+s1BackupReminder()+v3Scores()+summary+dragonChallengePanel(both)+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
