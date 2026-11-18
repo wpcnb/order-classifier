@@ -12,9 +12,9 @@
  const GROUP_LABELS={coach:"国家队主教练",captain:"国家队队长",media:"足球记者",fans:"球迷"};
  const WEIGHTS={
   coach:{form:.37,impact:.17,team:.23,ability:.10,available:.13},
-  captain:{form:.31,impact:.15,team:.14,ability:.27,available:.13},
+  captain:{form:.32,impact:.18,team:.24,ability:.14,available:.12},
   media:{form:.31,impact:.23,team:.29,ability:.08,available:.09},
-  fans:{form:.25,impact:.20,team:.13,ability:.31,available:.11}
+  fans:{form:.28,impact:.20,team:.22,ability:.18,available:.12}
  };
  const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
  const num=x=>Number.isFinite(Number(x))?Number(x):0;
@@ -36,7 +36,7 @@
   const sheets=apps?clamp(num(p.cleanSheets)/apps/.48):0;
   const form=clamp((num(p.rating)-5.9)/2.9);
   const ability=clamp((num(p.ov)-58)/41);
-  const team=dim(p.teamBonus,32);
+  const team=dim(p.teamBonus,48);
   // Defensive players are evaluated on their role. Unknown historical clean
   // sheets are NOT interpreted as a season of zero clean sheets for defenders.
   const defense=type==="GK"?clamp(sheets*.65+form*.20+ability*.15):
@@ -81,8 +81,30 @@
     goals:num(p.goals),assists:num(p.assists),apps:num(p.apps),
     groups,score};
   }).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
-  return {year,model:1,official:false,groups:GROUP_LABELS,
+  return {year,model:2,official:false,groups:GROUP_LABELS,
    ballotsPerGroup:100,rankings,winner:{...rankings[0]},criteria:"FIFA四类选民等权的游戏模拟，非真实FIFA投票"};
+ }
+ // European club honours are nationality-neutral. A champion receives
+ // the championship score once, never a sum of earlier knockout rounds.
+ function europeanPrestige(club,year,shared){
+  if(!club||!Number.isFinite(Number(year)))return 0;
+  const stageRank={"附加赛":1,"十六强":2,"八强":3,"半决赛":4,"决赛":5};
+  const byType={"欧冠":[0,1,3,5,9,16,30],"欧联":[0,1,2,3,5,9,16]};
+  let best=0;
+  for(const comp of Object.values(shared?.europeCompetitions||{})){
+   if(Number(comp?.year)!==Number(year)||!byType[comp?.type]||!Array.isArray(comp.clubs)||!comp.clubs.includes(club))continue;
+   const points=byType[comp.type];
+   if(comp.champion===club){best=Math.max(best,points[6]);continue}
+   const highest=(comp.knockout||[]).filter(t=>(t.a===club||t.b===club)&&stageRank[t.stage])
+    .reduce((n,t)=>Math.max(n,stageRank[t.stage]),0);
+   best=Math.max(best,points[highest]);
+  }
+  // Historical saves may only preserve an adjudicated final. No other
+  // qualification, playoff or runner-up finish is inferred from that.
+  for(const [type,points] of Object.entries(byType)){
+   if(shared?.europeFinals?.[year+":"+type]?.winner===club)best=Math.max(best,points[6]);
+  }
+  return best;
  }
  // Reference vectors are explicitly *designer-curated comparative archetypes*,
  // NOT verified match statistics, career totals or official player ratings.
@@ -164,5 +186,5 @@
     ballon:ref.ballon,worldBest:ref.worldBest};
   }).sort((a,b)=>b.similarity-a.similarity||a.name.localeCompare(b.name)).slice(0,clamp(limit,1,COMPARE.length));
  }
- return Object.freeze({GROUPS,GROUP_LABELS,electTheBest,awardYears,careerVector,similarity,legends:COMPARE});
+ return Object.freeze({GROUPS,GROUP_LABELS,electTheBest,europeanPrestige,awardYears,careerVector,similarity,legends:COMPARE});
 });
