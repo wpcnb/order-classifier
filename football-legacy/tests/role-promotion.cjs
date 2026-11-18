@@ -5,7 +5,7 @@ function extract(start,end){const a=source.indexOf(start),b=source.indexOf(end,a
 const code=extract("function roleAdjustedRating(","// Allocate actual team goals")+
  extract("function clubSeasonNumbers(","function generateOffers(");
 const gate={g:4,a:4,sum:7,apps:14,avg:6.70,ov:0};
-const context={Math,C:(x,a,b)=>Math.max(a,Math.min(b,x)),overall:()=>85,transferLevel:()=>0,
+const context={Math,RV3:require("../role-v3.js"),C:(x,a,b)=>Math.max(a,Math.min(b,x)),overall:()=>85,transferLevel:()=>0,
  TRANSFER_GATES:[gate],TRANSFER_LEVELS:["中超","非五大普通","非五大豪门","五大普通","五大豪门","传奇"],g:null};
 vm.createContext(context);vm.runInContext(code+";this.api={roleAdjustedRating,clubSeasonNumbers,transferQualified,seasonPerformance}",context);
 const {api}=context;
@@ -19,12 +19,12 @@ function fixture(position,{clean=12,rating=7.4,goals=0,assists=0,apps=30,youth=f
 }
 for(const role of ["CM","CDM","CB","LB","RB","GK"]){
  const good=fixture(role);assert.equal(good.cleanSheets,12);assert.equal(good.maxTier,1,role+" should qualify without goals when ratings and clean sheets are strong");
- assert.equal(fixture(role,{clean:1}).maxTier,0,role+" should not qualify without clean sheets");
+ assert.equal(fixture(role,{clean:1}).maxTier,1,role+" should remain eligible with strong independent ratings even without clean sheets");
  assert.equal(fixture(role,{rating:6.4}).maxTier,0,role+" should not qualify without a good rating");
  assert.equal(fixture(role,{apps:14}).maxTier,0,role+" should not qualify without adequate appearances");
  assert.equal(fixture(role,{scout:.99}).maxTier,0,role+" must still pass the original scouting chance");
  assert.equal(fixture(role,{youth:true}).maxTier,0,role+" must not skip youth");
- assert.equal(fixture(role,{missing:12}).maxTier,0,role+" must not invent missing old-save scores");
+ const incomplete=fixture(role,{missing:12});assert.equal(incomplete.cleanSheets,0,role+" must not fabricate clean sheets");assert.equal(incomplete.matchesWithScore,18);
 }
 // For the existing two default left wingers, the old output and qualification
 // rules remain identical at the boundary; the rating helper is a no-op.
