@@ -46,7 +46,7 @@ test("game creator removes gender selection and declares male-only",()=>{
  assert(game.includes("FS.validate(profile)"))
 });
 test("homepage version and local asset cache reflect change",()=>{
- assert(html.includes("<title>绿茵三剑客 ·"));
+ assert(html.includes("<title>绿茵三剑客2 ·"));
  assert(html.includes('free-star.js?v=9.0.0'));
  assert(html.includes('game.js?v='))
 });

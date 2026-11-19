@@ -8,8 +8,8 @@ function harness(existing=[]){
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){(handlers[id+":"+type]||=[]).push(fn)},click(){}});
  const document={getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
  const localStorage={get length(){return storage.size},key:i=>[...storage.keys()][i]||null,getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(rejectWrites)throw new Error("QuotaExceededError");storage.set(k,String(v))},removeItem:k=>storage.delete(k)};
- const context={window:{},document,localStorage,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
- for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
+ const context={window:{FootballRolesV3:require(path.join(root,"role-v3.js"))},document,localStorage,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
+ for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
  const trigger=(type,target)=>{for(const fn of handlers["app:"+type]||[])fn({target})};
  return {storage,api:context.window.__opening,get html(){return node("app").innerHTML},get toast(){return node("toast").textContent},get opening(){return JSON.parse(storage.get(openingKey)||"null")},get saved(){return JSON.parse(storage.get(saveKey)||"null")},
   fail(on){rejectWrites=on},change(dataset,value){trigger("change",{dataset,value})},click(action,data={}){trigger("click",{closest:()=>({disabled:false,dataset:{action,...data}})})},flush(){let n=0;while(timers.length&&n++<30)timers.shift()()}};
@@ -77,3 +77,33 @@ function harness(existing=[]){
  }
  console.log("✓ 三剑客随机建档、读档、青训毕业、真实比赛出场与三季自动决策");
 }
+
+for(const scenario of ["promotion","relegation","veteran","shortSeason","injured","bottomTier","scoutMiss"]){
+ const h=harness();h.click("trioOpening");
+ const games=h.api.duo(),year=games.wang.year;
+ const n=games.wang.npcs.find(n=>n.id==="trio-academy-player");
+ const strong=["promotion","scoutMiss"].includes(scenario);
+ Object.assign(n,{club:strong||scenario==="bottomTier"?"上海申花":"曼城",pos:strong?"GK":"ST",
+  apps:scenario==="shortSeason"?21:28,age:scenario==="veteran"?35:25,ov:96,goals:0,assists:0,
+  poorStreak:1,rating:strong?8:5.5,scoutingRoll:scenario==="scoutMiss"?1:0,injuryMatches:scenario==="injured"?1:0});
+ n.transferMatches=Array.from({length:n.apps},()=>({kind:"league",played:true,home:n.club,away:"对手",
+  hs:1,as:strong?0:3,rating:n.rating,goals:0,assists:0}));
+ const original=n.club;
+ for(const career of Object.values(games))career.season.stage="review";
+ h.api.prepareTrioTransfer(year);h.api.save();
+ const review=h.saved.sharedUniverse.trio.review;
+ if(scenario==="promotion")assert([1,2].includes(review.toTier)&&review.tier===0);
+ else if(scenario==="relegation")assert.equal(review.toTier,review.tier-1);
+ else assert.equal(review.toTier,review.tier,scenario+" must not move across tiers");
+ assert.equal(n.club,original,"new club only takes effect at the season boundary");
+ if(strong||scenario==="relegation"){
+  const reload=harness([...h.storage]);
+  reload.api.prepareTrioTransfer(year);reload.api.save();
+  assert.deepEqual(reload.saved.sharedUniverse.trio.review,review,"reload cannot reroll");
+  reload.click("trioSeason");
+  const after=reload.saved.sharedUniverse;
+  assert.equal(after.npcs.find(n=>n.id==="trio-academy-player").club,review.to);
+  assert.deepEqual(after.trio.history.at(-1).transfer,review);
+ }
+}
+console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球探、跨季生效与读档不重抽");
