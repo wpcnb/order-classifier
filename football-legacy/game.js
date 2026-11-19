@@ -36,11 +36,13 @@ const PLAYER_STYLES={
 let drawnClubs={wang:null,vini:null},openingDecks={wang:null,vini:null},openingSelectedIndex={wang:null,vini:null},openingStyles={wang:"default",vini:"default"};
 let creatorMode="preset",creatorDrafts={wang:FS?FS.draftDefaults():null,vini:FS?FS.draftDefaults():null},creatorLocked={wang:null,vini:null};
 let openingPositions={wang:"LW",vini:"LW"},openingPaths={wang:"balanced",vini:"balanced"},openingWeights={wang:73,vini:72};
+let trioOpeningName="";
 let v10Persons={wang:"王楚淇",vini:"维尼修斯"},
  v10Countries={wang:V10?V10.chooseCountry():"中国",vini:V10?V10.chooseCountry():"巴西"},
  v10Heights={wang:177,vini:176},v10Philosophies={wang:"balanced",vini:"balanced"},
  v10Operations={wang:"guided",vini:"guided"},v10Step=1;
 function resetDraw(){
+ trioOpeningName="";
  drawnClubs={wang:null,vini:null};openingDecks={wang:null,vini:null};openingSelectedIndex={wang:null,vini:null};
  openingStyles={wang:"default",vini:"default"};openingLeagues={wang:V10?V10.chooseLeague():"CHN",vini:V10?V10.chooseLeague():"CHN"};
  creatorMode="preset";creatorDrafts={wang:FS?FS.draftDefaults():null,vini:FS?FS.draftDefaults():null};creatorLocked={wang:null,vini:null};
@@ -54,6 +56,7 @@ const OPENING_LEAGUES=["CHN","ENG","ESP","GER","ITA","FRA"];
 const OPENING_STORE="football-dynasty-opening-v3";
 let openingLeagues={wang:V10?V10.chooseLeague():"CHN",vini:V10?V10.chooseLeague():"CHN"};
 function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STORE)||"null");if(!d)return;
+ if(typeof d.trioOpeningName==="string")trioOpeningName=d.trioOpeningName.trim().slice(0,22);
  if(FS&&["preset","quick","custom"].includes(d.mode))creatorMode=d.mode;
  if(V10){
   if([1,2,3].includes(d.v10Step))v10Step=d.v10Step;
@@ -86,7 +89,7 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
  }}catch(e){}
 }
 function persistOpening(){try{
- localStorage.setItem(OPENING_STORE,JSON.stringify({leagues:openingLeagues,decks:openingDecks,drawn:drawnClubs,indices:openingSelectedIndex,names:duoDraft,styles:openingStyles,positions:openingPositions,paths:openingPaths,weights:openingWeights,v10Step,v10Persons,v10Countries,v10Heights,v10Philosophies,v10Operations,mode:creatorMode,creatorDrafts,creatorLocked}));
+ localStorage.setItem(OPENING_STORE,JSON.stringify({leagues:openingLeagues,decks:openingDecks,drawn:drawnClubs,indices:openingSelectedIndex,trioOpeningName,names:duoDraft,styles:openingStyles,positions:openingPositions,paths:openingPaths,weights:openingWeights,v10Step,v10Persons,v10Countries,v10Heights,v10Philosophies,v10Operations,mode:creatorMode,creatorDrafts,creatorLocked}));
  return true
  }catch(e){return false}}
 function duoPlayerTemplate(id){
@@ -401,9 +404,10 @@ function hydratePayload(data){
   delete sharedUniverse.npcs;delete sharedUniverse.world;
  }
  activeDuo="wang";g=duoGames.wang;
+ const graduated=graduateTrioPlayer(trioPlayer(),sharedUniverse.trio,true);
  for(const id of overdue)recordPlayerRetirement(id,true);
  linkSharedWorld();
- if([reconcileEuropeanHonors(),reconcileNationalHonors(),reconcileDomesticCupHonors()].some(Boolean))save();
+ if([reconcileEuropeanHonors(),reconcileNationalHonors(),reconcileDomesticCupHonors(),graduated].some(Boolean))save();
  if(DUO_IDS.every(id=>duoGames[id].season.stage==="playing"&&duoGames[id].season.index===0))
   setupSharedUefaSeason();
  if(overdue.length){finalizeRetiredSeasonIfReady();save()}
@@ -1298,9 +1302,9 @@ function simulateNPCOffseason(){
   const tracked=n.id===TRIO_AI_ID&&sharedUniverse?.trio;
   if(tracked){
    tracked.history.push({year:g.year-1,...trioRecord(n),transfer:tracked.review?.year===g.year-1?tracked.review:null});
-   if(n.age===17)n.club=tracked.academy;
   }
   n.age=(n.age||24)+1;n.potential=n.potential||90;
+  if(tracked)graduateTrioPlayer(n,tracked);
   const ageLimit=n.pos==="GK"?41:["CB","CDM"].includes(n.pos)?40:39;
   const retirementRisk=n.age>=35?Math.min(.24,(n.age-34)*.023):0;
   if(tracked?n.age>=40:n.age>=ageLimit||n.age>=35&&Math.random()<retirementRisk){
@@ -1318,7 +1322,8 @@ function simulateNPCOffseason(){
    const review=tracked.review;
    if(review?.year===g.year-1&&review.from===n.club&&review.to!==n.club){
     g.worldTransfers.unshift({year:g.year,name:n.name,from:n.club,to:review.to});
-    n.club=review.to;n.poorStreak=0;n.trophylessStreak=0;
+    n.club=review.to;n.poorStreak=0;
+    if(review.trophylessMove||review.trophylessStreak===undefined)n.trophylessStreak=0;
    }
    n.transferMatches=[];n.seasonForm=R(-90,90)/100;n.scoutingRoll=Math.random();
   }
@@ -2369,9 +2374,9 @@ function lateralTransferReason(x){
  if(d&&!d.declined)return "请先完成升档盲卡或选择留队";
  return "";
 }
-function lateralTransferPool(p){
+function lateralTransferPool(p,weakerOnly=p.transferAssessment?.poor){
  const current=transferLevel(p.leagueId,p.club);
- return Object.entries(DB).filter(([league])=>league!=="BRA").flatMap(([league,l])=>l.teams.map(t=>({id:league,club:t.name,power:power(t.name),tier:transferLevel(league,t.name)}))).filter(o=>o.club!==p.club&&o.tier===current&&(!p.transferAssessment?.poor||o.power<power(p.club)));
+ return Object.entries(DB).filter(([league])=>league!=="BRA").flatMap(([league,l])=>l.teams.map(t=>({id:league,club:t.name,power:power(t.name),tier:transferLevel(league,t.name)}))).filter(o=>o.club!==p.club&&o.tier===current&&(!weakerOnly||o.power<power(p.club)));
 }
 function requestLateralOffers(id){
  if(!duoGames||!DUO_IDS.includes(id))return;
@@ -2856,7 +2861,7 @@ function startPage(){
  if(V10&&V10UI){
   const legacy=incompatibleLegacySave?'<section class="card gap"><h2>旧版存档需要先备份</h2><p>'+E(incompatibleLegacySave)+'</p><button class="button" data-action="exportIncompatible">导出原始旧档 JSON</button><button class="button" data-action="archiveIncompatible">先备份旧档，再开始</button></section>':'';
   return V10UI.render({core:V10,people:V10.catalog(window.FOOTBALL_AWARD_REAL_PEOPLE),
-    players:v10Persons,leagues:openingLeagues,countries:v10Countries,heights:v10Heights,
+    trioOpeningName,players:v10Persons,leagues:openingLeagues,countries:v10Countries,heights:v10Heights,
     positions:openingPositions,philosophies:v10Philosophies,operations:v10Operations,
     step:v10Step,clubs:openingDecks,drawn:drawnClubs,gameLeagues:DB,positionLabels:POS,
     development:id=>openingDevelopmentPanel(id),openingCards:id=>openingCardPanel(id),legacyHtml:legacy})+
@@ -3209,23 +3214,41 @@ function v3Play(watch){
 const TRIO_AI_ID="trio-academy-player";
 let trioRun=null;
 function trioPlayer(){
- return duoGames?.wang.npcs.find(n=>n.id===TRIO_AI_ID);
+ return duoGames?.wang.npcs?.find(n=>n.id===TRIO_AI_ID);
 }
-function enrollTrio(){
+function graduateTrioPlayer(n,bio,repairReview=false){
+ if(!n||!bio||n.age<18||!n.club.endsWith("青训"))return false;
+ const parent=n.club.slice(0,-2);
+ const senior=leagueFromClub(parent)?parent:bio.academy;
+ if(!leagueFromClub(senior))return false;
+ const review=bio.review;
+ if(repairReview&&review?.year===duoGames.wang.year&&review.from===n.club){
+  if(review.to===n.club)review.to=senior;
+  review.from=senior;
+ }
+ n.club=senior;
+ return true;
+}
+function trioNameTaken(name){
+ return DUO_IDS.some(id=>(duoGames?duoGames[id].player.name:v10Persons[id])===name);
+}
+function enrollTrio(requestedName=$("trioName")?.value||""){
  if(sharedUniverse.trio)return true;
  const captain=DUO_IDS.map(id=>duoGames[id].player).find(p=>!p.retired);
  if(!captain||!FS)return false;
  const identity=FS.quickDraft(),profile=FS.generatedProfile(identity);
  const academy=P(DB[captain.leagueId].teams).name;
  const age=captain.youth?captain.age:Math.max(18,captain.age);
- const club=captain.youth?academy+"青训":academy;
- const name=P(["林","沈","陆","黎","程","季"])+P(["远舟","一帆","星野","云川","知行","子安"]);
- const displayName=DUO_IDS.some(id=>duoGames[id].player.name===name)?name+"·青":name;
+ const club=age<18?academy+"青训":academy;
+ let displayName=requestedName.trim().slice(0,22);
+ if(!displayName){displayName="第三名球员";while(trioNameTaken(displayName))displayName+="·青"}
+ if(trioNameTaken(displayName)){notify("三位球员需要不同的姓名");return false}
  const npc={id:TRIO_AI_ID,name:displayName,club,age,pos:profile.position,potential:profile.potential,
   ov:FS.rating(profile),roleSkills:{...profile.stats},rating:6.5,form:50,apps:0,goals:0,assists:0,realPerson:false};
  duoGames.wang.npcs.push(npc);
  sharedUniverse.trio={name:displayName,country:profile.country,position:profile.position,height:profile.height,weight:profile.weight,
-  family:P(["工薪家庭","体育世家","自营商户家庭","农家","教师家庭"]),academy,potential:profile.potential,history:[]};
+  family:P(["工薪家庭","体育世家","自营商户家庭","农家","教师家庭"]),academy,potential:profile.potential,history:[],
+  partialSeasonYear:DUO_IDS.some(id=>duoGames[id].season.index>0||duoGames[id].season.stage==="review")?duoGames.wang.year:null};
  if(save())return true;
  duoGames.wang.npcs.splice(duoGames.wang.npcs.indexOf(npc),1);
  delete sharedUniverse.trio;
@@ -3234,6 +3257,8 @@ function enrollTrio(){
 function trioOpening(){
  if(duoGames||incompatibleLegacySave||!FS)return;
  if(V10&&v10Persons.wang===v10Persons.vini)return notify("两位主角需要不同的姓名");
+ const name=($("trioName")?.value??trioOpeningName).trim().slice(0,22);
+ if(trioNameTaken(name))return notify("三位球员需要不同的姓名");
  for(const id of DUO_IDS){
   if(drawnClubs[id])continue;
   const deck=openingCards(id),slots=deck.map((club,i)=>({club,i})).filter(row=>openingPool(id).includes(row.club));
@@ -3243,7 +3268,18 @@ function trioOpening(){
  }
  if(!persistOpening())return notify("无法保存开局，请检查浏览器存储");
  buildDuoGame();
- if(duoGames&&enrollTrio())render();
+ if(duoGames&&enrollTrio(name))render();
+}
+function renameTrio(){
+ const n=trioPlayer(),bio=sharedUniverse.trio;
+ if(!n||!bio)return;
+ const name=($("trioName")?.value||"").trim().slice(0,22);
+ if(!name)return notify("请输入人机球员姓名");
+ if(trioNameTaken(name))return notify("三位球员需要不同的姓名");
+ const old=bio.name;
+ n.name=bio.name=name;
+ if(!save()){n.name=bio.name=old;return notify("姓名保存失败，请重试")}
+ render();
 }
 function autoAcceptDraw(draw){
  if(!draw.selected){draw.selectedIndex=R(0,draw.options.length-1);draw.selected={...draw.options[draw.selectedIndex]}}
@@ -3266,21 +3302,25 @@ function prepareTrioTransfer(year){
   Object.values(sharedUniverse.domesticCups||{}).some(c=>c.year===year&&c.champion===n.club)||
   Object.values(sharedUniverse.europeFinals||{}).some(c=>c.year===year&&c.winner===n.club);
  const assessment=assessTransferSeason(player,numbers,n.ov,year,champion);
- const season={year,player,season:{stage:"review"}},draw=ensurePromotionDraw(season);
+ if(bio.partialSeasonYear===year)player.trophylessStreak=0;
+ const trophylessMove=!youth&&n.age<39&&player.trophylessStreak>=3;
  let destination=null;
- if(draw){autoAcceptDraw(draw);destination=draw.selected}
- else if(!youth&&n.age<39&&!player.forcedMove&&Math.random()<.022){
-  const pool=lateralTransferPool(player);
+ if(trophylessMove){
+  const pool=lateralTransferPool(player,false);
   if(pool.length)destination=P(pool);
+ }else{
+  const draw=ensurePromotionDraw({year,player,season:{stage:"review"}});
+  if(draw){autoAcceptDraw(draw);destination=draw.selected}
  }
  n.poorStreak=player.poorStreak;n.trophylessStreak=player.trophylessStreak;
  const toTier=destination?.tier??assessment.tier;
  bio.review={year,from:n.club,to:destination?.club||n.club,tier:assessment.tier,toTier,
   move:destination?(toTier<assessment.tier?"降档转会":toTier>assessment.tier?"升档转会":"同档转会"):"留队",
-  comment:assessment.comment,poorStreak:n.poorStreak};
+  comment:trophylessMove?"连续三个完整一线队赛季无冠，自动转入同档球队。":assessment.comment,
+  trophylessMove,trophylessStreak:n.trophylessStreak,poorStreak:n.poorStreak};
 }
 function trioTransferText(review){
- return E(review.move)+(review.from===review.to?"":" · "+E(review.from)+" → "+E(review.to)+"（"+E(TRANSFER_LEVELS[review.tier])+" → "+E(TRANSFER_LEVELS[review.toTier])+"）");
+ return E(review.move)+(review.trophylessMove?"（连续三季无冠）":"")+(review.from===review.to?"":" · "+E(review.from)+" → "+E(review.to)+"（"+E(TRANSFER_LEVELS[review.tier])+" → "+E(TRANSFER_LEVELS[review.toTier])+"）");
 }
 function trioRecord(n){
  return {club:n.club,age:n.age,overall:n.ov,apps:(n.apps||0)+(n.europeApps||0),
@@ -3290,7 +3330,9 @@ function trioPanel(){
  const bio=sharedUniverse.trio,n=trioPlayer(),r=n?trioRecord(n):bio.history.at(-1);
  if(!r)return "";
  const stats=v=>v.apps+" 场 · "+v.goals+" 球 · "+v.assists+" 助攻";
- return '<section class="card gap"><h2>'+E(bio.name)+' · 人机球员</h2><p>'+E(bio.country)+' · '+E(POS[bio.position])+' · '+bio.height+' cm · '+bio.weight+' kg</p><p>天赋潜力 '+bio.potential+' · '+E(bio.family)+' · '+E(bio.academy)+'青训营</p><p><b>'+E(r.club)+'</b> · '+r.age+' 岁 · 能力 '+r.overall+(n?' · 本季 ':' · 已退役，最后一季 ')+stats(r)+'</p>'+
+ return '<section class="card gap"><h2>'+E(bio.name)+' · 人机球员</h2><p>'+E(bio.country)+' · '+E(POS[bio.position])+' · '+bio.height+' cm · '+bio.weight+' kg</p><p>天赋潜力 '+bio.potential+' · '+E(bio.family)+' · 出身青训营：'+E(bio.academy)+'</p><p>当前球队（'+(r.age<18?'青训':'一线队')+'）：<b>'+E(r.club)+'</b> · '+r.age+' 岁 · 能力 '+r.overall+(n?' · 本季 ':' · 已退役，最后一季 ')+stats(r)+'</p>'+
+  (n?'<details><summary>修改人机姓名</summary><label class="field">人机球员姓名<input id="trioName" maxlength="22" value="'+E(bio.name)+'"></label><button class="button" data-action="trioRename">保存姓名</button></details>':'')+
+  (n&&r.age>=18?'<p>连续无冠 '+(n.trophylessStreak||0)+' 季 · 满三季自动同档转会</p>':'')+
   (bio.review?.year===duoGames.wang.year?'<p>赛季转会决定：'+trioTransferText(bio.review)+'<br>'+E(bio.review.comment)+'</p>':'')+
   (bio.history.length?'<details><summary>查看人机生涯履历</summary>'+bio.history.slice().reverse().map(v=>'<p>'+v.year+' · '+E(v.club)+' · '+stats(v)+(v.transfer?' · '+trioTransferText(v.transfer):'')+'</p>').join("")+'</details>':'')+'</section>';
 }
@@ -3348,7 +3390,7 @@ function duoDashboard(){
  // their presentation so match results remain visible on small screens.
  const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
  const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
- return '<div class="hero career-hero hero-match"><div><div class="cap">'+(trio?"THREE PLAYERS · ONE WORLD":"ONE WORLD · TWO PLAYERS")+'</div><h1>'+(trio?"绿茵三剑客2":"双星同步职业生涯")+'</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?(trio?'本季已结算，继续模拟会自动处理转会。':'本赛季已结束，处理决定后进入下一季。'):'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>' +(trio?trioPanel():'<section class="card gap"><button class="button" data-action="trioSeason">加入人机球员并自动模拟一季</button></section>')+(trio?'':s1ChoicePanel())+s1BackupReminder()+v3Scores()+summary+seasonDesk()+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
+ return '<div class="hero career-hero hero-match"><div><div class="cap">'+(trio?"THREE PLAYERS · ONE WORLD":"ONE WORLD · TWO PLAYERS")+'</div><h1>'+(trio?"绿茵三剑客2":"双星同步职业生涯")+'</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?(trio?'本季已结算，继续模拟会自动处理转会。':'本赛季已结束，处理决定后进入下一季。'):'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>' +(trio?trioPanel():'<section class="card gap"><label class="field">人机球员姓名<input id="trioName" maxlength="22" placeholder="第三名球员"></label><button class="button" data-action="trioSeason">加入人机球员并自动模拟一季</button></section>')+(trio?'':s1ChoicePanel())+s1BackupReminder()+v3Scores()+summary+seasonDesk()+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
@@ -3436,6 +3478,11 @@ function topNav(){
 }
 function render(){const a=$("app");if(!g){a.innerHTML=startPage();return}const pages={dashboard:duoDashboard,world:duoWorldPage,transfer:duoTransferPage,my:duoMyPage,honors:duoHonorsPage,awards:duoAwardsPage,achievements:v3AchievementPage,career:duoHistoryPage,save:savePage};a.innerHTML=duoTop()+topNav()+(pages[page]||duoDashboard)()}
 $("app").addEventListener("change",ev=>{
+ if(ev.target.id==="trioName"&&!duoGames){
+  trioOpeningName=ev.target.value.trim().slice(0,22);
+  if(!persistOpening())notify("开局姓名暂未保存");
+  return;
+ }
  const planPlayer=ev.target.dataset.prepPlan;
  if(planPlayer){
   const x=duoGames?.[planPlayer],key=ev.target.value;
@@ -3545,7 +3592,7 @@ $("app").addEventListener("change",ev=>{
  }
 });
 $("app").addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b||b.disabled)return;const tab=b.dataset.page;if(tab){choosePage(tab);return}const action=b.dataset.action,key=b.dataset.key,i=Number(b.dataset.i||0);switch(action){
- case"trioOpening":trioOpening();break;case"trioSeason":if(!trioRun)trioSeason();break;case"trioCareer":trioContinuous();break;case"trioStop":trioRun=null;render();break;case"s1Choice":s1Decide(b.dataset.id,b.dataset.choice);break;case"s1RestoreYearly":s1RestoreYearlyBackup();break;case"v3Play":v3Play(b.dataset.watch==="1");break;case"v3NextReplay":if(v3Replay){v3Replay.i++;if(v3Replay.i>=v3Replay.games.length)v3Replay=null;render()}break;
+ case"trioRename":renameTrio();break;case"trioOpening":trioOpening();break;case"trioSeason":if(!trioRun)trioSeason();break;case"trioCareer":trioContinuous();break;case"trioStop":trioRun=null;render();break;case"s1Choice":s1Decide(b.dataset.id,b.dataset.choice);break;case"s1RestoreYearly":s1RestoreYearlyBackup();break;case"v3Play":v3Play(b.dataset.watch==="1");break;case"v3NextReplay":if(v3Replay){v3Replay.i++;if(v3Replay.i>=v3Replay.games.length)v3Replay=null;render()}break;
  case"duoPoint":duoTrainingCommand(b.dataset.id,"point",key);break;case"duoTrain":duoTrainingCommand(b.dataset.id,"train",key);break;case"duoRecover":duoTrainingCommand(b.dataset.id,"recover");break;case"v10Next":case"v10Back":case"v10League":case"v10Country":v10OpeningAction(action,b.dataset.id);break;case"v10Snapshot":v10SaveSnapshot();break;case"v10Restore":v10RestoreSnapshot(i);break;case"exportLegacy":exportLegacy(key);break;case"exportIncompatible":exportLegacy(STORE);break;case"archiveIncompatible":archiveIncompatibleSave();break;case"preset":buildDuoGame();break;case"creatorMode":setCreatorMode(b.dataset.mode);break;case"flipOpeningCard":flipOpeningCard(b.dataset.id,i);break;case"retirePlayer":retirePlayer(b.dataset.id);break;case"requestLateralOffers":requestLateralOffers(b.dataset.id);break;case"acceptLateralOffer":{const id=b.dataset.id,select=DUO_IDS.includes(id)?document.querySelector('[data-lateral-offer="'+id+'"]'):null;if(select)acceptLateralOffer(id,Number(select.value));break}case"chooseAcademy":chooseAcademy(b.dataset.id,b.dataset.league);break;case"flipPromotionCard":flipPromotionCard(b.dataset.id,i);break;case"acceptDraw":decidePromotion(b.dataset.id,true);break;case"declineDraw":decidePromotion(b.dataset.id,false);break;case"sharedAwardYear":g.awardWorldYear=b.dataset.year;save();render();break;case"sharedBestYear":g.awardWorldYear=b.dataset.year;save();render();break;case"simBoth":simBoth();break;case"quickCareerAdvance":quickCareerAdvance();break;case"reroll":{let f=$("customForm");if(f){const data=new FormData(f);draft={name:String(data.get("name")||"王楚淇"),country:data.get("country"),leagueId:data.get("leagueId"),club:data.get("club"),position:data.get("position"),talent:mkTalent()}}render();break}
  case"nextMatch":simNext();break;case"play":break;
  case"simSeason":simBoth();break;case"simThree":simThree();break;case"addPoint":training(key);break;case"manualRecovery":manualRecovery();break;case"manualTraining":manualTraining(key);break;case"coachPoint":coachPoint(key);break;case"autoDistribute":autoPoints();save();render();break;
