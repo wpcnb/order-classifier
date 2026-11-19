@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,".."),SAVE="football-dynasty-duo-v2-20261110";
-const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,shared:()=>sharedUniverse,finalizeRetiredSeasonIfReady,finalizeSharedSeason,duoAwardsPage,nextSeason,save};})();');
+const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,shared:()=>sharedUniverse,finalizeRetiredSeasonIfReady,finalizeSharedSeason,duoAwardsPage,duoHonorsPage,nextSeason,save};})();');
 function harness(data,failBackup=false){
  const storage=new Map(data||[]),nodes={},handlers={},timers=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn}});
@@ -97,6 +97,7 @@ for(const [year,npcCount] of [[2035,8],[2040,12],[2048,7],[2055,0]]){
   assert.equal(award.ballots.length,0);
   assert.equal(award.totalPoints,0);
   assert.match(h.api.duoAwardsPage(),/不足10人/);
+  assert.match(h.api.duoHonorsPage(),/本届空缺/);
  }
  h.api.finalizeSharedSeason();
  assert.deepEqual(d.wang.ballonHistory.map(b=>b.totalPoints),d.vini.ballonHistory.map(b=>b.totalPoints));
