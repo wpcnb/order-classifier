@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,".."),SAVE="football-dynasty-duo-v2-20261110";
-const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,shared:()=>sharedUniverse,finalizeRetiredSeasonIfReady,nextSeason,save};})();');
+const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,shared:()=>sharedUniverse,finalizeRetiredSeasonIfReady,finalizeSharedSeason,duoAwardsPage,nextSeason,save};})();');
 function harness(data,failBackup=false){
  const storage=new Map(data||[]),nodes={},handlers={},timers=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn}});
@@ -60,9 +60,11 @@ function markComplete(x){x.season.stage="review";x.history.push({year:x.year,gen
 {
  const {h,d,year}=prepare();markComplete(d.wang);d.vini.season.stage="playing";d.wang.npcs.forEach(n=>{n.apps=0;n.europeApps=0});
  h.click("retirePlayer",{id:"vini"});h.api.nextSeason();
- assert.equal(d.wang.year,year,"cannot silently advance past an award settlement with insufficient valid players");
- assert(h.storage.get(SAVE),"the current save is retained when settlement is blocked");
- console.log("✓ insufficient award data does not silently advance or discard the save");
+ assert.equal(d.wang.year,year+1);
+ assert.equal(h.api.shared().awards[year].winner,null);
+ assert.equal(d.wang.ballonHistory.at(-1).status,"insufficient");
+ assert(h.storage.get(SAVE),"the save retains the explicit vacancy and continued career");
+ console.log("✓ incomplete award data is recorded explicitly after retirement and the remaining player advances");
 }
 {
  const {h,d,year}=prepare();markComplete(d.wang);markComplete(d.vini);
@@ -73,3 +75,36 @@ function markComplete(x){x.season.stage="review";x.history.push({year:x.year,gen
  assert(!h.api.shared().awards[year+1],"the prior completed season cannot make a newly started season look complete");
  console.log("✓ automatic 40-year retirement does not mark the following season complete");
 }
+
+for(const [year,npcCount] of [[2035,8],[2040,12],[2048,7],[2055,0]]){
+ const {h,d}=prepare();
+ const roster=d.wang.npcs.filter(n=>!n.realPerson).slice(0,npcCount);
+ for(const x of Object.values(d)){
+  x.year=year;
+  x.npcs=roster.length?[...roster,{...roster[0]}]:[];
+  markComplete(x);
+ }
+ h.api.finalizeSharedSeason();
+ const award=h.api.shared().awards[year];
+ if(npcCount+2>=10){
+  assert.equal(award.totalPoints,6700);
+  assert.equal(award.ballots.length,100);
+  assert(award.ballots.every(ballot=>new Set(ballot).size===10));
+  assert.equal(new Set(award.rankings.map(n=>n.id)).size,award.rankings.length);
+ }else{
+  assert.equal(award.winner,null);
+  assert.equal(award.eligibleCount,npcCount+2);
+  assert.equal(award.ballots.length,0);
+  assert.equal(award.totalPoints,0);
+  assert.match(h.api.duoAwardsPage(),/不足10人/);
+ }
+ h.api.finalizeSharedSeason();
+ assert.deepEqual(d.wang.ballonHistory.map(b=>b.totalPoints),d.vini.ballonHistory.map(b=>b.totalPoints));
+ assert.equal(d.wang.ballonHistory.length,1);
+ h.api.save();
+ const loaded=harness([[SAVE,h.storage.get(SAVE)]]);
+ assert.equal(loaded.api.shared().awards[year].totalPoints,award.totalPoints);
+ loaded.api.nextSeason();
+ assert.equal(loaded.api.duo().wang.year,year+1);
+}
+console.log("✓ 2035–2055 sparse and duplicate nominee pools settle once, reload and advance");
