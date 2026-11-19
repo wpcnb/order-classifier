@@ -49,7 +49,7 @@ function progressPosition(p){
  p.positionHistory=p.positionHistory.slice(-20);
  return {completed:true,from,to};
 }
-function lineup(p,overall,teamPower,random=Math.random){
+function starterProbability(p,overall,teamPower){
  const challenge=clamp((overall-teamPower)*.016,-.22,.20);
  const trust=clamp(((p.coachTrust||60)-60)*.004,-.16,.16);
  const form=clamp(((p.form||65)-65)*.003,-.12,.12);
@@ -57,7 +57,10 @@ function lineup(p,overall,teamPower,random=Math.random){
  const specialty=traitFor(p)==="defense"&&["CB","CDM","GK"].includes(p.position)?.04:0;
  const body=window.BodyPath||null;
  const styleBonus=body?(body.starterBonus(p)+body.lineupBonus(p.careerPath)):0;
- const starterChance=clamp(.58+challenge+trust+form+transition+specialty+styleBonus,.22,.89);
+ return clamp(.58+challenge+trust+form+transition+specialty+styleBonus,.22,.89);
+}
+function lineup(p,overall,teamPower,random=Math.random){
+ const starterChance=starterProbability(p,overall,teamPower);
  const started=random()<starterChance;
  const entryMinute=started?0:Math.floor(55+random()*20);
  return {started,entryMinute,starterChance};
@@ -146,5 +149,5 @@ function recordMarketValue(p,year,overall,tier,season,career){
  p.marketValueHistory.push(entry);p.marketValueHistory=p.marketValueHistory.slice(-42);
  return entry;
 }
-window.CareerDepth=Object.freeze({ROLE_NAMES,traitFor,traitInfo,positionOptions,setPositionTarget,progressPosition,lineup,contributionModifiers,injuryFactor,marketValue,marketValueDetails,money,objectiveTargets,settleObjectives,recordMarketValue});
+window.CareerDepth=Object.freeze({ROLE_NAMES,traitFor,traitInfo,positionOptions,setPositionTarget,progressPosition,starterProbability,lineup,contributionModifiers,injuryFactor,marketValue,marketValueDetails,money,objectiveTargets,settleObjectives,recordMarketValue});
 })();
