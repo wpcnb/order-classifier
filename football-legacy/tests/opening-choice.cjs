@@ -12,7 +12,7 @@ function harness(existing=[]){
  for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
  const trigger=(type,target)=>{for(const fn of handlers["app:"+type]||[])fn({target})};
  return {storage,api:context.window.__opening,get html(){return node("app").innerHTML},get toast(){return node("toast").textContent},get opening(){return JSON.parse(storage.get(openingKey)||"null")},get saved(){return JSON.parse(storage.get(saveKey)||"null")},
-  fail(on){rejectWrites=on},change(dataset,value){trigger("change",{dataset,value})},click(action,data={}){trigger("click",{closest:()=>({disabled:false,dataset:{action,...data}})})},flush(){let n=0;while(timers.length&&n++<30)timers.shift()()}};
+  input(id,value){node(id).value=value},fail(on){rejectWrites=on},change(dataset,value){trigger("change",{dataset,value})},click(action,data={}){trigger("click",{closest:()=>({disabled:false,dataset:{action,...data}})})},flush(){let n=0;while(timers.length&&n++<30)timers.shift()()}};
 }
 {
  const h=harness();assert.match(h.html,/data-v10-person="wang"/);assert.match(h.html,/data-opening-league="wang"/);
@@ -107,3 +107,56 @@ for(const scenario of ["promotion","relegation","veteran","shortSeason","injured
  }
 }
 console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球探、跨季生效与读档不重抽");
+
+{
+ const h=harness();
+ h.input("trioName",h.api.names().wang);h.click("trioOpening");assert.equal(h.saved,null);
+ h.input("trioName","  阿远  ");h.click("trioOpening");
+ const old=h.saved,bio=old.sharedUniverse.trio;
+ const actor=save=>save.sharedUniverse.npcs.find(n=>n.id==="trio-academy-player");
+ assert.equal(bio.name,"阿远");assert.equal(actor(old).name,bio.name);
+ actor(old).age=23;
+ const game=harness([[saveKey,JSON.stringify(old)]]);
+ assert.equal(actor(game.saved).club,bio.academy);
+ assert.match(game.html,/当前球队（一线队）/);
+ game.input("trioName","新名字");game.fail(true);game.click("trioRename");
+ assert.equal(game.api.duo().wang.npcs.find(n=>n.id==="trio-academy-player").name,"阿远");
+ game.fail(false);game.input("trioName",old.duoGames.wang.player.name);game.click("trioRename");
+ assert.equal(game.saved.sharedUniverse.trio.name,"阿远");
+ game.input("trioName","小鹰");game.click("trioRename");
+ const reload=harness([...game.storage]);
+ assert.equal(actor(reload.saved).name,"小鹰");assert.match(reload.html,/小鹰 · 人机球员/);
+ console.log("✓ 开局命名、重名校验、旧档成年毕业、改名保存失败回滚和读档");
+}
+
+{
+ const h=harness();h.click("trioOpening");
+ const baseline=h.saved,year=baseline.duoGames.wang.year;
+ for(const [streak,age,title,partial,expected] of [
+  [0,22,false,false,1],[1,23,false,false,2],[2,24,false,false,3],
+  [2,24,true,false,0],[2,17,false,false,0],[0,24,false,true,0],[2,39,false,false,3]
+ ]){
+  const fixture=JSON.parse(JSON.stringify(baseline)),u=fixture.sharedUniverse;
+  const ai=u.npcs.find(n=>n.id==="trio-academy-player");
+  Object.assign(ai,{age,club:age<18?"曼城青训":"曼城",trophylessStreak:streak,apps:0});
+  for(const x of Object.values(fixture.duoGames))x.season.stage="review";
+  if(title)u.domesticCups.test={year,champion:ai.club};
+  if(partial)u.trio.partialSeasonYear=year;
+  const sim=harness([[saveKey,JSON.stringify(fixture)]]);
+  sim.api.prepareTrioTransfer(year);sim.api.save();
+  const review=sim.saved.sharedUniverse.trio.review;
+  assert.equal(review.trophylessStreak,expected);
+  assert.equal(review.trophylessMove,expected===3&&age<39);
+  if(review.trophylessMove){
+   assert.notEqual(review.from,review.to);assert.equal(review.tier,review.toTier);
+   const reload=harness([...sim.storage]);reload.api.prepareTrioTransfer(year);reload.api.save();
+   assert.deepEqual(reload.saved.sharedUniverse.trio.review,review);
+   reload.click("trioSeason");
+   const after=reload.saved.sharedUniverse;
+   assert.equal(after.npcs.find(n=>n.id==="trio-academy-player").club,review.to);
+   assert.deepEqual(after.trio.history.at(-1).transfer,review);
+   assert(after.trio.review.trophylessStreak<=1,"new cycle after the move");
+  }else assert.equal(review.to,review.from);
+ }
+ console.log("✓ 无冠一、二、三季边界、冠军清零、青训与半季豁免、同档转会落地并重新计数");
+}
