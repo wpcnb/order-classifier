@@ -53,3 +53,27 @@ function harness(existing=[]){
  const h=harness();h.change({v10Person:"wang"},"同名");h.change({v10Person:"vini"},"同名");h.click("v10Next");assert.equal(h.api.step(),1);assert.match(h.toast,/不能是同一个人物/);
  console.log("✓ 两名人物不能使用同一姓名");
 }
+{
+ const h=harness();
+ h.click("trioOpening");
+ const bio=h.saved.sharedUniverse.trio;
+ assert(bio.country && bio.position && bio.family && bio.academy);
+ assert(bio.height>=150 && bio.weight>=45 && bio.potential>=65);
+ const actor=save=>save.sharedUniverse.npcs.find(n=>n.id==="trio-academy-player");
+ assert.equal(actor(h.saved).club,bio.academy+"青训");
+ const loaded=harness([...h.storage]);
+ for(let i=0;i<3;i++){
+  loaded.click("trioSeason");
+  const save=loaded.saved,ai=actor(save);
+  assert.equal(ai.age,16+i);
+  assert.equal(save.sharedUniverse.trio.name,bio.name);
+  assert.equal(ai.club,i<2?bio.academy+"青训":bio.academy);
+  assert.equal(save.sharedUniverse.trio.history.length,i);
+  assert(ai.apps>0);
+  for(const career of Object.values(save.duoGames)){
+   assert.equal(career.season.stage,"review");
+   if(i===2)assert.equal(career.season.midseasonDecision.done,true);
+  }
+ }
+ console.log("✓ 三剑客随机建档、读档、青训毕业、真实比赛出场与三季自动决策");
+}
