@@ -6,7 +6,7 @@ function render(data){
  const stage=Math.max(1,Math.min(3,Number(step)||1));
  const titles=["选择两名人物","设置身体与生涯","随机俱乐部抽卡"];
  const bar='<nav class="v10-progress" aria-label="创建生涯进度">'+titles.map((t,i)=>'<span class="'+(i+1===stage?'active':'')+'">'+(i+1)+' · '+escape(t)+'</span>').join("")+'</nav>';
- const heading='<div class="hero opening-hero"><div><div class="cap">GREEN LEGEND 2.0 · TWO CAREERS, ONE WORLD</div><h1>双星时代</h1><p>两名球员，同一个世界，不同职业命运。</p></div></div>';
+ const heading='<div class="hero opening-hero"><div><h1>绿茵三剑客</h1><p>两名主角和一名随机青训新星，共享赛程。模拟时自动训练、成长和转会。</p><button class="button primary" data-action="trioOpening">一键开启三人生涯</button></div></div>';
  const label=id=>id==="wang"?"球员一":"球员二";
  let page="";
  if(stage===1){
@@ -41,7 +41,7 @@ function render(data){
  }
  const previous=stage>1?'<button type="button" class="button outline" data-action="v10Back">← 返回上一步</button>':'';
  const next=stage<3?'<button type="button" class="button primary v10-primary" data-action="v10Next">下一步：'+titles[stage]+' →</button>':'';
- return heading+bar+legacyHtml+page+'<div class="v10-actions">'+previous+next+'</div>';
+ return heading+legacyHtml+'<section class="gap"><h2>自定义双人开局</h2>'+bar+page+'<div class="v10-actions">'+previous+next+'</div></section>';
 }
 window.DualV10UI=Object.freeze({render});
 })();
