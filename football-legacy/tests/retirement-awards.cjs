@@ -109,3 +109,20 @@ for(const [year,npcCount] of [[2035,8],[2040,12],[2048,7],[2055,0]]){
  assert.equal(loaded.api.duo().wang.year,year+1);
 }
 console.log("✓ 2035–2055 sparse and duplicate nominee pools settle once, reload and advance");
+
+for(const age of [17,18]){
+ const {h,d,year}=prepare();
+ const generated=d.wang.npcs.filter(n=>!n.realPerson).slice(0,12);
+ generated[0]={...generated[0],id:"trio-academy-player",age};
+ for(const career of Object.values(d)){
+  career.npcs=generated;
+  markComplete(career);
+ }
+ h.api.finalizeSharedSeason();
+ const award=h.api.shared().awards[year];
+ const ranked=new Set(award.rankings.map(row=>row.id));
+ assert(generated.slice(1).every(player=>ranked.has(player.id)),"active new-generation players are eligible");
+ assert.equal(ranked.has("trio-academy-player"),age===18,"the third player becomes eligible after academy graduation");
+ assert.equal(award.totalPoints,6700);
+}
+console.log("✓ 新生代球员参加金球奖评选，第三名球员从成年起入围");

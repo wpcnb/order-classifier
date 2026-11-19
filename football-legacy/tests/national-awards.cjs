@@ -54,5 +54,4 @@ assert.equal(restored.decide(ev,"中国","日本",1,1,()=>false),true,"persisted
  assert.equal(old.decide(ev,"中国","日本",1,1,()=>.1),true,"the opposite team wins if the legacy result was a loss");
  assert.equal(world.national[key].penaltyWinner,"日本");
 }
-assert(src.includes("const roster=duoGames.wang.npcs.filter(n=>Number.isFinite(n.ov)"),"new-generation footballers must remain eligible for Gold Ball");
-console.log("✓ shared national shootout result cannot disagree or reroll; new-generation Gold Ball candidates included");
+console.log("✓ shared national shootout result cannot disagree or reroll");
