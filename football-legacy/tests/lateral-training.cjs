@@ -77,3 +77,34 @@ function offerFor(x){return {id:"CHN",club:x.player.club==="上海申花"?"上�
  assert.equal(p.stamina,84,"switching the plan must not unlock another training session");
  console.log("✓ 备战方案按球员保存；自动与手动训练兑现收益及消耗，换方案不能重复训练");
 }
+{
+ const h=newGame(),{wang,vini}=h.api.duo(),p=wang.player;
+ const peerProgress=JSON.stringify(vini.player.trainingProgress);
+ Object.assign(p,{age:18,autoTraining:false,autoPoints:false,potential:98,stamina:100,trainingUsed:false,careerOperationMode:"deep",injuryMatches:0,trainingProgress:{shoot:6}});
+ p.stats.shoot=60;
+ h.change({prepPlan:"wang"},"develop");
+ h.click("duoTrain",{id:"wang",key:"shoot"});
+ assert.equal(p.stats.shoot,61);
+ assert.equal(p.trainingProgress.shoot,2,"6 + 3 at a threshold of 7 leaves 2 progress");
+ assert.equal(p.stamina,81);
+ const loaded=harness([[SAVE,h.storage.get(SAVE)]]);
+ assert.equal(loaded.api.duo().wang.player.trainingProgress.shoot,2);
+ assert.equal(JSON.stringify(loaded.api.duo().vini.player.trainingProgress),peerProgress);
+ for(let session=1;session<7;session++){
+  p.trainingUsed=false;p.stamina=100;
+  h.click("duoTrain",{id:"wang",key:"shoot"});
+ }
+ assert.equal(p.stats.shoot,63,"seven intensive sessions grant three levels");
+ assert.equal(p.trainingProgress.shoot,6);
+ h.api.setActive("wang");
+ Object.assign(p,{careerOperationMode:"guided",trainingFocus:"shoot",trainingUsed:false,stamina:100,autoTraining:true,autoPoints:false,parentCoach:{skills:{training:55,motivation:0},points:0}});
+ p.trainingProgress.shoot=5;
+ h.api.automaticPrep();
+ assert.equal(p.trainingProgress.shoot,1,"automatic prep keeps overflow after the coach discount");
+ assert.equal(p.stats.shoot,64);
+ p.potential=65;p.trainingUsed=false;p.stamina=100;p.trainingProgress.shoot=5;
+ h.api.automaticPrep();
+ assert.equal(p.stats.shoot,65);
+ assert.equal(p.trainingProgress.shoot,0,"no progress is banked past the growth cap");
+ console.log("✓ 强化训练结转、教练折扣、成长上限和双人读档通过");
+}

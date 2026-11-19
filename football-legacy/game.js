@@ -1364,6 +1364,20 @@ function transferOutlook(p,club){
  const chance=team=>Math.round(100*CD.starterProbability(p,overall(p),power(team)));
  return "获准出场时的预计首发率（按当前状态）：留队 "+chance(p.club)+"% · 加盟 "+chance(club)+"%";
 }
+function trainingRequirement(p){
+ const base=p.age<22?7:p.age<28?12:18;
+ return BP?BP.trainingThreshold(base,p.careerPath):base;
+}
+function applyTrainingProgress(p,skill,gain,threshold){
+ const cap=veteranGrowthLimit(p,skill);
+ p.trainingProgress=p.trainingProgress||{};
+ const saved=Number(p.trainingProgress[skill]);
+ const progress=(Number.isFinite(saved)?Math.max(0,Math.floor(saved)):0)+gain;
+ const levels=Math.min(Math.floor(progress/threshold),Math.max(0,cap-p.stats[skill]));
+ p.stats[skill]+=levels;
+ p.trainingProgress[skill]=p.stats[skill]>=cap?0:progress-levels*threshold;
+ return levels;
+}
 function automaticPrep(){
  if(g.mode==="coach")return coachPreparation();const p=g.player;
  // Deep mode is authoritative even for v10 saves whose old focus handler re-enabled auto flags.
@@ -1375,9 +1389,8 @@ function automaticPrep(){
  else{
   const weights=WEIGHTS[p.position],keys=Object.keys(STATS);
   const eligible=keys.filter(k=>p.stats[k]<veteranGrowthLimit(p,k));if(!eligible.length){p.stamina=C(p.stamina+10,0,100);p.trainingUsed=true;return}const focus=eligible.includes(p.trainingFocus)?p.trainingFocus:eligible.map(k=>({key:k,score:weights[keys.indexOf(k)]*(p.potential-p.stats[k])})).sort((a,b)=>b.score-a.score)[0].key;
-  p.trainingProgress=p.trainingProgress||{};p.trainingProgress[focus]=(p.trainingProgress[focus]||0)+plan.autoGain;
-  const baseThreshold=p.age<22?7:p.age<28?12:18,threshold=BP?BP.trainingThreshold(baseThreshold,p.careerPath):baseThreshold;const coachBonus=(p.parentCoach?.skills?.training||0)>=55?1:0;
-  if(p.trainingProgress[focus]>=(threshold-coachBonus)&&p.stats[focus]<veteranGrowthLimit(p,focus)){p.stats[focus]++;p.trainingProgress[focus]=0}
+  const coachBonus=(p.parentCoach?.skills?.training||0)>=55?1:0;
+  applyTrainingProgress(p,focus,plan.autoGain,trainingRequirement(p)-coachBonus);
   p.stamina=C(p.stamina-plan.autoCost,0,100)
  }
  p.trainingUsed=true
@@ -1393,9 +1406,9 @@ function manualTraining(key){
  const p=g?.player;if(!p||g.season.stage!=="playing"||p.trainingUsed||!STATS[key]){notify("本轮无法继续训练");return}
  const plan=seasonPlan(g.season);
  if(p.stamina<23){notify("体能不足，请优先休息恢复");return}
- p.trainingProgress=p.trainingProgress||{};p.trainingProgress[key]=(p.trainingProgress[key]||0)+plan.manualGain;
- const baseThreshold=p.age<22?7:p.age<28?12:18,threshold=BP?BP.trainingThreshold(baseThreshold,p.careerPath):baseThreshold;
- if(p.trainingProgress[key]>=threshold&&p.stats[key]<p.potential){p.stats[key]++;p.trainingProgress[key]=0;notify(STATS[key]+"能力提升1点")}
+ if(p.stats[key]>=veteranGrowthLimit(p,key)){notify("该能力已达成长上限");return}
+ const levels=applyTrainingProgress(p,key,plan.manualGain,trainingRequirement(p));
+ if(levels)notify(STATS[key]+"能力提升"+levels+"点");
  p.stamina=C(p.stamina-plan.manualCost,0,100);p.trainingUsed=true;log("进行了"+STATS[key]+"专项训练，体能消耗"+plan.manualCost+"点。");save();render()
 }
 function advance(skip=false){if(!g||g.season.stage!=="playing")return;if(g.mode==="coach")coachPreparation();const ev=currentEvent();if(!ev){endSeason();return}if(!skip&&(!g.player.autoPoints&&g.player.points>0||g.player.parentCoach&&!g.player.autoPoints&&g.player.parentCoach.points>0)){if(!confirm("有未分配的能力点，是否先继续比赛？你也可以前往训练页面加点。"))return}automaticPrep();if(skip){playEvent(ev,"balanced",true);return}g.live={index:g.season.index,event:ev};page="match";save();render()}
@@ -2370,16 +2383,10 @@ function duoTrainingCommand(id,action,skill){
    if(!Object.hasOwn(STATS,skill)||p.stats[skill]>=veteranGrowthLimit(p,skill)){notify("该能力已达成长上限");return}
    if((p.injuryMatches||0)>0){notify("伤病尚未恢复，不能安排专项训练");return}
    if(p.stamina<23){notify("体能低于23，建议先安排休息");return}
-   p.trainingProgress=p.trainingProgress||{};
    const plan=seasonPlan(x.season);
-   p.trainingProgress[skill]=(p.trainingProgress[skill]||0)+plan.manualGain;
-   const base=p.age<22?7:p.age<28?12:18,limit=BP?BP.trainingThreshold(base,p.careerPath):base;
-   let leveled=false;
-   if(p.trainingProgress[skill]>=limit&&p.stats[skill]<veteranGrowthLimit(p,skill)){
-    p.stats[skill]++;p.trainingProgress[skill]=0;leveled=true;
-   }
+   const levels=applyTrainingProgress(p,skill,plan.manualGain,trainingRequirement(p));
    p.stamina=C(p.stamina-plan.manualCost,0,100);p.trainingUsed=true;
-   message=p.name+"："+STATS[skill]+"专项训练完成"+(leveled?"，该能力 +1":"，训练进度 +"+plan.manualGain)+"，体能 -"+plan.manualCost;
+   message=p.name+"："+STATS[skill]+"专项训练完成"+(levels?"，该能力 +"+levels:"，训练进度 +"+plan.manualGain)+"，体能 -"+plan.manualCost;
   }else return;
  }
  if(!save()){
@@ -2401,7 +2408,7 @@ function trainingFocusPanel(id){
   '<p class="muted small">手动模式不会自动分配成长点、训练或休息。每场比赛前每人最多一次专项训练或恢复；快进跳过的场次不会补练。</p>'+
   '<div class="grid3">'+metric("待分配成长点",p.points||0)+metric("体能",p.stamina||0)+metric("赛前安排",!playing?"赛季结束":p.trainingUsed?"已安排":"待安排")+'</div>'+
   '<div class="list gap">'+Object.entries(STATS).map(([key,label])=>
-   '<div class="item"><div class="row"><b>'+E(label)+' '+p.stats[key]+'</b><span class="muted small">进度 '+(p.trainingProgress?.[key]||0)+'</span></div>'+
+   '<div class="item"><div class="row"><b>'+E(label)+' '+p.stats[key]+'</b><span class="muted small">' +(p.stats[key]>=veteranGrowthLimit(p,key)?"已达成长上限":"进度 "+(p.trainingProgress?.[key]||0)+"/"+trainingRequirement(p))+'</span></div>'+
    '<div class="flex"><button class="button outline" data-action="duoPoint" data-id="'+id+'" data-key="'+key+'" '+((p.points||0)<=0||p.stats[key]>=veteranGrowthLimit(p,key)?"disabled":"")+'>加点 +1</button>'+
    '<button class="button" data-action="duoTrain" data-id="'+id+'" data-key="'+key+'" '+(!canTrain||p.stamina<23||(p.injuryMatches||0)>0||p.stats[key]>=veteranGrowthLimit(p,key)?"disabled":"")+'>专项训练</button></div></div>').join("")+'</div>'+
   '<button class="button goldbtn gap" data-action="duoRecover" data-id="'+id+'" '+(!canTrain||p.stamina>=100?"disabled":"")+'>安排恢复 +25 体能</button>':
