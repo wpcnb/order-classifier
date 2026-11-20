@@ -241,3 +241,23 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
  assert.deepEqual(entries(ai),['<li>'+year+' 赛季 · €200万 · 已记录最高</li>','<li>'+(year-1)+' 赛季 · €200万 · 已记录最高</li>']);
  console.log("✓ 三人身价按已结算赛季倒序展示，读档兼容缺失估值、重复年份和并列最高");
 }
+
+{
+ const fresh=harness();fresh.click("trioOpening");
+ const fixture=fresh.saved,u=fixture.sharedUniverse;
+ const player=fixture.duoGames.wang.player;
+ player.retired=true;
+ player.marketValueHistory=[{year:2024,value:9000000},{year:2023,value:12000000},{year:2025,value:0}];
+ u.npcs=u.npcs.filter(n=>n.id!=="trio-academy-player");
+ u.trio.history=[{year:2023,transfer:{year:2023,marketValue:15000000}},{year:2024,transfer:{year:2024,marketValue:8000000}},
+  {year:2025,club:"曼城",age:39,apps:12,goals:1,assists:1,transfer:null}];
+ const cards=()=>harness([[saveKey,JSON.stringify(fixture)]]).html.split("<h2>三人身价与个人荣誉</h2>")[1].split("</section>")[0].match(/<article[\s\S]*?<\/article>/g);
+ let [human,active,ai]=cards();
+ assert.match(human,/最后记录身价（2024 赛季） <strong class="gold">€900万/);
+ assert.match(ai,/最后记录身价（2024 赛季） <strong class="gold">€800万/);
+ assert.match(active,/当前身价 <strong class="gold">€/);
+ delete player.marketValueHistory;u.trio.history=u.trio.history.slice(-1);
+ [human,,ai]=cards();
+ for(const card of [human,ai]){assert.match(card,/无估值记录/);assert(!card.includes('历年季末身价'))}
+ console.log("✓ 退役身价沿用最近有效赛季，兼容缺失、乱序和无历史估值的存档");
+}
