@@ -3504,15 +3504,17 @@ function trioMarketValue(n,honors){
   ?{...row,clean:row.goalkeeping.leagueClean+row.goalkeeping.europeClean}:row);
  return CD.marketValue(player,n.ov,tier,season,{year:duoGames.wang.year,history,honors});
 }
-function seasonEndValues(history){
- if(!CD)return "";
+function sortedSeasonEndValues(history){
  const years=new Map();
  for(const entry of history||[]){
   if(Number.isInteger(entry?.year)&&Number.isFinite(entry.value)&&entry.value>0)years.set(entry.year,entry.value);
  }
- if(!years.size)return "";
- const peak=Math.max(...years.values());
- const rows=[...years].sort(([a],[b])=>b-a).map(([year,value])=>
+ return [...years].sort(([a],[b])=>b-a);
+}
+function seasonEndValues(entries){
+ if(!CD||!entries.length)return "";
+ const peak=Math.max(...entries.map(([,value])=>value));
+ const rows=entries.map(([year,value])=>
   '<li>'+year+' 赛季 · '+E(CD.money(value))+(value===peak?' · 已记录最高':'')+'</li>');
  return '<details><summary>历年季末身价</summary><ul>'+rows.join("")+'</ul></details>';
 }
@@ -3532,7 +3534,7 @@ function trioValuePanel(){
    }
   }
   const titles=(x.honors||[]).filter(h=>["team","national"].includes(h.type)&&h.name.includes("冠军")&&!h.legacyDisputed&&(h.generation===undefined||h.generation===x.generation));
-  return {name:p.name,club:p.club,retired:p.retired,honors,titles,values:p.marketValueHistory,value:p.retired?p.marketValueHistory?.at(-1)?.value:CD?.marketValue(p,overall(p),level,x.season,{...x,honors})};
+  return {name:p.name,club:p.club,retired:p.retired,honors,titles,values:p.marketValueHistory,value:p.retired?null:CD?.marketValue(p,overall(p),level,x.season,{...x,honors})};
  });
  const bio=sharedUniverse.trio,n=trioPlayer(),last=bio.history.at(-1),honors=trioIndividualHonors();
  const reviews=new Map(),values=[];
@@ -3541,18 +3543,21 @@ function trioValuePanel(){
   if(review?.titles?.length)reviews.set(review.year,review.titles);
  }
  const titles=Array.from(reviews,([year,names])=>names.map(name=>({year,name:name+"冠军"}))).flat();
- rows.push({name:bio.name,club:n?.club||last?.club,retired:!n,honors,titles,values,value:n?trioMarketValue(n,honors):last?.transfer?.marketValue});
+ rows.push({name:bio.name,club:n?.club||last?.club,retired:!n,honors,titles,values,value:n?trioMarketValue(n,honors):null});
  const cards=rows.map(row=>{
   const awards=row.honors.slice().sort((a,b)=>b.year-a.year);
   const gold=awards.filter(h=>h.name.includes("金球奖")),best=awards.filter(h=>h.name.includes("世界足球先生"));
   const other=awards.filter(h=>!h.name.includes("金球奖")&&!h.name.includes("世界足球先生"));
   const records=[...awards,...row.titles].sort((a,b)=>b.year-a.year);
   const count=list=>list.length?list.length+" 次":"尚未获得";
-  const price=row.value&&CD?CD.money(row.value):(row.retired?"无估值记录":"待估值");
-  return '<article class="item"><h3>'+E(row.name)+'</h3><p>'+E(row.club||"")+(row.retired?' · 已退役':'')+'</p><p>'+(row.retired?'最后记录身价':'当前身价')+' <strong class="gold">'+E(price)+'</strong></p>'+
+  const values=sortedSeasonEndValues(row.values),latest=values[0];
+  const amount=row.retired?latest?.[1]:row.value;
+  const label=row.retired?(latest?"最后记录身价（"+latest[0]+" 赛季）":"最后记录身价"):"当前身价";
+  const price=amount&&CD?CD.money(amount):(row.retired?"无估值记录":"待估值");
+  return '<article class="item"><h3>'+E(row.name)+'</h3><p>'+E(row.club||"")+(row.retired?' · 已退役':'')+'</p><p>'+label+' <strong class="gold">'+E(price)+'</strong></p>'+
    '<p>金球奖 '+count(gold)+'<br>世界足球先生 '+count(best)+'</p><p>其他个人奖 '+(other.length?other.length+' 项 · '+E(other[0].name):'尚未获得')+'</p>'+
    '<p>球队冠军 '+(row.titles.length?row.titles.length+' 项':'暂无记录')+'</p>'+
-   seasonEndValues(row.values)+(records.length?'<details><summary>历年获奖记录</summary>'+records.map(h=>'<p>'+E(h.year)+' 赛季 · '+E(h.name)+'</p>').join("")+'</details>':'')+'</article>';
+   seasonEndValues(values)+(records.length?'<details><summary>历年获奖记录</summary>'+records.map(h=>'<p>'+E(h.year)+' 赛季 · '+E(h.name)+'</p>').join("")+'</details>':'')+'</article>';
  });
  return '<section class="card gap"><h2>三人身价与个人荣誉</h2><p class="muted small">游戏估算身价（欧元），随生涯进展自动更新。</p><div class="grid3">'+cards.join("")+'</div></section>';
 }
