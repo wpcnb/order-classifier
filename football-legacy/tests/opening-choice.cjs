@@ -140,11 +140,21 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
   const ai=u.npcs.find(n=>n.id==="trio-academy-player");
   Object.assign(ai,{age,club:age<18?"曼城青训":"曼城",trophylessStreak:streak,apps:0});
   for(const x of Object.values(fixture.duoGames))x.season.stage="review";
-  if(title)u.domesticCups.test={year,champion:ai.club};
+  if(title){
+   u.rounds[year+":ENG"]={table:{[ai.club]:{name:ai.club,p:38,points:90,gf:87,ga:28}}};
+   u.domesticCups[year+":ENG"]={year,champion:ai.club,name:"足总杯"};
+   u.europeFinals.test={year,winner:ai.club,type:"欧冠"};
+   u.europeFinals.earlier={year:year-1,winner:ai.club,type:"欧联"};
+  }
   if(partial)u.trio.partialSeasonYear=year;
   const sim=harness([[saveKey,JSON.stringify(fixture)]]);
   sim.api.prepareTrioTransfer(year);sim.api.save();
   const review=sim.saved.sharedUniverse.trio.review;
+  assert.deepEqual(review.titles,title?[h.api.db.ENG.name,"足总杯","欧冠"]:[]);
+  if(title||partial||age<18){
+   const reload=harness([...sim.storage]);
+   assert.match(reload.html,title?/足总杯冠军、欧冠冠军 · 无冠计数清零/:partial?/中途加入，本季不计入无冠季数/:/青训赛季/);
+  }
   assert.equal(review.trophylessStreak,expected);
   assert.equal(review.trophylessMove,expected===3&&age<39);
   if(review.trophylessMove){
@@ -155,6 +165,7 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
    const after=reload.saved.sharedUniverse;
    assert.equal(after.npcs.find(n=>n.id==="trio-academy-player").club,review.to);
    assert.deepEqual(after.trio.history.at(-1).transfer,review);
+   assert.match(reload.html,/连续无冠 3 季 · 同档转会/);
    assert(after.trio.review.trophylessStreak<=1,"new cycle after the move");
   }else assert.equal(review.to,review.from);
  }

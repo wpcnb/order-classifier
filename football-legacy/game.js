@@ -3298,10 +3298,15 @@ function prepareTrioTransfer(year){
   numbers.avg=(numbers.avg*numbers.apps+(n.rating||6.5)*missing)/total.apps;
   numbers.apps=total.apps;numbers.goals=total.goals;numbers.assists=total.assists;
  }
- const champion=previousClubRank(leagueId,n.club,year)===1||
-  Object.values(sharedUniverse.domesticCups||{}).some(c=>c.year===year&&c.champion===n.club)||
-  Object.values(sharedUniverse.europeFinals||{}).some(c=>c.year===year&&c.winner===n.club);
- const assessment=assessTransferSeason(player,numbers,n.ov,year,champion);
+ const titles=[];
+ if(!youth){
+  if(previousClubRank(leagueId,n.club,year)===1)titles.push(DB[leagueId]?.name||"联赛");
+  for(const cup of Object.values(sharedUniverse.domesticCups||{}))
+   if(cup.year===year&&cup.champion===n.club)titles.push(cup.name||"国内杯赛");
+  for(const final of Object.values(sharedUniverse.europeFinals||{}))
+   if(final.year===year&&final.winner===n.club)titles.push(final.type||"欧战");
+ }
+ const assessment=assessTransferSeason(player,numbers,n.ov,year,titles.length>0);
  if(bio.partialSeasonYear===year)player.trophylessStreak=0;
  const trophylessMove=!youth&&n.age<39&&player.trophylessStreak>=3;
  let destination=null;
@@ -3314,13 +3319,24 @@ function prepareTrioTransfer(year){
  }
  n.poorStreak=player.poorStreak;n.trophylessStreak=player.trophylessStreak;
  const toTier=destination?.tier??assessment.tier;
- bio.review={year,from:n.club,to:destination?.club||n.club,tier:assessment.tier,toTier,
+ bio.review={year,titles:[...new Set(titles)],partialSeason:bio.partialSeasonYear===year,from:n.club,to:destination?.club||n.club,tier:assessment.tier,toTier,
   move:destination?(toTier<assessment.tier?"降档转会":toTier>assessment.tier?"升档转会":"同档转会"):"留队",
   comment:trophylessMove?"连续三个完整一线队赛季无冠，自动转入同档球队。":assessment.comment,
   trophylessMove,trophylessStreak:n.trophylessStreak,poorStreak:n.poorStreak};
 }
 function trioTransferText(review){
  return E(review.move)+(review.trophylessMove?"（连续三季无冠）":"")+(review.from===review.to?"":" · "+E(review.from)+" → "+E(review.to)+"（"+E(TRANSFER_LEVELS[review.tier])+" → "+E(TRANSFER_LEVELS[review.toTier])+"）");
+}
+function trioSeasonOutcome(review,age){
+ if(!review)return "";
+ if(!Array.isArray(review.titles)){
+  // Older reviews may record the streak but cannot identify the winning competition.
+  return Number.isInteger(review.trophylessStreak)&&review.trophylessStreak>0?"连续无冠 "+review.trophylessStreak+" 季":"";
+ }
+ if(age<ACADEMY_GRADUATION_AGE)return "青训赛季";
+ const honors=review.titles.map(cup=>E(cup)+"冠军").join("、");
+ if(review.partialSeason)return [honors,"中途加入，本季不计入无冠季数"].filter(Boolean).join(" · ");
+ return honors?honors+" · 无冠计数清零":"连续无冠 "+E(review.trophylessStreak)+" 季";
 }
 function trioRecord(n){
  return {club:n.club,age:n.age,overall:n.ov,apps:(n.apps||0)+(n.europeApps||0),
@@ -3329,12 +3345,13 @@ function trioRecord(n){
 function trioPanel(){
  const bio=sharedUniverse.trio,n=trioPlayer(),r=n?trioRecord(n):bio.history.at(-1);
  if(!r)return "";
+ const currentReview=bio.review?.year===duoGames.wang.year?bio.review:null;
  const stats=v=>v.apps+" 场 · "+v.goals+" 球 · "+v.assists+" 助攻";
  return '<section class="card gap"><h2>'+E(bio.name)+' · 人机球员</h2><p>'+E(bio.country)+' · '+E(POS[bio.position])+' · '+bio.height+' cm · '+bio.weight+' kg</p><p>天赋潜力 '+bio.potential+' · '+E(bio.family)+' · 出身青训营：'+E(bio.academy)+'</p><p>当前球队（'+(r.age<18?'青训':'一线队')+'）：<b>'+E(r.club)+'</b> · '+r.age+' 岁 · 能力 '+r.overall+(n?' · 本季 ':' · 已退役，最后一季 ')+stats(r)+'</p>'+
   (n?'<details><summary>修改人机姓名</summary><label class="field">人机球员姓名<input id="trioName" maxlength="22" value="'+E(bio.name)+'"></label><button class="button" data-action="trioRename">保存姓名</button></details>':'')+
-  (n&&r.age>=18?'<p>连续无冠 '+(n.trophylessStreak||0)+' 季 · 满三季自动同档转会</p>':'')+
-  (bio.review?.year===duoGames.wang.year?'<p>赛季转会决定：'+trioTransferText(bio.review)+'<br>'+E(bio.review.comment)+'</p>':'')+
-  (bio.history.length?'<details><summary>查看人机生涯履历</summary>'+bio.history.slice().reverse().map(v=>'<p>'+v.year+' · '+E(v.club)+' · '+stats(v)+(v.transfer?' · '+trioTransferText(v.transfer):'')+'</p>').join("")+'</details>':'')+'</section>';
+  (n&&r.age>=18&&!currentReview?'<p>连续无冠 '+(n.trophylessStreak||0)+' 季 · 满三季自动同档转会</p>':'')+
+  (currentReview?'<p>'+[trioSeasonOutcome(currentReview,r.age),'赛季转会决定：'+trioTransferText(currentReview),E(currentReview.comment)].filter(Boolean).join('<br>')+'</p>':'')+
+  (bio.history.length?'<details><summary>查看人机生涯履历</summary>'+bio.history.slice().reverse().map(v=>'<p>'+[v.year,E(v.club),stats(v),trioSeasonOutcome(v.transfer,v.age),v.transfer&&trioTransferText(v.transfer)].filter(Boolean).join(' · ')+'</p>').join("")+'</details>':'')+'</section>';
 }
 function trioSeason(){
  if(!enrollTrio())return false;
