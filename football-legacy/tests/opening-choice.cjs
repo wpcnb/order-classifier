@@ -8,7 +8,7 @@ function harness(existing=[]){
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){(handlers[id+":"+type]||=[]).push(fn)},click(){}});
  const document={getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
  const localStorage={get length(){return storage.size},key:i=>[...storage.keys()][i]||null,getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(rejectWrites)throw new Error("QuotaExceededError");storage.set(k,String(v))},removeItem:k=>storage.delete(k)};
- const context={window:{FootballRolesV3:require(path.join(root,"role-v3.js"))},document,localStorage,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
+ const context={window:{FootballMarketV3:require(path.join(root,"market-v3.js")),FootballRolesV3:require(path.join(root,"role-v3.js"))},document,localStorage,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
  for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
  const trigger=(type,target)=>{for(const fn of handlers["app:"+type]||[])fn({target})};
  return {storage,api:context.window.__opening,get html(){return node("app").innerHTML},get toast(){return node("toast").textContent},get opening(){return JSON.parse(storage.get(openingKey)||"null")},get saved(){return JSON.parse(storage.get(saveKey)||"null")},
@@ -196,4 +196,29 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
  keeper.pos=bio.position="ST";
  assert(!harness([[saveKey,JSON.stringify(fixture)]]).html.includes("次零封"));
  console.log("✓ 人机门将零封按赛事归档，青训、零零封、旧档及外场球员显示正确");
+}
+
+{
+ const h=harness();h.input("trioName","小林");h.click("trioOpening");
+ const initial=h.saved,u=initial.sharedUniverse,year=initial.duoGames.wang.year;
+ const panel=html=>html.split("<h2>三人身价与个人荣誉</h2>")[1].split("</section>")[0];
+ const cards=html=>panel(html).match(/<article[\s\S]*?<\/article>/g);
+ assert.equal(cards(h.html).length,3);
+ for(const card of cards(h.html)){assert.match(card,/当前身价 <strong class="gold">€[1-9]/);assert.match(card,/金球奖 尚未获得/)}
+ const ai=u.npcs.find(n=>n.id==="trio-academy-player");
+ Object.assign(ai,{age:24,club:"曼城",pos:"GK",ov:84,apps:28,clean:12,rating:7.4});
+ const previous=harness([[saveKey,JSON.stringify(initial)]]);
+ const price=html=>cards(html)[2].match(/当前身价 <strong class="gold">(.*?)</)[1];
+ const oldPrice=price(previous.html),id=ai.id;
+ u.awards[year-1]={year:year-1,winner:{id,name:"改名前"},rankings:[{id,name:"改名前"}]};
+ u.theBest[year-1]={year:year-1,winner:{id:"other"},rankings:[{id:"other"},{id}]};
+ u.trio.personalAwards={[year-1]:["英超金手套奖"]};
+ u.trio.history.push({year:year-1,apps:0,goals:0,assists:0,transfer:{year:year-1,titles:["足总杯"]}});
+ const reload=harness([[saveKey,JSON.stringify(initial)]]),third=cards(reload.html)[2];
+ assert.match(third,/金球奖 1 次/);assert.match(third,/世界足球先生 尚未获得/);
+ assert.match(third,/英超金手套奖/);assert.match(third,/足总杯冠军/);
+ assert.notEqual(price(reload.html),oldPrice,"the AI's verified Ballon d'Or influences valuation");
+ assert.equal(price(harness([[saveKey,JSON.stringify(initial)]]).html),price(reload.html));
+ for(const human of cards(reload.html).slice(0,2))assert.match(human,/金球奖 尚未获得/);
+ console.log("✓ 三人自动估值，按稳定身份核对得奖、区分入围，旧档改名和刷新保留荣誉");
 }

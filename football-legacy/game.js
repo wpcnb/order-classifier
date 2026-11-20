@@ -2128,6 +2128,10 @@ function finalizeSharedSeason(){
  }
  if(x.player.retired&&x.retirementSummary?.at?.year===year){x.retirementSummary.honors=x.honors.map(h=>({...h}));x.retirementSummary.likeness=FA?FA.similarity(x,sharedUniverse.theBest||{},5):[];}
  }
+ if(ai&&sharedUniverse.trio.review?.year===year){
+  const value=trioMarketValue(ai,trioIndividualHonors());
+  if(value>0)sharedUniverse.trio.review.marketValue=value;
+ }
  activeDuo=original;g=originalGame;
 }
 // Club reputation tiers are based on specific teams, not just their domestic league.
@@ -3404,8 +3408,10 @@ function trioSeasonOutcome(review,age){
  return honors?honors+" · 无冠计数清零":"连续无冠 "+E(review.trophylessStreak)+" 季";
 }
 function trioRecord(n){
- const record={club:n.club,age:n.age,overall:n.ov,apps:(n.apps||0)+(n.europeApps||0),
+ const record={club:n.club,age:n.age,overall:n.ov,average:trioAwardRating(n),apps:(n.apps||0)+(n.europeApps||0),
   goals:(n.goals||0)+(n.europeGoals||0),assists:(n.assists||0)+(n.europeAssists||0)};
+ if(n.pos==="GK")record.clean=(n.clean||0)+(n.europeClean||0);
+ else if(n.transferMatches?.length)record.clean=n.transferMatches.filter(m=>m.played&&(m.home===n.club&&m.as===0||m.away===n.club&&m.hs===0)).length;
  if(n.pos==="GK")record.goalkeeping={leagueApps:n.apps||0,leagueClean:n.clean||0,europeApps:n.europeApps||0,europeClean:n.europeClean||0};
  return record;
 }
@@ -3469,6 +3475,74 @@ function trioContinuous(){
  setTimeout(step,0);render();
 }
 
+function annualWins(playerId){
+ const wins=[];
+ for(const [ledger,name] of [[sharedUniverse.awards,"金球奖"],[sharedUniverse.theBest,"世界足球先生"]]){
+  for(const [year,entry] of Object.entries(ledger||{})){
+   if((entry.winner||entry.rankings?.[0])?.id===playerId)wins.push({year:Number(year),name});
+  }
+ }
+ return wins;
+}
+function trioIndividualHonors(){
+ const bio=sharedUniverse.trio,honors=[];
+ for(const [year,names] of Object.entries(bio.personalAwards||{})){
+  for(const name of names)honors.push({year:Number(year),name});
+ }
+ for(const row of Object.values(sharedUniverse.leagueYouthAwards||{})){
+  if(row.winnerId===TRIO_AI_ID&&DB[row.leagueId])honors.push({year:row.year,name:DB[row.leagueId].name+"最佳年轻球员"});
+ }
+ return honors.concat(annualWins(TRIO_AI_ID));
+}
+function trioMarketValue(n,honors){
+ if(!CD||!n)return 0;
+ const bio=sharedUniverse.trio,youth=n.age<ACADEMY_GRADUATION_AGE;
+ const player={...n,position:n.pos,youth};
+ const season=trioRecord(n);
+ const tier=youth?0:transferLevel(leagueFromClub(n.club),n.club);
+ const history=bio.history.map(row=>row.clean===undefined&&row.goalkeeping
+  ?{...row,clean:row.goalkeeping.leagueClean+row.goalkeeping.europeClean}:row);
+ return CD.marketValue(player,n.ov,tier,season,{year:duoGames.wang.year,history,honors});
+}
+function trioValuePanel(){
+ const rows=DUO_IDS.map(id=>{
+  const x=duoGames[id],p=x.player,level=p.youth?0:transferLevel(p.leagueId,p.club);
+  const honors=(x.honors||[]).filter(h=>h.type==="individual"&&(h.generation===undefined||h.generation===x.generation));
+  const goldYears=new Set(honors.filter(h=>h.name.includes("金球奖")).map(h=>h.year));
+  for(const record of x.ballonHistory||[]){
+   if(record.rank===1&&(record.generation===undefined||record.generation===x.generation)&&!goldYears.has(record.year)){
+    honors.push({year:record.year,name:"金球奖"});goldYears.add(record.year);
+   }
+  }
+  if(x.generation===1){
+   for(const win of annualWins("DUO_"+id)){
+    if(!honors.some(h=>Number(h.year)===win.year&&h.name.includes(win.name)))honors.push(win);
+   }
+  }
+  const titles=(x.honors||[]).filter(h=>["team","national"].includes(h.type)&&h.name.includes("冠军")&&!h.legacyDisputed&&(h.generation===undefined||h.generation===x.generation));
+  return {name:p.name,club:p.club,retired:p.retired,honors,titles,value:p.retired?p.marketValueHistory?.at(-1)?.value:CD?.marketValue(p,overall(p),level,x.season,{...x,honors})};
+ });
+ const bio=sharedUniverse.trio,n=trioPlayer(),last=bio.history.at(-1),honors=trioIndividualHonors();
+ const reviews=new Map();
+ for(const review of [...bio.history.map(row=>row.transfer),bio.review]){
+  if(review?.titles?.length)reviews.set(review.year,review.titles);
+ }
+ const titles=Array.from(reviews,([year,names])=>names.map(name=>({year,name:name+"冠军"}))).flat();
+ rows.push({name:bio.name,club:n?.club||last?.club,retired:!n,honors,titles,value:n?trioMarketValue(n,honors):last?.transfer?.marketValue});
+ const cards=rows.map(row=>{
+  const awards=row.honors.slice().sort((a,b)=>b.year-a.year);
+  const gold=awards.filter(h=>h.name.includes("金球奖")),best=awards.filter(h=>h.name.includes("世界足球先生"));
+  const other=awards.filter(h=>!h.name.includes("金球奖")&&!h.name.includes("世界足球先生"));
+  const records=[...awards,...row.titles].sort((a,b)=>b.year-a.year);
+  const count=list=>list.length?list.length+" 次":"尚未获得";
+  const price=row.value&&CD?CD.money(row.value):(row.retired?"无估值记录":"待估值");
+  return '<article class="item"><h3>'+E(row.name)+'</h3><p>'+E(row.club||"")+(row.retired?' · 已退役':'')+'</p><p>'+(row.retired?'最后记录身价':'当前身价')+' <strong class="gold">'+E(price)+'</strong></p>'+
+   '<p>金球奖 '+count(gold)+'<br>世界足球先生 '+count(best)+'</p><p>其他个人奖 '+(other.length?other.length+' 项 · '+E(other[0].name):'尚未获得')+'</p>'+
+   '<p>球队冠军 '+(row.titles.length?row.titles.length+' 项':'暂无记录')+'</p>'+
+   (records.length?'<details><summary>历年获奖记录</summary>'+records.map(h=>'<p>'+E(h.year)+' 赛季 · '+E(h.name)+'</p>').join("")+'</details>':'')+'</article>';
+ });
+ return '<section class="card gap"><h2>三人身价与个人荣誉</h2><p class="muted small">游戏估算身价（欧元），随生涯进展自动更新。</p><div class="grid3">'+cards.join("")+'</div></section>';
+}
 function duoDashboard(){
  const both=DUO_IDS.map(id=>duoGames[id]);
  const retired=both.every(x=>x.player.retired);
@@ -3486,7 +3560,7 @@ function duoDashboard(){
  // their presentation so match results remain visible on small screens.
  const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
  const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
- return '<div class="hero career-hero hero-match"><div><div class="cap">'+(trio?"THREE PLAYERS · ONE WORLD":"ONE WORLD · TWO PLAYERS")+'</div><h1>'+(trio?"绿茵三剑客2":"双星同步职业生涯")+'</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?(trio?'本季已结算，继续模拟会自动处理转会。':'本赛季已结束，处理决定后进入下一季。'):'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>' +(trio?trioPanel():'<section class="card gap"><label class="field">人机球员姓名<input id="trioName" maxlength="22" placeholder="第三名球员"></label><button class="button" data-action="trioSeason">加入人机球员并自动模拟一季</button></section>')+(trio?'':s1ChoicePanel())+s1BackupReminder()+v3Scores()+summary+seasonDesk()+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
+ return '<div class="hero career-hero hero-match"><div><div class="cap">'+(trio?"THREE PLAYERS · ONE WORLD":"ONE WORLD · TWO PLAYERS")+'</div><h1>'+(trio?"绿茵三剑客2":"双星同步职业生涯")+'</h1><p>'+(retired?'两人均已退役，可以查看完整履历。':allReview?(trio?'本季已结算，继续模拟会自动处理转会。':'本赛季已结束，处理决定后进入下一季。'):'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">双星训练中心</button></div></div></div>' +(trio?trioValuePanel()+trioPanel():'<section class="card gap"><label class="field">人机球员姓名<input id="trioName" maxlength="22" placeholder="第三名球员"></label><button class="button" data-action="trioSeason">加入人机球员并自动模拟一季</button></section>')+(trio?'':s1ChoicePanel())+s1BackupReminder()+v3Scores()+summary+seasonDesk()+recent+duoSharedStory(both[0],both[1])+duoMatchArchive(both[0],both[1])+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
