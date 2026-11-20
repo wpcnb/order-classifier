@@ -5,7 +5,7 @@ const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\)
 function harness(data,failBackup=false){
  const storage=new Map(data||[]),nodes={},handlers={},timers=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn}});
- const context={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
+ const context={window:{FootballLegacyAwards:require(path.join(root,"legacy-awards.js"))},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
   localStorage:{get length(){return storage.size},key:i=>[...storage.keys()][i]||null,getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(failBackup&&k.includes("-before-auto-retirement"))throw Error("quota");storage.set(k,String(v))},removeItem:k=>storage.delete(k)},confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
  vm.runInNewContext(source,context,{filename:"game.js"});
@@ -126,3 +126,41 @@ for(const age of [17,18]){
  assert.equal(award.totalPoints,6700);
 }
 console.log("✓ 新生代球员参加金球奖评选，第三名球员从成年起入围");
+
+for(const [pos,apps,age] of [["ST",32,20],["GK",24,22],["ST",11,20],["ST",0,20],["ST",12,17]]){
+ const {h,d,year}=prepare(),u=h.api.shared(),id="trio-academy-player",club="曼城";
+ const ai={id,club,name:"第三剑客",age,pos,ov:99,apps,rating:6,goals:pos==="GK"?0:apps*2,
+  assists:pos==="GK"?0:apps,clean:pos==="GK"?15:0,europeApps:apps?3:0,europeGoals:apps&&pos==="ST"?7:0,europeAssists:apps&&pos==="ST"?6:0};
+ ai.transferMatches=Array.from({length:apps+ai.europeApps},(_,i)=>({kind:i<apps?"league":"europe",played:true,rating:9.1,home:club,away:"对手",hs:1,as:0}));
+ u.trio={name:ai.name,academy:club,history:[]};
+ u.europeCompetitions[year+":欧联"]={key:year+":欧联",type:"欧联",year,table:{[club]:{}},clubs:[club],ko:[]};
+ const rivals=d.wang.npcs.slice(0,12).map((n,i)=>({...n,id:"rival"+i,apps:1,ov:60,rating:6,goals:0,assists:0}));
+ for(const x of Object.values(d)){
+  x.npcs=[...rivals,ai];x.season.apps=x.season.leagueApps=1;x.season.goals=x.season.assists=x.season.leagueGoals=x.season.leagueAssists=0;
+  markComplete(x);
+ }
+ h.api.finalizeSharedSeason();
+ const honors=h.api.duoHonorsPage(),annual=h.api.duoAwardsPage();
+ if(age<18||!apps){
+  assert(!u.trio.personalAwards);assert(!u.awards[year].rankings.some(r=>r.id===id));assert(!u.theBest[year].rankings.some(r=>r.id===id));
+  continue;
+ }
+ const won=u.trio.personalAwards[year];
+ if(apps===32){
+  for(const title of ["金靴奖","助攻王","欧联最佳射手","欧联助攻王","世界年度最佳阵容"])assert(won.some(v=>v.endsWith(title)),title);
+  assert.equal(u.leagueYouthAwards[year+":ENG"].winnerId,id);
+  assert.equal(u.awards[year].winner.id,id);assert.equal(u.theBest[year].winner.id,id);
+  assert.match(honors,/最佳年轻球员 · 金球奖得主 · 世界足球先生得主/);
+  assert.equal(annual.split("第三剑客 · 人机").length-1,2);
+  h.api.save();
+  const reload=harness([[SAVE,h.storage.get(SAVE)]]);
+  reload.api.finalizeSharedSeason();assert.equal(JSON.stringify(reload.api.shared().trio.personalAwards[year]),JSON.stringify(won));
+  assert.match(reload.api.duoHonorsPage(),/世界足球先生得主/);
+ }else if(pos==="GK"){
+  assert(won.some(v=>v.endsWith("金手套奖")));assert(!won.some(v=>v.endsWith("金靴奖")));
+  assert.notEqual(u.leagueYouthAwards[year+":ENG"].winnerId,id);
+ }else{
+  assert(!won.some(v=>v.endsWith("金靴奖")));assert.notEqual(u.leagueYouthAwards[year+":ENG"].winnerId,id);
+ }
+}
+console.log("✓ 第三名球员跨联赛参加个人评选，两项年度大奖可获胜，门将、年龄、出场门槛和旧档履历正常");
