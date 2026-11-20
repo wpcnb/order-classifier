@@ -3404,22 +3404,33 @@ function trioSeasonOutcome(review,age){
  return honors?honors+" · 无冠计数清零":"连续无冠 "+E(review.trophylessStreak)+" 季";
 }
 function trioRecord(n){
- return {club:n.club,age:n.age,overall:n.ov,apps:(n.apps||0)+(n.europeApps||0),
+ const record={club:n.club,age:n.age,overall:n.ov,apps:(n.apps||0)+(n.europeApps||0),
   goals:(n.goals||0)+(n.europeGoals||0),assists:(n.assists||0)+(n.europeAssists||0)};
+ if(n.pos==="GK")record.goalkeeping={leagueApps:n.apps||0,leagueClean:n.clean||0,europeApps:n.europeApps||0,europeClean:n.europeClean||0};
+ return record;
+}
+function trioSeasonStats(record){
+ const parts=[E(record.apps)+" 场",E(record.goals)+" 球",E(record.assists)+" 助攻"];
+ const keeper=record.goalkeeping;
+ if(keeper){
+  const league=record.age<ACADEMY_GRADUATION_AGE?"青训联赛":"联赛";
+  parts.push(league+" "+E(keeper.leagueApps)+" 场、"+E(keeper.leagueClean)+" 次零封");
+  if(keeper.europeApps>0)parts.push("欧战 "+E(keeper.europeApps)+" 场、"+E(keeper.europeClean)+" 次零封");
+ }
+ return parts.join(" · ");
 }
 function trioPanel(){
  const bio=sharedUniverse.trio,n=trioPlayer(),r=n?trioRecord(n):bio.history.at(-1);
  if(!r)return "";
  const currentReview=bio.review?.year===duoGames.wang.year?bio.review:null;
  const awards=trioAwardResults(duoGames.wang.year,true);
- const stats=v=>v.apps+" 场 · "+v.goals+" 球 · "+v.assists+" 助攻";
- return '<section class="card gap"><h2>'+E(bio.name)+' · 人机球员</h2><p>'+E(bio.country)+' · '+E(POS[bio.position])+' · '+bio.height+' cm · '+bio.weight+' kg</p><p>天赋潜力 '+bio.potential+' · '+E(bio.family)+' · 出身青训营：'+E(bio.academy)+'</p><p>当前球队（'+(r.age<18?'青训':'一线队')+'）：<b>'+E(r.club)+'</b> · '+r.age+' 岁 · 能力 '+r.overall+(n?' · 本季 ':' · 已退役，最后一季 ')+stats(r)+'</p>'+
+ return '<section class="card gap"><h2>'+E(bio.name)+' · 人机球员</h2><p>'+E(bio.country)+' · '+E(POS[bio.position])+' · '+bio.height+' cm · '+bio.weight+' kg</p><p>天赋潜力 '+bio.potential+' · '+E(bio.family)+' · 出身青训营：'+E(bio.academy)+'</p><p>当前球队（'+(r.age<18?'青训':'一线队')+'）：<b>'+E(r.club)+'</b> · '+r.age+' 岁 · 能力 '+r.overall+(n?' · 本季 ':' · 已退役，最后一季 ')+trioSeasonStats(r)+'</p>'+
   (n?'<details><summary>修改人机姓名</summary><label class="field">人机球员姓名<input id="trioName" maxlength="22" value="'+E(bio.name)+'"></label><button class="button" data-action="trioRename">保存姓名</button></details>':'')+
   (n&&r.age>=18&&!currentReview?'<p>连续无冠 '+(n.trophylessStreak||0)+' 季 · 满三季自动同档转会</p>':'')+
   (currentReview?'<p>'+[trioSeasonOutcome(currentReview,r.age),'赛季转会决定：'+trioTransferText(currentReview),E(currentReview.comment)].filter(Boolean).join('<br>')+'</p>':'')+
   (awards.length?'<p>本季个人评选：'+awards.map(E).join(' · ')+'</p>':'')+
   '<button class="button" data-page="honors">查看个人荣誉</button>'+
-  (bio.history.length?'<details><summary>查看人机生涯履历</summary>'+bio.history.slice().reverse().map(v=>'<p>'+[v.year,E(v.club),stats(v),trioSeasonOutcome(v.transfer,v.age),v.transfer&&trioTransferText(v.transfer)].filter(Boolean).join(' · ')+'</p>').join("")+'</details>':'')+'</section>';
+  (bio.history.length?'<details><summary>查看人机生涯履历</summary>'+bio.history.slice().reverse().map(v=>'<p>'+[v.year,E(v.club),trioSeasonStats(v),trioSeasonOutcome(v.transfer,v.age),v.transfer&&trioTransferText(v.transfer)].filter(Boolean).join(' · ')+'</p>').join("")+'</details>':'')+'</section>';
 }
 function trioSeason(){
  if(!enrollTrio())return false;
