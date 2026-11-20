@@ -222,3 +222,22 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
  for(const human of cards(reload.html).slice(0,2))assert.match(human,/金球奖 尚未获得/);
  console.log("✓ 三人自动估值，按稳定身份核对得奖、区分入围，旧档改名和刷新保留荣誉");
 }
+
+{
+ const h=harness();h.click("trioOpening");
+ assert(!h.html.includes("历年季末身价"));
+ h.click("trioSeason");h.click("trioSeason");
+ const fixture=h.saved,u=fixture.sharedUniverse,year=fixture.duoGames.wang.year;
+ const cards=html=>html.split("<h2>三人身价与个人荣誉</h2>")[1].split("</section>")[0].match(/<article[\s\S]*?<\/article>/g);
+ const entries=card=>card.split("<summary>历年季末身价</summary>")[1].split("</details>")[0].match(/<li>.*?<\/li>/g);
+ for(const card of cards(h.html))assert.equal(entries(card).length,2,"each completed season has one snapshot per player");
+ u.trio.history.push({year,transfer:{...u.trio.review,marketValue:1000000}});
+ u.trio.history.unshift({year:year-5,transfer:null});
+ u.trio.history[1].transfer.marketValue=2000000;
+ u.trio.review.marketValue=2000000;
+ fixture.duoGames.wang.player.marketValueHistory=[{year:year-1,value:1000000},{year,value:3000000}];
+ const [first,,ai]=cards(harness([[saveKey,JSON.stringify(fixture)]]).html);
+ assert.deepEqual(entries(first),['<li>'+year+' 赛季 · €300万 · 已记录最高</li>','<li>'+(year-1)+' 赛季 · €100万</li>']);
+ assert.deepEqual(entries(ai),['<li>'+year+' 赛季 · €200万 · 已记录最高</li>','<li>'+(year-1)+' 赛季 · €200万 · 已记录最高</li>']);
+ console.log("✓ 三人身价按已结算赛季倒序展示，读档兼容缺失估值、重复年份和并列最高");
+}
