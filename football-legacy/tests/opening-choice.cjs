@@ -171,3 +171,29 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
  }
  console.log("✓ 无冠一、二、三季边界、冠军清零、青训与半季豁免、同档转会落地并重新计数");
 }
+
+{
+ const h=harness();h.click("trioOpening");
+ const fixture=h.saved,year=fixture.duoGames.wang.year,bio=fixture.sharedUniverse.trio;
+ const keeper=fixture.sharedUniverse.npcs.find(n=>n.id==="trio-academy-player");
+ bio.position="GK";
+ Object.assign(keeper,{pos:"GK",age:24,club:"曼城",apps:24,clean:8,europeApps:5,europeClean:3});
+ bio.history.push({year:year-1,club:"曼城",age:23,apps:27,goals:0,assists:0});
+ for(const x of Object.values(fixture.duoGames))x.season.stage="review";
+ const sim=harness([[saveKey,JSON.stringify(fixture)]]);
+ const split="联赛 24 场、8 次零封 · 欧战 5 场、3 次零封";
+ assert(sim.html.includes(split),"keeper's current record separates league and European clean sheets");
+ sim.click("trioSeason");
+ const saved=sim.saved,history=saved.sharedUniverse.trio.history;
+ assert.deepEqual(history.at(-1).goalkeeping,{leagueApps:24,leagueClean:8,europeApps:5,europeClean:3});
+ assert.equal(history.at(-2).goalkeeping,undefined);
+ const reload=harness([[saveKey,JSON.stringify(saved)]]);
+ assert(reload.html.includes(split),"saved history keeps the split after reloading");
+ assert(!reload.html.includes("27 场 · 0 球 · 0 助攻 · 联赛"),"legacy history must not invent zero clean sheets");
+ Object.assign(keeper,{pos:"GK",age:17,club:"曼城青训",apps:4,clean:0,europeApps:0,europeClean:0});
+ const youth=harness([[saveKey,JSON.stringify(fixture)]]);
+ assert(youth.html.includes("青训联赛 4 场、0 次零封"));assert(!youth.html.includes("欧战 0 场、"));
+ keeper.pos=bio.position="ST";
+ assert(!harness([[saveKey,JSON.stringify(fixture)]]).html.includes("次零封"));
+ console.log("✓ 人机门将零封按赛事归档，青训、零零封、旧档及外场球员显示正确");
+}
