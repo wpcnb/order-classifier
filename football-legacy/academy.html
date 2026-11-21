@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#081326"><title>中国青训队 · 绿茵三剑客2</title>
+<style>
+:root{color-scheme:dark;font:16px/1.6 system-ui,sans-serif;background:#081326;color:#f4f7ff}
+*{box-sizing:border-box}body{margin:0}main{max-width:1020px;margin:auto;padding:16px clamp(12px,4vw,36px) 40px}
+a{color:#93daff}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+h1,h2,h3,p{margin:0}h2{font-size:1.2rem}small,.muted{color:#bccbda}
+.hero{min-height:166px;display:grid;align-content:end;padding:24px;border-radius:16px;background:linear-gradient(90deg,#071627ee,#08142477),url(./assets/matchday.webp) center 44%/cover}
+.hero h1{font-size:clamp(1.9rem,6vw,3rem)}section{margin:14px 0;background:#14263a;padding:clamp(14px,3vw,22px);border:1px solid #32495e;border-radius:12px}
+.controls,.actions,.tabs{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}label{display:grid;gap:4px;font-size:.9rem}
+button,select{font:inherit;color:inherit;background:#21384e;border:1px solid #49647c;border-radius:8px;min-height:44px;padding:7px 14px;cursor:pointer}
+button.primary,button[aria-pressed=true]{background:#8debc1;color:#082b27;border-color:#8debc1;font-weight:700}
+.score{font-size:clamp(1.2rem,4vw,1.8rem);color:#91ebc5;margin:8px 0}
+.roster{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:8px;align-items:start}
+details.player{background:#0d2031;border:1px solid #32495e;border-radius:8px;padding:10px 12px}
+summary{cursor:pointer}summary strong{color:#fff}dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:10px 0}dt{color:#aebfd0}dd{margin:0}
+#notice{color:#ffce72}a:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #ffd674}
+</style>
+<script src="./china-rosters.js?v=S205" defer></script><script src="./china-academy.js?v=S205" defer></script>
+</head>
+<body><main>
+<header><a href="./play.html">← 返回三人生涯</a><small>绿茵三剑客2 · S2.05</small></header>
+<div class="hero"><h1>中国青训队</h1><p>带领中国 U17 集训，与成年国家队踢教学赛。</p></div>
+<section><h2>训练安排</h2><p class="muted">每周训练一次、比赛一场。系统按位置轮换首发，两队分别记录出场、进球与助攻。</p>
+<div class="controls"><label>青训重点<select id="plan"><option value="passing">传接配合</option><option value="finishing">射门终结</option><option value="defending">防守站位</option></select></label>
+<label>青训阵型<select id="shape"><option>4-4-2</option><option>4-3-3</option></select></label></div>
+<div class="actions"><button type="button" class="primary" id="week">训练并模拟一周</button><button type="button" id="camp">一键模拟 12 周</button></div>
+<div role="status" id="notice"></div><div id="report" aria-live="polite"></div></section>
+<section><h2>球员名册</h2><p class="muted">国少采用 2026 年 U17 世界杯报名名单，国足采用 11 月第五期集训征召名单。展开球员可查看资料来源与游戏出场记录。</p>
+<div class="tabs"><button type="button" id="u17" aria-pressed="true">中国 U17 · 21 人</button><button type="button" id="senior" aria-pressed="false">成年国足 · 26 人</button></div><div id="roster" class="roster"></div></section>
+<noscript>请启用 JavaScript 以运行青训模拟。</noscript>
+</main></body></html>

@@ -306,3 +306,5 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
  assert.match(harness([...game.storage]).html,/三人职业生涯/);
  console.log("✓ 旧人机保留原档案与已完成赛季，跨季转为第三位正式球员");
 }
+
+require("./china-academy.cjs");
