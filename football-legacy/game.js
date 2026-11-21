@@ -150,16 +150,16 @@ function creatorSelect(id,key,label,options,selected,locked){
 
 function openingDevelopmentPanel(id){
  if(!BP)return "";
- const selected=openingPaths[id]||"balanced",locked=!!drawnClubs[id],draft=creatorDrafts[id]||FS?.draftDefaults();
+ const selected=openingPaths[id]||"balanced",locked=!!drawnClubs[id],identityLocked=locked||!!V10?.verifiedPerson(v10Persons[id]),draft=creatorDrafts[id]||FS?.draftDefaults();
  const position=creatorMode==="preset"?openingPositions[id]:draft?.position||"LW";
  const weight=creatorMode==="preset"?openingWeights[id]:draft?.weight||70;
  const preview=BP.profile({heightCm:creatorMode==="preset"?(V10?v10Heights[id]:DUO_TEMPLATES[id].height):draft?.height,weightKg:weight,position});
  const labels=BP.label({heightCm:preview.height,weightKg:preview.weight,position});
  return '<details class="item opening-development" open><summary><b>开局发展方向 · '+E(BP.PATHS[selected].name)+'</b></summary>'+
  '<div class="creator-form-grid">'+
- (creatorMode==="custom"?'':creatorSelect(id,"_position","首发适配位置（开局选定）",FS?.POS||POS,position,locked))+
- (V10?'<label class="field">身高（150～210cm）<select data-v10-height="'+id+'" '+(locked?'disabled':'')+'>'+Array.from({length:61},(_,i)=>'<option value="'+(i+150)+'" '+(v10Heights[id]===i+150?'selected':'')+'>'+(i+150)+' cm</option>').join("")+'</select></label>':'')+
- '<label class="field">体重（45～125kg）<select data-opening-weight="'+id+'" '+(locked?'disabled':'')+'>'+
+ (creatorMode==="custom"?'':creatorSelect(id,"_position","首发适配位置（开局选定）",FS?.POS||POS,position,identityLocked))+
+ (V10?'<label class="field">身高（150～210cm）<select data-v10-height="'+id+'" '+(identityLocked?'disabled':'')+'>'+Array.from({length:61},(_,i)=>'<option value="'+(i+150)+'" '+(v10Heights[id]===i+150?'selected':'')+'>'+(i+150)+' cm</option>').join("")+'</select></label>':'')+
+ '<label class="field">体重（45～125kg）<select data-opening-weight="'+id+'" '+(identityLocked?'disabled':'')+'>'+
  Array.from({length:81},(_,i)=>{const v=i+45;return '<option value="'+v+'" '+(v===weight?'selected':'')+'>'+v+' kg</option>'}).join("")+'</select></label>'+
  '<label class="field">生涯优先方向<select data-opening-path="'+id+'" '+(locked?'disabled':'')+'>'+
  Object.entries(BP.PATHS).map(([key,v])=>'<option value="'+key+'" '+(key===selected?'selected':'')+'>'+E(v.name)+'</option>').join("")+'</select></label></div>'+
@@ -3778,7 +3778,7 @@ function s1CareerTrend(x){
  '<p class="muted small"><span style="color:#66efb4">●</span> 进球　<span style="color:#ffce72">●</span> 助攻 · 完整数值见下方赛季记录。</p></section>';
 }
 function duoHistoryPage(){
- return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player;return '<section class="card"><h2>'+E(p.name)+'</h2>'+(p.freeStar?'<div class="creator-history-avatar">'+creatorPortrait(p)+'</div><p class="muted small">'+E(p.country)+' · '+p.age+'岁 · '+p.heightCm+'cm · '+E(hiddenPotentialText(x))+'</p>':'')+trainingFocusPanel(id)+careerDepthDetails(id)+'<div class="grid3">'+metric("一线队进球",p.career.goals)+metric("一线队助攻",p.career.assists)+metric("一线队出场",p.career.apps)+'</div>'+retirementLikenessPanel(x)+s1CareerTrend(x)+'<h3 class="gap">转会历程</h3><div class="list">'+((p.transferHistory||[]).map(t=>'<div class="item">'+t.year+' · '+E(t.from)+' → '+E(t.to)+' · '+E(t.reason)+'</div>').join("")||'<p class="muted">暂无转会</p>')+'</div><h3 class="gap">赛季记录</h3><div class="list">'+x.history.map(h=>'<div class="item">'+h.year+' · '+(h.age<18?'青训 · ':'')+E(h.club)+' · '+h.goals+'球 '+h.assists+'助'+(h.workload?' · '+E(workloadText(h.workload)):'')+'</div>').join("")+partialRetirementHistory(x)+'</div><h3 class="gap">青训履历（与成年数据分开）</h3><div class="grid3">'+metric("青训出场",p.academyCareer?.apps||0)+metric("青训进球",p.academyCareer?.goals||0)+metric("青训助攻",p.academyCareer?.assists||0)+'</div><p class="muted small">'+(p.academyHonors||[]).map(h=>E(h.year+"年 "+h.name)).join(" · ")+'</p><h3 class="gap">个人奖杯</h3>'+x.honors.map(h=>badge(h.year+" "+h.name+(h.legacyDisputed?"（旧档争议）":""))).join("")+'</section>'}).join("")+'</div>';
+ return '<div class="grid2">'+DUO_IDS.map(id=>{const x=duoGames[id],p=x.player;return '<section class="card"><h2>'+E(p.name)+'</h2>'+(p.academyInstitution?'<p class="muted small">真实青训：'+E(p.academyInstitution)+'（'+E(p.academyHistoricalYears||'')+'）；模拟母队：'+E(p.academyParentClub)+'。现实青训不等于模拟职业路径。</p>':'')+(p.freeStar?'<div class="creator-history-avatar">'+creatorPortrait(p)+'</div><p class="muted small">'+E(p.country)+' · '+p.age+'岁 · '+p.heightCm+'cm · '+E(hiddenPotentialText(x))+'</p>':'')+trainingFocusPanel(id)+careerDepthDetails(id)+'<div class="grid3">'+metric("一线队进球",p.career.goals)+metric("一线队助攻",p.career.assists)+metric("一线队出场",p.career.apps)+'</div>'+retirementLikenessPanel(x)+s1CareerTrend(x)+'<h3 class="gap">转会历程</h3><div class="list">'+((p.transferHistory||[]).map(t=>'<div class="item">'+t.year+' · '+E(t.from)+' → '+E(t.to)+' · '+E(t.reason)+'</div>').join("")||'<p class="muted">暂无转会</p>')+'</div><h3 class="gap">赛季记录</h3><div class="list">'+x.history.map(h=>'<div class="item">'+h.year+' · '+(h.age<18?'青训 · ':'')+E(h.club)+' · '+h.goals+'球 '+h.assists+'助'+(h.workload?' · '+E(workloadText(h.workload)):'')+'</div>').join("")+partialRetirementHistory(x)+'</div><h3 class="gap">青训履历（与成年数据分开）</h3><div class="grid3">'+metric("青训出场",p.academyCareer?.apps||0)+metric("青训进球",p.academyCareer?.goals||0)+metric("青训助攻",p.academyCareer?.assists||0)+'</div><p class="muted small">'+(p.academyHonors||[]).map(h=>E(h.year+"年 "+h.name)).join(" · ")+'</p><h3 class="gap">个人奖杯</h3>'+x.honors.map(h=>badge(h.year+" "+h.name+(h.legacyDisputed?"（旧档争议）":""))).join("")+'</section>'}).join("")+'</div>';
 }
 function duoMyPage(){
  const tabs=[["honors","冠军与荣誉"],["awards","金球奖 / 世界足球先生"],["achievements","生涯成就"],["career",duoGames.third?"三人履历":"两人履历"],["save","存档与备份"]];
@@ -3821,6 +3821,7 @@ $("app").addEventListener("change",ev=>{
     v10Persons[id]=name;duoDraft[id]=name;if(found)openingPositions[id]=found.position;
     normalizeVerifiedOpening(id);if(other)normalizeVerifiedOpening(other);
    }else if(data.v10Height){
+    if(V10.verifiedPerson(v10Persons[id])){render();return}
     const oldHeight=v10Heights[id],newHeight=V10.allowedHeight(ev.target.value);
     if(openingWeights[id]===V10.seedWeight(oldHeight))openingWeights[id]=V10.seedWeight(newHeight);
     v10Heights[id]=newHeight;
@@ -3864,7 +3865,7 @@ $("app").addEventListener("change",ev=>{
   if(!persistOpening()){openingPaths[pathId]=previous;notify("无法保存生涯路线")}render();return
  }
  const weightId=ev.target.dataset.openingWeight;
- if(BP&&TRIO_IDS.includes(weightId)&&!drawnClubs[weightId]){
+ if(BP&&TRIO_IDS.includes(weightId)&&!drawnClubs[weightId]&&!V10?.verifiedPerson(v10Persons[weightId])){
   const weight=Number(ev.target.value);
   if(Number.isInteger(weight)&&weight>=45&&weight<=125){
    const previous=creatorMode==="preset"?openingWeights[weightId]:creatorDrafts[weightId];
@@ -3874,7 +3875,7 @@ $("app").addEventListener("change",ev=>{
   }render();return
  }
  const roleId=ev.target.dataset.creatorField==="_position"?ev.target.dataset.creatorId:null;
- if(BP&&TRIO_IDS.includes(roleId)&&!drawnClubs[roleId]&&Object.hasOwn(POS,ev.target.value)){
+ if(BP&&TRIO_IDS.includes(roleId)&&!drawnClubs[roleId]&&!V10?.verifiedPerson(v10Persons[roleId])&&Object.hasOwn(POS,ev.target.value)){
   const previous=creatorMode==="preset"?openingPositions[roleId]:creatorDrafts[roleId];
   if(creatorMode==="preset")openingPositions[roleId]=ev.target.value;
   else creatorDrafts[roleId]=FS.validate({...creatorDrafts[roleId],position:ev.target.value});
