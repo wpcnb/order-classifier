@@ -67,6 +67,11 @@ function catalog(rawRoster){
  const output=[{name:"王楚淇",referenceClub:"玩家经典角色",position:"LW",rating:83,source:"原有玩家角色"}];
  for(const name of IMPORTANT){if(found.has(name))output.push(found.get(name))}
  for(const person of Object.values(VERIFIED_CHINA))output.push({name:person.name,referenceClub:person.referenceClub,position:person.position,rating:person.rating,source:"FC 25历史能力 · 已核实青训",verified:true});
+ const roles={"门将":"GK","后卫":"CB","中场":"CM","前锋":"ST"};
+ for(const profile of window.ChinaAcademyData?.players||[]){
+  output.push({name:profile.name,position:roles[profile.role],referenceClub:profile.club,
+   source:profile.group==="u17"?"中国 U17 世界杯名单":"中国男足集训名单",chinaProfile:profile});
+ }
  return output;
 }
 function findPerson(id,rawRoster){
@@ -80,6 +85,11 @@ function templateFor(id,rawRoster){
   potential:verified.gamePotential,
   reference:"EA Sports FC 25：综合 "+verified.rating+"、潜力 "+verified.sourcePotential+"；六维属性来自FC 25，心理项采用镇定值近似。16岁属性按游戏统一公式下调；成长潜力 "+verified.gamePotential+" 为游戏设定，非官方预测。",
   sourceReference:"FIFA Index FC 25历史评分，非真实16岁评分；青训机构有独立事实来源"};
+ if(row.chinaProfile){
+  const reference=row.chinaProfile;
+  return {...customTemplate(row.name,row.position),...row,height:reference.height,born:reference.born,
+   sourceReference:"中国队公开档案；职业生涯能力按所选位置生成"};
+ }
  const mean=clamp(Math.round(64+(row.rating-80)*.49),59,75);
  const offsets=ROLES[row.position]||ROLES.LW;
  const stats=Object.fromEntries(STATS.map((key,i)=>[key,Math.round(clamp(mean+offsets[i],32,92))]));

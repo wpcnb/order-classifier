@@ -60,11 +60,12 @@ function initThirdOpening(){
  if(!V10)return;
  const choices=V10?.catalog(window.FOOTBALL_AWARD_REAL_PEOPLE).filter(person=>!PAIR_IDS.some(id=>v10Persons[id]===person.name));
  const person=choices?.length?choices[Math.floor(Math.random()*choices.length)]:null;
- const height=160+Math.floor(Math.random()*35);
+ const reference=person?.chinaProfile;
+ const height=reference?.height||160+Math.floor(Math.random()*35);
  v10Persons.third=person?.name||"第三名球员";
  openingPositions.third=person?.position||"CM";
- v10Countries.third=V10?V10.chooseCountry():"中国";
- v10Heights.third=height;openingWeights.third=V10?V10.seedWeight(height):70;
+ v10Countries.third=reference?"中国":V10.chooseCountry();
+ v10Heights.third=height;openingWeights.third=reference?.weight||V10.seedWeight(height);
  openingLeagues.third=V10?V10.chooseLeague():"CHN";openingPaths.third="balanced";
  v10Operations.third="guided";v10Philosophies.third="balanced";openingStyles.third="default";
  duoDraft.third=v10Persons.third;
@@ -803,8 +804,8 @@ function makeDuoCareer(id){
  const sourceReference=V10?(t.reference||t.sourceReference||"v10平行世界能力估算；非现实运动数据"):
    namedOriginal&&openingStyles[id]==="default"?t.reference:"基于"+PLAYER_STYLES[openingStyles[id]].name+"的游戏估算，不代表真实人物能力";
  Object.assign(player,{name,country:verified?"中国":V10?v10Countries[id]:"中国",
- actualCountry:verified?"中国":V10?(V10.REFERENCE_COUNTRIES[name]||null):(namedOriginal?t.actualCountry:null),
- born:verified?verified.born:namedOriginal?(t.born||null):null,heightCm:verified?verified.height:V10?v10Heights[id]:(namedOriginal?t.height:null),
+ actualCountry:verified||t.chinaProfile?"中国":V10?(V10.REFERENCE_COUNTRIES[name]||null):(namedOriginal?t.actualCountry:null),
+ born:verified?verified.born:(namedOriginal||t.chinaProfile)?(t.born||null):null,heightCm:verified?verified.height:V10?v10Heights[id]:(namedOriginal?t.height:null),
  actualHeightCm:verified?verified.height:V10?(t.height||null):null,
  weightKg:verified?verified.weight:openingWeights[id],
  academyInstitution:verified?.academy||null,academyHistoricalYears:verified?.academyYears||null,careerPath:openingPaths[id]||"balanced",
@@ -3817,9 +3818,16 @@ $("app").addEventListener("change",ev=>{
     if(other){
      if(drawnClubs[other]){notify("该人物已锁定青训球队，请另选人物");render();return}
      const prior=v10Persons[id];
+     for(const setting of [v10Heights,openingWeights,v10Countries]){
+      [setting[other],setting[id]]=[setting[id],setting[other]];
+     }
      v10Persons[other]=prior;duoDraft[other]=prior;openingPositions[other]=openingPositions[id];
     }
     v10Persons[id]=name;duoDraft[id]=name;if(found)openingPositions[id]=found.position;
+    if(found?.chinaProfile){
+     const profile=found.chinaProfile;
+     v10Countries[id]="中国";v10Heights[id]=profile.height;openingWeights[id]=profile.weight||V10.seedWeight(profile.height);
+    }
     normalizeVerifiedOpening(id);if(other)normalizeVerifiedOpening(other);
    }else if(data.v10Height){
     if(V10.verifiedPerson(v10Persons[id])){render();return}
