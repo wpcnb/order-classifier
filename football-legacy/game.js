@@ -68,6 +68,7 @@ function initThirdOpening(){
  openingLeagues.third=V10?V10.chooseLeague():"CHN";openingPaths.third="balanced";
  v10Operations.third="guided";v10Philosophies.third="balanced";openingStyles.third="default";
  duoDraft.third=v10Persons.third;
+ normalizeVerifiedOpening("third");
 }
 function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STORE)||"null");if(!d)return;
  if(d.trioOpeningName?.trim()&&!d.v10Persons?.third)v10Persons.third=duoDraft.third=d.trioOpeningName.trim().slice(0,22);
