@@ -116,7 +116,11 @@ verify("100 independently initialized gameplay sessions, dual league, archive an
  const s=h.saved;assert(s&&s.version===2,"new game save must be written");
  const a=s.duoGames.wang.player,b=s.duoGames.vini.player;
  assert.equal(a.name,alt.name);
- assert.equal(a.heightCm,150+(i%61));
+ const verified=V.verifiedPerson(alt.name);
+ assert.equal(a.heightCm,verified?verified.height:150+(i%61));
+ if(verified){assert.equal(a.country,"中国");assert.equal(a.actualCountry,"中国");
+  assert.equal(a.academyInstitution,verified.academy);assert.equal(a.academyParentClub,verified.parentClub)}
+
  assert.equal(a.careerPhilosophy,i%2?"finisher":"creator");
  assert.equal(b.careerOperationMode,"deep");
  assert.equal(b.autoPoints,false);
