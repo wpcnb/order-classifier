@@ -81,8 +81,9 @@ function historicalStatus(x){
 }
 function overview(games,shared){
  if(!games?.wang?.player||!games?.vini?.player)return "";
- const html=["wang","vini"].map(id=>{
-  const x=games[id],p=x.player,t=ensure(p);
+ const careers=Object.values(games).filter(x=>x?.player);
+ const html=careers.map(x=>{
+  const p=x.player,t=ensure(p);
   const state=(p.seasonForm||0)>.25?"状态火热":(p.seasonForm||0)<-.25?"状态低迷":"状态正常";
   const contract=Math.max(0,Number(p.contract)||0);
   const appraisal=Number.isFinite(p.marketValue)?p.marketValue:null;
@@ -93,15 +94,15 @@ function overview(games,shared){
    ' · 合同剩余 '+contract+'年'+(appraisal===null?'':' · 原有系统估值 '+escape(appraisal))+'</p>'+
    '<p class="muted small">'+escape(dynasty(x))+'</p></div>';
  }).join("");
- const a=games.wang.player,b=games.vini.player;
- const aInfluence=(a.career?.goals||0)+(a.career?.assists||0),bInfluence=(b.career?.goals||0)+(b.career?.assists||0);
- const rivalry=aInfluence===bInfluence?"职业生涯直接贡献持平":aInfluence>bInfluence?escape(a.name)+"暂时领先":" "+escape(b.name)+"暂时领先";
+ const totals=careers.map(({player:p})=>({name:p.name,total:(p.career?.goals||0)+(p.career?.assists||0)}));
+ const top=Math.max(...totals.map(row=>row.total)),leaders=totals.filter(row=>row.total===top);
+ const rivalry=leaders.length===totals.length?"职业生涯直接贡献持平":leaders.map(row=>escape(row.name)).join("、")+"暂时领先";
  const current=Math.max(Number(games.wang.year)||0,Number(games.vini.year)||0);
  const ceremony=shared?.awards?.[current-1];
  return '<section class="card gap"><h2>绿茵信仰 S1.02 · 生涯动态</h2><div class="grid2">'+html+
- '</div><p class="muted small gap">双星竞争：'+rivalry+'（只比较一线队进球与助攻，不影响更衣室和谐）。</p>'+
+ '</div><p class="muted small gap">球员竞争：'+rivalry+'（只比较一线队进球与助攻，不影响更衣室和谐）。</p>'+
  (ceremony?.winner?'<p class="gold">上届年度盛典 · '+escape(ceremony.year)+'年金球奖：'+escape(ceremony.winner.name)+'（'+escape(ceremony.winner.points)+'分）</p>':'')+
- '<p class="muted small">本模块为新增生涯机制；旧存档使用原有存储键，比赛仍遵循双星共享比分。</p></section>';
+ '<p class="muted small">本模块为新增生涯机制；旧存档使用原有存储键，比赛仍遵循共享比分。</p></section>';
 }
 const api=Object.freeze({ensure,declineAge,growthAge,tacticalShift,volatility,afterMatch,salaryMultiplier,highlight,dynasty,historicalStatus,overview});
 root.GreenLegend=api;

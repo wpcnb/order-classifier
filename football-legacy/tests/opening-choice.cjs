@@ -9,9 +9,15 @@ function harness(existing=[]){
  const document={getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
  const localStorage={get length(){return storage.size},key:i=>[...storage.keys()][i]||null,getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(rejectWrites)throw new Error("QuotaExceededError");storage.set(k,String(v))},removeItem:k=>storage.delete(k)};
  const context={window:{FootballMarketV3:require(path.join(root,"market-v3.js")),FootballRolesV3:require(path.join(root,"role-v3.js"))},document,localStorage,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
- for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
+ for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,enrollTrio,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
  const trigger=(type,target)=>{for(const fn of handlers["app:"+type]||[])fn({target})};
  return {storage,api:context.window.__opening,get html(){return node("app").innerHTML},get toast(){return node("toast").textContent},get opening(){return JSON.parse(storage.get(openingKey)||"null")},get saved(){return JSON.parse(storage.get(saveKey)||"null")},
+  legacyTrio(){
+   const name=(node("trioName").value||"").trim();
+   if(Object.values(this.api.names()).slice(0,2).includes(name))return;
+   for(const id of ["wang","vini"])this.click("flipOpeningCard",{id,i:0});
+   this.click("preset");this.api.enrollTrio(name);this.click("trioStop");this.flush();
+  },
   input(id,value){node(id).value=value},fail(on){rejectWrites=on},change(dataset,value){trigger("change",{dataset,value})},click(action,data={}){trigger("click",{closest:()=>({disabled:false,dataset:{action,...data}})})},flush(){let n=0;while(timers.length&&n++<30)timers.shift()()}};
 }
 {
@@ -55,7 +61,7 @@ function harness(existing=[]){
 }
 {
  const h=harness();
- h.click("trioOpening");
+ h.legacyTrio();
  const bio=h.saved.sharedUniverse.trio;
  assert(bio.country && bio.position && bio.family && bio.academy);
  assert(bio.height>=150 && bio.weight>=45 && bio.potential>=65);
@@ -79,7 +85,7 @@ function harness(existing=[]){
 }
 
 for(const scenario of ["promotion","relegation","veteran","shortSeason","injured","bottomTier","scoutMiss"]){
- const h=harness();h.click("trioOpening");
+ const h=harness();h.legacyTrio();
  const games=h.api.duo(),year=games.wang.year;
  const n=games.wang.npcs.find(n=>n.id==="trio-academy-player");
  const strong=["promotion","scoutMiss"].includes(scenario);
@@ -110,8 +116,8 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
 
 {
  const h=harness();
- h.input("trioName",h.api.names().wang);h.click("trioOpening");assert.equal(h.saved,null);
- h.input("trioName","  阿远  ");h.click("trioOpening");
+ h.input("trioName",h.api.names().wang);h.legacyTrio();assert.equal(h.saved,null);
+ h.input("trioName","  阿远  ");h.legacyTrio();
  const old=h.saved,bio=old.sharedUniverse.trio;
  const actor=save=>save.sharedUniverse.npcs.find(n=>n.id==="trio-academy-player");
  assert.equal(bio.name,"阿远");assert.equal(actor(old).name,bio.name);
@@ -130,7 +136,7 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
 }
 
 {
- const h=harness();h.click("trioOpening");
+ const h=harness();h.legacyTrio();
  const baseline=h.saved,year=baseline.duoGames.wang.year;
  for(const [streak,age,title,partial,expected] of [
   [0,22,false,false,1],[1,23,false,false,2],[2,24,false,false,3],
@@ -173,7 +179,7 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
 }
 
 {
- const h=harness();h.click("trioOpening");
+ const h=harness();h.legacyTrio();
  const fixture=h.saved,year=fixture.duoGames.wang.year,bio=fixture.sharedUniverse.trio;
  const keeper=fixture.sharedUniverse.npcs.find(n=>n.id==="trio-academy-player");
  bio.position="GK";
@@ -199,7 +205,7 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
 }
 
 {
- const h=harness();h.input("trioName","小林");h.click("trioOpening");
+ const h=harness();h.input("trioName","小林");h.legacyTrio();
  const initial=h.saved,u=initial.sharedUniverse,year=initial.duoGames.wang.year;
  const panel=html=>html.split("<h2>三人身价与个人荣誉</h2>")[1].split("</section>")[0];
  const cards=html=>panel(html).match(/<article[\s\S]*?<\/article>/g);
@@ -224,7 +230,7 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
 }
 
 {
- const h=harness();h.click("trioOpening");
+ const h=harness();h.legacyTrio();
  assert(!h.html.includes("历年季末身价"));
  h.click("trioSeason");h.click("trioSeason");
  const fixture=h.saved,u=fixture.sharedUniverse,year=fixture.duoGames.wang.year;
@@ -243,7 +249,7 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
 }
 
 {
- const fresh=harness();fresh.click("trioOpening");
+ const fresh=harness();fresh.legacyTrio();
  const fixture=fresh.saved,u=fixture.sharedUniverse;
  const player=fixture.duoGames.wang.player;
  player.retired=true;
@@ -260,4 +266,43 @@ console.log("✓ 人机门将零进球升档、连续低迷降档、豁免、球
  [human,,ai]=cards();
  for(const card of [human,ai]){assert.match(card,/无估值记录/);assert(!card.includes('历年季末身价'))}
  console.log("✓ 退役身价沿用最近有效赛季，兼容缺失、乱序和无历史估值的存档");
+}
+
+{
+ const h=harness();assert.match(h.html,/data-v10-person="third"/);
+ const prior=h.api.names().third;
+ h.change({v10Person:"third"},"维尼修斯");
+ assert.equal(h.api.names().vini,prior);
+ h.change({openingLeague:"third"},"ESP");
+ const reload=harness([...h.storage]);assert.equal(reload.api.names().third,"维尼修斯");
+ reload.click("trioOpening");
+ const saved=reload.saved,third=saved.duoGames.third.player;
+ assert.deepEqual(Object.keys(saved.duoGames),["wang","vini","third"]);
+ assert.equal(third.name,"维尼修斯");assert.equal(third.potential,92);
+ assert.equal(third.academyReferenceStats.pace,93);assert.equal(third.leagueId,"ESP");
+ assert(!saved.sharedUniverse.npcs.some(n=>n.name===third.name||n.id==="trio-academy-player"));
+ const play=harness([...reload.storage]);
+ for(let i=0;i<3;i++)play.click("trioSeason");
+ for(const x of Object.values(play.saved.duoGames)){
+  assert.equal(x.year,2028);assert.equal(x.season.stage,"review");assert(!x.player.youth);
+  assert(x.season.apps>0);assert(x.player.marketValueHistory.length>=3);
+ }
+ assert(play.saved.duoGames.third.ballonHistory.length>0);
+ assert.match(harness([...play.storage]).html,/三人职业生涯/);
+ console.log("✓ 第三位可交换维尼修斯，三人共享正式生涯引擎，读档后同步毕业、比赛、估值与评奖");
+}
+
+{
+ const h=harness();h.input("trioName","阿林");h.legacyTrio();h.click("trioSeason");
+ h.click("upgradeThird");
+ const game=harness([...h.storage]);game.click("trioSeason");
+ const save=game.saved,career=save.duoGames.third;
+ assert.equal(career.player.name,"阿林");assert.equal(career.year,2027);
+ assert.equal(career.season.stage,"review");assert.equal(career.history[0].year,2026);
+ assert.equal(career.player.country,career.legacyProfile.country);
+ assert.equal(career.history[0].goals,career.legacyProfile.history[0].goals);
+ assert.equal(save.sharedUniverse.trio,undefined);
+ assert(!save.sharedUniverse.npcs.some(n=>n.id==="trio-academy-player"));
+ assert.match(harness([...game.storage]).html,/三人职业生涯/);
+ console.log("✓ 旧人机保留原档案与已完成赛季，跨季转为第三位正式球员");
 }
