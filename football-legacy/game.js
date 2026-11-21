@@ -100,12 +100,19 @@ function openingState(){try{const d=JSON.parse(localStorage.getItem(OPENING_STOR
   const locked=d.creatorLocked[id];
   if(locked.potential>=65&&locked.potential<=99&&Object.values(locked.stats||{}).length===7)creatorLocked[id]=locked;
  }
- }}catch(e){}
+ }if(V10)for(const id of TRIO_IDS)normalizeVerifiedOpening(id);
+ }catch(e){}
 }
 function persistOpening(){try{
  localStorage.setItem(OPENING_STORE,JSON.stringify({leagues:openingLeagues,decks:openingDecks,drawn:drawnClubs,indices:openingSelectedIndex,names:duoDraft,styles:openingStyles,positions:openingPositions,paths:openingPaths,weights:openingWeights,v10Step,v10Persons,v10Countries,v10Heights,v10Philosophies,v10Operations,mode:creatorMode,creatorDrafts,creatorLocked}));
  return true
  }catch(e){return false}}
+function normalizeVerifiedOpening(id){
+ const real=V10?.verifiedPerson(v10Persons[id]);
+ if(!real||drawnClubs[id])return;
+ openingLeagues[id]="CHN";openingDecks[id]=null;v10Countries[id]="中国";
+ v10Heights[id]=real.height;openingWeights[id]=real.weight;openingPositions[id]=real.position;openingStyles[id]="default";
+}
 function duoPlayerTemplate(id){
  const person=V10?V10.findPerson(v10Persons[id],window.FOOTBALL_AWARD_REAL_PEOPLE):null;
  const known=person&&Object.values(DUO_TEMPLATES).find(t=>t.name===person.name);
@@ -185,7 +192,7 @@ function creatorForm(id){
 }
 
 function chooseAcademy(id,league){
- if(!TRIO_IDS.includes(id)||!OPENING_LEAGUES.includes(league)||drawnClubs[id])return;
+ if(!TRIO_IDS.includes(id)||!OPENING_LEAGUES.includes(league)||drawnClubs[id]||V10?.verifiedPerson(v10Persons[id]))return;
  const oldLeague=openingLeagues[id],oldDeck=openingDecks[id];
  openingLeagues[id]=league;openingDecks[id]=null;
  if(!persistOpening()){openingLeagues[id]=oldLeague;openingDecks[id]=oldDeck;notify("无法保存起始联赛，请先检查浏览器存储空间")}
@@ -195,6 +202,11 @@ function openingPool(id){const league=openingLeagues[id];return (league==="CHN"?
  !TRIO_IDS.some(who=>who!==id&&openingLeagues[who]===league&&drawnClubs[who]===name));
 }
 function openingCards(id){
+ const real=V10?.verifiedPerson(v10Persons[id]);
+ if(real&&!drawnClubs[id]){
+  if(openingDecks[id]?.length!==1||openingDecks[id][0]!==real.parentClub){openingDecks[id]=[real.parentClub];persistOpening()}
+  return openingDecks[id];
+ }
  if(!openingDecks[id]){openingDecks[id]=shuffleDraw(openingPool(id)).slice(0,10);persistOpening()}
  return openingDecks[id];
 }
@@ -226,6 +238,21 @@ function flipOpeningCard(id,index){
 }
 function openingCardPanel(id){
  const t=duoPlayerTemplate(id),leagueId=openingLeagues[id],league=DB[leagueId],deck=openingCards(id),picked=drawnClubs[id];
+ const real=V10?.verifiedPerson(v10Persons[id]);
+ if(real){
+  const youth=academyStats(t),attrs=["pace","shoot","pass","dribble","defense","physical","mental"];
+  const captions=["速度","射门","传球","盘带","防守","身体","心理"];
+  return '<section class="card opening-draw"><h2>'+E(real.name)+' · 真实青训档案</h2>'+
+   '<p>国籍：中国 · 位置：'+E(real.position)+' · 身高：'+real.height+'cm · 体重：'+real.weight+'kg</p>'+
+   '<p><b>真实青训机构：'+E(real.academy)+'</b>（'+E(real.academyYears)+'）</p>'+
+   '<p>模拟18岁加盟：'+E(real.parentClub)+'一线队；现实首支成年队：'+E(real.firstSeniorClub)+'，游戏不复原真实职业轨迹。</p>'+
+   '<p>FC 25成年综合 '+real.rating+' · 官方潜力 '+real.sourcePotential+'。游戏16岁属性：</p>'+
+   '<p class="muted small">'+attrs.map((k,i)=>captions[i]+' '+youth[k]).join(' · ')+'</p>'+
+   '<p class="muted small">六维来自FC 25历史数值，心理值用镇定值近似；游戏潜力 '+t.potential+' 为假设，不是官方预测。</p>'+
+   (picked?'<p class="gold">已确认青训：'+E(real.academy)+'</p>':
+    '<button class="button primary" data-action="flipOpeningCard" data-id="'+id+'" data-i="0">确认真实青训入学：'+E(real.academy)+'</button>')+
+   '<p class="muted small">数据：FIFA Index FC 25 / 中国足协及鲁能足校史料；其他球员仍执行随机十卡。</p></section>';
+ }
  return '<section class="card opening-draw"><div class="row"><h2>'+E(duoDraft[id]||t.name)+' · '+(creatorMode==="preset"||creatorDrafts[id]?.age<18?"选择青训球队":"选择职业球队")+'</h2><span class="chip">'+E(league.name)+'</span></div>'+
  (V10?'<p class="muted small">所选联赛：'+E(league.name)+' · 游戏国籍：'+E(v10Countries[id])+' · 身高：'+v10Heights[id]+'cm</p>':
   '<label class="field">'+(creatorMode==="preset"?"青训联赛":"起始联赛")+' <select data-opening-league="'+id+'" '+(picked?'disabled':'')+'>'+OPENING_LEAGUES.map(l=>'<option value="'+l+'" '+(l===leagueId?'selected':'')+'>'+E(DB[l].name)+'</option>').join('')+'</select></label>'+
@@ -770,26 +797,31 @@ function makeFreeStarCareer(id){
 function makeDuoCareer(id){
  if(FS&&creatorMode!=="preset")return makeFreeStarCareer(id);
  const t=duoPlayerTemplate(id),player=initialPlayer(false),name=String((V10?v10Persons[id]:duoDraft[id])||t.name).trim().slice(0,22)||t.name;
+ const verified=V10?.verifiedPerson(name),parentClub=verified?.parentClub||drawnClubs[id];
  const namedOriginal=V10?!!Object.values(DUO_TEMPLATES).find(item=>item.name===name):name===t.name;
  const sourceReference=V10?(t.reference||t.sourceReference||"v10平行世界能力估算；非现实运动数据"):
    namedOriginal&&openingStyles[id]==="default"?t.reference:"基于"+PLAYER_STYLES[openingStyles[id]].name+"的游戏估算，不代表真实人物能力";
- Object.assign(player,{name,country:V10?v10Countries[id]:"中国",
- actualCountry:V10?(V10.REFERENCE_COUNTRIES[name]||null):(namedOriginal?t.actualCountry:null),
- born:namedOriginal?(t.born||null):null,heightCm:V10?v10Heights[id]:(namedOriginal?t.height:null),
- actualHeightCm:V10?(t.height||null):null,
- weightKg:openingWeights[id],careerPath:openingPaths[id]||"balanced",
+ Object.assign(player,{name,country:verified?"中国":V10?v10Countries[id]:"中国",
+ actualCountry:verified?"中国":V10?(V10.REFERENCE_COUNTRIES[name]||null):(namedOriginal?t.actualCountry:null),
+ born:verified?verified.born:namedOriginal?(t.born||null):null,heightCm:verified?verified.height:V10?v10Heights[id]:(namedOriginal?t.height:null),
+ actualHeightCm:verified?verified.height:V10?(t.height||null):null,
+ weightKg:verified?verified.weight:openingWeights[id],
+ academyInstitution:verified?.academy||null,academyHistoricalYears:verified?.academyYears||null,careerPath:openingPaths[id]||"balanced",
  careerPhilosophy:V10?v10Philosophies[id]:"balanced",careerOperationMode:V10?v10Operations[id]:"guided",
  autoTraining:V10?v10Operations[id]!=="deep":true,autoPoints:V10?v10Operations[id]!=="deep":true,
  realIdentity:V10?{referenceName:name,referenceClub:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.referenceClub||"",
  profileSource:V10.findPerson(name,window.FOOTBALL_AWARD_REAL_PEOPLE)?.source||"自定义人物 · 游戏估算",
- gameCountry:v10Countries[id],gameCareer:true}:null,
+ gameCountry:verified?"中国":v10Countries[id],gameCareer:true,
+ verifiedYouth:!!verified,academyInstitution:verified?.academy||null}:null,
  age:ACADEMY_START_AGE,
-  position:openingPositions[id]||t.position,club:drawnClubs[id]+"青训",academyParentClub:drawnClubs[id],academyStartYear:2026,academyGraduationAge:ACADEMY_GRADUATION_AGE,leagueId:openingLeagues[id],number:Number.isInteger(t.number)?t.number:R(2,39),stats:academyStats(t),potential:t.potential,
-  sourceRating:namedOriginal&&openingStyles[id]==="default"?t.historicalOverall:null,sourceReference,profileStyle:openingStyles[id],academyReferenceStats:{...t.stats},contract:2,poorStreak:0,forcedMove:false,youth:true,stamina:95,points:0,wage:1500,cash:3000,fame:6,academyCareer:{apps:0,goals:0,assists:0},academyHonors:[],seasonForm:R(-90,90)/100,scoutingRoll:Math.random(),seasonPeak:0,injuryHistory:0});
+  position:openingPositions[id]||t.position,club:parentClub+"青训",academyParentClub:parentClub,academyStartYear:2026,academyGraduationAge:ACADEMY_GRADUATION_AGE,leagueId:verified?"CHN":openingLeagues[id],number:Number.isInteger(t.number)?t.number:R(2,39),stats:academyStats(t),potential:t.potential,
+  sourceRating:verified?verified.rating:namedOriginal&&openingStyles[id]==="default"?t.historicalOverall:null,sourceReference:verified?t.reference:sourceReference,profileStyle:openingStyles[id],academyReferenceStats:{...t.stats},contract:2,poorStreak:0,forcedMove:false,youth:true,stamina:95,points:0,wage:1500,cash:3000,fame:6,academyCareer:{apps:0,goals:0,assists:0},academyHonors:[],seasonForm:R(-90,90)/100,scoutingRoll:Math.random(),seasonPeak:0,injuryHistory:0});
  if(CD)player.careerTrait=CD.traitFor(player);
  g={version:4,duoId:id,createdAt:"2026-11-10",year:2026,generation:1,player,ancestors:[],honors:[],logs:[],history:[],offers:[],npcs:initNPC().filter(n=>n.name!==player.name),ballonHistory:[],settings:{difficulty:"standard"},season:null,live:null,lastReview:null};
  g.season=makeSchedule(player,g.year,10);createWorld(g.season);
- log(player.name+"以16岁进入 "+drawnClubs[id]+" 青训（架空生涯）；"+player.country+"游戏国籍。16岁属性根据 "+sourceReference+" 进行青年化推算，非真实能力评分。");
+ log(verified?
+  player.name+"真实青训："+verified.academy+"（"+verified.academyYears+"）；模拟16岁归入"+parentClub+"青训、18岁升入"+parentClub+"。能力由FC 25成年数据青年化；非真实16岁评分。":
+  player.name+"以16岁进入 "+drawnClubs[id]+" 青训（架空生涯）；"+player.country+"游戏国籍。16岁属性根据 "+sourceReference+" 进行青年化推算，非真实能力评分。");
  return g;
 }
 function buildDuoGame(ids=PAIR_IDS){
@@ -2950,7 +2982,8 @@ function v10OpeningAction(action,id){
   v10Step=Math.min(3,v10Step+1);
  }else if(action==="v10Back")v10Step=Math.max(1,v10Step-1);
  else if(TRIO_IDS.includes(id)&&!drawnClubs[id]){
-  if(action==="v10Country")v10Countries[id]=V10.chooseCountry();
+  if(V10.verifiedPerson(v10Persons[id]))return notify("已核验国足球员使用真实中国籍与青训机构，不支持随机更改");
+   if(action==="v10Country")v10Countries[id]=V10.chooseCountry();
   else if(action==="v10League"){openingLeagues[id]=V10.chooseLeague();openingDecks[id]=null;}
   else return;
  }else return;
@@ -3773,7 +3806,8 @@ $("app").addEventListener("change",ev=>{
   const data=ev.target.dataset,id=data.v10Star||data.v10Person||data.v10Height||data.v10Philosophy||data.v10Operation;
   if(TRIO_IDS.includes(id)&&!drawnClubs[id]){
    const previous={persons:{...v10Persons},draft:{...duoDraft},height:{...v10Heights},
-    weight:{...openingWeights},position:{...openingPositions},philosophies:{...v10Philosophies},operations:{...v10Operations}};
+    weight:{...openingWeights},position:{...openingPositions},philosophies:{...v10Philosophies},operations:{...v10Operations},
+    leagues:{...openingLeagues},countries:{...v10Countries},decks:{...openingDecks},styles:{...openingStyles}};
    if(data.v10Star||data.v10Person){
     const name=String(ev.target.value||"").trim().slice(0,22);
     if(!name){notify("请输入球员姓名");render();return}
@@ -3785,6 +3819,7 @@ $("app").addEventListener("change",ev=>{
      v10Persons[other]=prior;duoDraft[other]=prior;openingPositions[other]=openingPositions[id];
     }
     v10Persons[id]=name;duoDraft[id]=name;if(found)openingPositions[id]=found.position;
+    normalizeVerifiedOpening(id);if(other)normalizeVerifiedOpening(other);
    }else if(data.v10Height){
     const oldHeight=v10Heights[id],newHeight=V10.allowedHeight(ev.target.value);
     if(openingWeights[id]===V10.seedWeight(oldHeight))openingWeights[id]=V10.seedWeight(newHeight);
@@ -3794,6 +3829,7 @@ $("app").addEventListener("change",ev=>{
    if(!persistOpening()){
     v10Persons=previous.persons;duoDraft=previous.draft;v10Heights=previous.height;
     openingWeights=previous.weight;openingPositions=previous.position;
+    openingLeagues=previous.leagues;v10Countries=previous.countries;openingDecks=previous.decks;openingStyles=previous.styles;
     v10Philosophies=previous.philosophies;v10Operations=previous.operations;
     notify("设置保存失败，已恢复原值");
    }render();return
