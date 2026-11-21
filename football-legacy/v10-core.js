@@ -36,6 +36,24 @@ const IMPORTANT=["维尼修斯","姆巴佩","哈兰德","亚马尔","贝林厄�
 const REFERENCE_COUNTRIES=Object.freeze({
  "王楚淇":"中国","维尼修斯":"巴西","姆巴佩":"法国","哈兰德":"挪威","亚马尔":"西班牙","贝林厄姆":"英格兰","凯恩":"英格兰","萨卡":"英格兰","佩德里":"西班牙","巴尔韦德":"乌拉圭","穆西亚拉":"德国","维尔茨":"德国","帕尔默":"英格兰","福登":"英格兰","劳塔罗·马丁内斯":"阿根廷","奥利塞":"法国","维蒂尼亚":"葡萄牙","阿马德·迪亚洛":"科特迪瓦","梅努":"英格兰","谢什科":"斯洛文尼亚","库巴西":"西班牙","赖斯":"英格兰","多纳鲁马":"意大利","库尔图瓦":"比利时","格瓦迪奥尔":"克罗地亚","萨利巴":"法国","加维":"西班牙","杜埃":"法国","埃斯特旺":"巴西","巴斯托尼":"意大利","奥布拉克":"斯洛文尼亚","加纳乔":"阿根廷","罗德里戈":"巴西","阿尔瓦雷斯":"阿根廷","基米希":"德国","莱万多夫斯基":"波兰","登贝莱":"法国","罗德里":"西班牙","布鲁诺·费尔南德斯":"葡萄牙","伊萨克":"瑞典","约克雷斯":"瑞典"
 });
+// Audited historical facts, separate from the game's fictional career and ceiling.
+const VERIFIED_CHINA=Object.freeze({
+ "武磊":Object.freeze({name:"武磊",born:"1991-11-19",country:"中国",height:174,weight:66,
+  position:"ST",number:7,academy:"崇明根宝足球基地",academyYears:"2003—2005",
+  parentClub:"上海海港",firstSeniorClub:"上海东亚",referenceClub:"上海海港",
+  rating:72,sourcePotential:72,gamePotential:84,
+  stats:Object.freeze({pace:82,shoot:74,pass:64,dribble:74,defense:39,physical:72,mental:71}),
+  ratingUrl:"https://fifaindex.com/players/221445-wu-lei/fc25",
+  academyUrl:"https://www.thecfa.cn/jyqxjly/20220413/30552.html"}),
+ "韦世豪":Object.freeze({name:"韦世豪",born:"1995-04-08",country:"中国",height:178,weight:65,
+  position:"LW",number:7,academy:"山东鲁能泰山足球学校",academyYears:"2005—2013",
+  parentClub:"山东泰山",firstSeniorClub:"葡萄牙博阿维斯塔",referenceClub:"成都蓉城",
+  rating:69,sourcePotential:69,gamePotential:82,
+  stats:Object.freeze({pace:87,shoot:63,pass:61,dribble:71,defense:38,physical:68,mental:68}),
+  ratingUrl:"https://fifaindex.com/players/223344-wei-shihao/fc25",
+  academyUrl:"https://sd.sina.com.cn/news/sdsport/2014-03-05/191258028.html"})
+});
+function verifiedPerson(name){return VERIFIED_CHINA[name]||null}
 function catalog(rawRoster){
  const rows=rawRoster?.roster;
  const found=new Map();
@@ -48,6 +66,7 @@ function catalog(rawRoster){
  // a verified official footballer in the public roster.
  const output=[{name:"王楚淇",referenceClub:"玩家经典角色",position:"LW",rating:83,source:"原有玩家角色"}];
  for(const name of IMPORTANT){if(found.has(name))output.push(found.get(name))}
+ for(const person of Object.values(VERIFIED_CHINA))output.push({name:person.name,referenceClub:person.referenceClub,position:person.position,rating:person.rating,source:"FC 25历史能力 · 已核实青训",verified:true});
  return output;
 }
 function findPerson(id,rawRoster){
@@ -55,6 +74,12 @@ function findPerson(id,rawRoster){
 }
 function templateFor(id,rawRoster){
  const row=findPerson(id,rawRoster);if(!row)return null;
+ const verified=verifiedPerson(id);
+ if(verified)return {...row,born:verified.born,height:verified.height,actualCountry:"中国",
+  number:verified.number,historicalOverall:verified.rating,stats:{...verified.stats},
+  potential:verified.gamePotential,
+  reference:"EA Sports FC 25：综合 "+verified.rating+"、潜力 "+verified.sourcePotential+"；六维属性来自FC 25，心理项采用镇定值近似。16岁属性按游戏统一公式下调；成长潜力 "+verified.gamePotential+" 为游戏设定，非官方预测。",
+  sourceReference:"FIFA Index FC 25历史评分，非真实16岁评分；青训机构有独立事实来源"};
  const mean=clamp(Math.round(64+(row.rating-80)*.49),59,75);
  const offsets=ROLES[row.position]||ROLES.LW;
  const stats=Object.fromEntries(STATS.map((key,i)=>[key,Math.round(clamp(mean+offsets[i],32,92))]));
@@ -103,5 +128,5 @@ function snapshotForRestore(storage,index,key=SLOT_KEY){
  const slot=readSlots(storage,key)[index];
  return slot&&parseCareer(slot.body)?slot.body:null;
 }
-window.DualV10=Object.freeze({LEAGUES,COUNTRIES,STATS,PHILOSOPHIES,OPERATIONS,REFERENCE_COUNTRIES,SLOT_KEY,chooseLeague,chooseCountry,allowedHeight,seedWeight,allowedWeight,scrubPhilosophy,scrubOperation,catalog,findPerson,templateFor,customTemplate,matchInfluence,narrative,parseCareer,readSlots,saveSnapshot,snapshotForRestore});
+window.DualV10=Object.freeze({LEAGUES,COUNTRIES,STATS,PHILOSOPHIES,OPERATIONS,REFERENCE_COUNTRIES,verifiedPerson,SLOT_KEY,chooseLeague,chooseCountry,allowedHeight,seedWeight,allowedWeight,scrubPhilosophy,scrubOperation,catalog,findPerson,templateFor,customTemplate,matchInfluence,narrative,parseCareer,readSlots,saveSnapshot,snapshotForRestore});
 })();
