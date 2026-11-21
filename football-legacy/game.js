@@ -57,6 +57,7 @@ const OPENING_LEAGUES=["CHN","ENG","ESP","GER","ITA","FRA"];
 const OPENING_STORE="football-dynasty-opening-v3";
 let openingLeagues={wang:V10?V10.chooseLeague():"CHN",vini:V10?V10.chooseLeague():"CHN"};
 function initThirdOpening(){
+ if(!V10)return;
  const choices=V10?.catalog(window.FOOTBALL_AWARD_REAL_PEOPLE).filter(person=>!PAIR_IDS.some(id=>v10Persons[id]===person.name));
  const person=choices?.length?choices[Math.floor(Math.random()*choices.length)]:null;
  const height=160+Math.floor(Math.random()*35);
@@ -785,7 +786,6 @@ function makeDuoCareer(id){
  age:ACADEMY_START_AGE,
   position:openingPositions[id]||t.position,club:drawnClubs[id]+"青训",academyParentClub:drawnClubs[id],academyStartYear:2026,academyGraduationAge:ACADEMY_GRADUATION_AGE,leagueId:openingLeagues[id],number:Number.isInteger(t.number)?t.number:R(2,39),stats:academyStats(t),potential:t.potential,
   sourceRating:namedOriginal&&openingStyles[id]==="default"?t.historicalOverall:null,sourceReference,profileStyle:openingStyles[id],academyReferenceStats:{...t.stats},contract:2,poorStreak:0,forcedMove:false,youth:true,stamina:95,points:0,wage:1500,cash:3000,fame:6,academyCareer:{apps:0,goals:0,assists:0},academyHonors:[],seasonForm:R(-90,90)/100,scoutingRoll:Math.random(),seasonPeak:0,injuryHistory:0});
- player.family=P(["工薪家庭","体育世家","自营商户家庭","农家","教师家庭"]);
  if(CD)player.careerTrait=CD.traitFor(player);
  g={version:4,duoId:id,createdAt:"2026-11-10",year:2026,generation:1,player,ancestors:[],honors:[],logs:[],history:[],offers:[],npcs:initNPC().filter(n=>n.name!==player.name),ballonHistory:[],settings:{difficulty:"standard"},season:null,live:null,lastReview:null};
  g.season=makeSchedule(player,g.year,10);createWorld(g.season);
@@ -799,6 +799,9 @@ function buildDuoGame(ids=PAIR_IDS){
   notify("随机人物数据未锁定，请重新翻牌或导出开局备份");return
  }
  duoGames=Object.fromEntries(ids.map(id=>[id,makeDuoCareer(id)]));
+ if(ids.includes("third")){
+  for(const career of Object.values(duoGames))career.player.family=P(["工薪家庭","体育世家","自营商户家庭","农家","教师家庭"]);
+ }
  DUO_IDS=ids;sharedUniverse={rounds:{},offseasonYears:[],clubRatings:{},nationalFinals:{},awards:{},theBest:{}};linkSharedWorld();setupSharedUefaSeason();activeDuo="wang";g=duoGames.wang;page="dashboard";
  if(!save()){duoGames=null;DUO_IDS=PAIR_IDS;g=null;sharedUniverse=null;render();notify("无法保存新生涯，已保留开局抽卡；请先清理浏览器存储空间。");return}
  try{localStorage.removeItem?.(OPENING_STORE)}catch(e){}render();
