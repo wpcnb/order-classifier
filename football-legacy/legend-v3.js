@@ -5,7 +5,7 @@
   root.LegendV3 = api;
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
-  const IDS = ['wang', 'vini'];
+  const idsFor = world => world?.third ? ['wang', 'vini', 'third'] : ['wang', 'vini'];
   const ACHIEVEMENTS = Object.freeze({
     debut: ['职业首秀', 5], firstGoal: ['职业生涯首球', 5], apps100: ['百场里程碑', 10],
     apps500: ['五百场传奇', 30], goals100: ['百球射手', 30], goals300: ['三百球射手', 60],
@@ -19,7 +19,7 @@
   const num = value => Number.isFinite(Number(value)) ? Number(value) : 0;
   const finals = stage => typeof stage === 'string' && (stage === '决赛' || /(?:世界杯|欧冠|欧洲冠军联赛)决赛$/.test(stage));
   const nextEvent = x => x && x.season && x.season.stage === 'playing' && x.season.events && x.season.events[x.season.index];
-  const participants = (world, date) => IDS.map(id => ({ id, game: world[id], event: nextEvent(world[id]) }))
+  const participants = (world, date) => idsFor(world).map(id => ({ id, game: world[id], event: nextEvent(world[id]) }))
     .filter(item => item.event && item.event.date === date);
   function criticalDay(world, date) {
     if (!world || !date || !world.wang || !world.vini) return null;
@@ -28,8 +28,7 @@
     if (entries.some(({ event }) => finals(event.stage) && event.kind === 'europeKO')) reasons.push('欧洲赛事决赛');
     if (entries.some(({ event }) => finals(event.stage) && event.kind === 'national')) reasons.push('国家队赛事决赛');
     if (entries.some(({ event }) => finals(event.stage) && event.kind === 'cup')) reasons.push('国内杯赛决赛');
-    if (entries.length === 2) {
-      const [a, b] = entries;
+    for (const [i, a] of entries.entries()) for (const b of entries.slice(i+1)) {
       const pa = a.game.player, pb = b.game.player;
       const same = a.event.kind === b.event.kind && a.event.home === b.event.home &&
         a.event.away === b.event.away && !!a.event.home && !!a.event.away;
@@ -92,7 +91,7 @@
   }
   function sync(world, shared, fixtures) {
     if (!world || !world.wang || !world.vini) return;
-    for (const id of IDS) {
+    for (const id of idsFor(world)) {
       const game = world[id], p = game.player, career = p.career || {}, year = game.year;
       state(p);
       if (num(career.apps) > 0) award(p, 'debut', year);
@@ -132,19 +131,23 @@
         penalty(p, 'poor:' + year, '连续两个健康赛季明显低于预期', year, -10);
       }
     }
-    const a = world.wang.player, b = world.vini.player;
-    if (!a.retired && !b.retired && a.club && a.club === b.club && !a.youth && !b.youth) {
-      award(a, 'duoTeammate', world.wang.year); award(b, 'duoTeammate', world.vini.year);
+    const ids = idsFor(world);
+    for (const [index, id] of ids.entries()) for (const peer of ids.slice(index+1)) {
+      const first = world[id], second = world[peer];
+      const a = first.player, b = second.player;
+      if (!a.retired && !b.retired && a.club && a.club === b.club && !a.youth && !b.youth) {
+        award(a, 'duoTeammate', first.year); award(b, 'duoTeammate', second.year);
+      }
+      if ((fixtures || []).some(f => f.sideA !== f.sideB && (!f.players || (f.players.includes(id) && f.players.includes(peer))))) {
+        award(a, 'duoRival', first.year); award(b, 'duoRival', second.year);
+      }
+      const ah = (first.honors || []).filter(h => !h.legacyDisputed);
+      const bh = (second.honors || []).filter(h => !h.legacyDisputed);
+      const joint = ah.filter(h => h.type === 'team' && /冠军$/.test(h.name) &&
+        bh.some(k => k.type === 'team' && k.year === h.year && k.name === h.name && !k.legacyDisputed));
+      if (joint.length) { award(a, 'duoTitle', first.year); award(b, 'duoTitle', second.year); }
+      if (joint.some(h => h.name === '欧冠冠军')) { award(a, 'duoUcl', first.year); award(b, 'duoUcl', second.year); }
     }
-    if ((fixtures || []).some(f => f.sideA !== f.sideB)) {
-      award(a, 'duoRival', world.wang.year); award(b, 'duoRival', world.vini.year);
-    }
-    const ah = (world.wang.honors || []).filter(h => !h.legacyDisputed);
-    const bh = (world.vini.honors || []).filter(h => !h.legacyDisputed);
-    const joint = ah.filter(h => h.type === 'team' && /冠军$/.test(h.name) &&
-      bh.some(k => k.type === 'team' && k.year === h.year && k.name === h.name && !k.legacyDisputed));
-    if (joint.length) { award(a, 'duoTitle', world.wang.year); award(b, 'duoTitle', world.vini.year); }
-    if (joint.some(h => h.name === '欧冠冠军')) { award(a, 'duoUcl', world.wang.year); award(b, 'duoUcl', world.vini.year); }
   }
   // Milestone achievements are awarded once; subsequent titles must still
   // contribute to historical standing. All totals are derived from the save,
@@ -190,7 +193,7 @@
   function replay(world, date) {
     const result = [];
     const seen = new Set();
-    for (const id of IDS) {
+    for (const id of idsFor(world)) {
       const game = world && world[id];
       for (const m of (game && game.season && game.season.results) || []) {
         if (m.date !== date || !Number.isFinite(m.hs) || !Number.isFinite(m.as)) continue;

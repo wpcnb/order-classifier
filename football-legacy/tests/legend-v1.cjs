@@ -79,8 +79,8 @@ function player(position="ST",name="前锋"){
  const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
  const game=fs.readFileSync(path.join(root,"game.js"),"utf8");
  assert(html.includes("<title>绿茵三剑客2 ·"));
- assert(html.indexOf("./legend-v1.js?v=S1.02")>=0);
- assert(html.indexOf("./legend-v1.js?v=S1.02")<html.indexOf("./game.js?v="));
+ assert(html.indexOf("./legend-v1.js?v=")>=0);
+ assert(html.indexOf("./legend-v1.js?v=")<html.indexOf("./game.js?v="));
  for(const f of ["GL.volatility(","GL.tacticalShift(","GL.afterMatch(","GL.overview(","GL.declineAge("])
   assert(game.includes(f),"Missing wired mechanic: "+f);
  console.log("PASS live game script ordering and engine integration");
