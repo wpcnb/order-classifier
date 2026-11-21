@@ -38,7 +38,7 @@ const REFERENCE_COUNTRIES=Object.freeze({
 });
 // Audited historical facts, separate from the game's fictional career and ceiling.
 const VERIFIED_CHINA=Object.freeze({
- "武磊":Object.freeze({name:"武磊",born:"1991-11-19",country:"中国",height:174,weight:66,
+ "武磊":Object.freeze({name:"武磊",born:"1991-11-19",country:"中国",height:176,weight:68,
   position:"ST",number:7,academy:"崇明根宝足球基地",academyYears:"2003—2005",
   parentClub:"上海海港",firstSeniorClub:"上海东亚",referenceClub:"上海海港",
   rating:72,sourcePotential:72,gamePotential:84,
