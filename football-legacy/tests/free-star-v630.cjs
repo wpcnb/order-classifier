@@ -22,7 +22,7 @@ function harness(loaded=[]){
  get draft(){return JSON.parse(storage.get("football-dynasty-opening-v3")||"null")}};
 }
 check("版本号和加载顺序",()=>{
- assert.match(html,/<title>绿茵三剑客2 ·/);
+ assert.match(html,/<title>绿茵传奇11人 ·/);
  assert(html.indexOf("free-star.js?v=9.0.0")<html.indexOf("game.js?v="));
 });
 check("隐藏潜能四档概率区间",()=>{

@@ -7,7 +7,7 @@ function render(data){
  const ids=data.ids||["wang","vini"];
  const titles=[ids.length===3?"选择三名人物":"选择两名人物","设置身体与生涯","真实青训确认／随机抽卡"];
  const bar='<nav class="v10-progress" aria-label="创建生涯进度">'+titles.map((t,i)=>'<span class="'+(i+1===stage?'active':'')+'">'+(i+1)+' · '+escape(t)+'</span>').join("")+'</nav>';
- const heading='<div class="hero opening-hero"><div><h1>绿茵三剑客2</h1><p>三名球员共享赛程。一键开局会自动抽取剩余球队，赛季中自动训练、成长和转会。</p><button class="button primary" data-action="trioOpening">一键开启三人生涯</button></div></div>';
+ const heading='<div class="hero opening-hero"><div><h1>绿茵传奇11人</h1><p>三名球员共享赛程。一键开局会自动抽取剩余球队，赛季中自动训练、成长和转会。</p><button class="button primary" data-action="trioOpening">一键开启三人生涯</button></div></div>';
  const label=id=>id==="wang"?"球员一":id==="vini"?"球员二":"球员三";
  let page="";
  if(stage===1){
