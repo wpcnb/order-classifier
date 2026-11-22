@@ -45,6 +45,15 @@ for(let i=0;i<40;i++){
 }
 assert.notDeepEqual(engine.simulate(engine.create(1),10),engine.simulate(engine.create(2),10));
 console.log("PASS 40 different seeds, deterministic histories and valid save layout");
+// A corrupted season must not pass validation and crash the career history table.
+for(const corrupt of [null,{}, { ...year.players[0].seasons[0],apps:-1 },
+  { ...year.players[0].seasons[0],year:9999 }]){
+ const bad=structuredClone(year);
+ bad.players[0].seasons[0]=corrupt;
+ assert.equal(engine.isValid(bad),false,"reject malformed season: "+JSON.stringify(corrupt));
+ assert.throws(()=>engine.step(bad),/无效的11人职业生涯存档/);
+}
+console.log("PASS malformed season records rejected before UI rendering");
 const invalid={...initial,players:initial.players.slice(1)};
 assert(!engine.isValid(invalid));
 assert.equal(initial.players[0].rating,57);
