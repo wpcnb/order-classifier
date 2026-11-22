@@ -23,7 +23,7 @@ function harness(initial=[]){
   get saved(){return JSON.parse(store.get("football-dynasty-duo-v2-20261110")||"null")},store};
 }
 check("v8.1.0 release and body module precedes game",()=>{
- assert(html.includes("<title>绿茵三剑客2 ·"));
+ assert(html.includes("<title>绿茵传奇11人 ·"));
  assert(html.indexOf("body-path.js?v=")<html.indexOf("career-depth.js?v="));
  assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("game.js?v="));
 });
