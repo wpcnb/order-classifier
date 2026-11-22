@@ -2794,7 +2794,7 @@ function simSeason(quiet=false){
 function simThree(){if(!g||g.season.stage!=="playing")return;if(duoGames){const played=sharedAdvanceDates(3);notify(s1PendingIds().length?"已暂停，请先完成赛季中期决定":"双方同步推进"+played+"个比赛日");return}
  let n=0;while(n<3&&g.season.index<g.season.events.length){automaticPrep();playEvent(currentEvent(),"balanced",true);n++}if(g.season.index>=g.season.events.length)endSeason();else{save();page="dashboard";render()}
 }
-function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵三剑客_生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
+function exportFile(){if(!duoGames)return;const blob=new Blob([JSON.stringify({format:"football-dynasty-duo-v2",save:duoPayload()},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="绿茵传奇11人_生涯_"+g.year+".json";document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},800)}
 async function importFile(file){if(!file||file.size>16000000){notify("文件过大或无效");return}try{const data=JSON.parse(await file.text());const v=data.save;if(data.format!=="football-dynasty-duo-v2"||v?.version!==2||!v.duoGames?.wang?.player||!v.duoGames?.vini?.player)throw Error("invalid");if((Object.hasOwn(v.duoGames,"third")?TRIO_IDS:PAIR_IDS).some(id=>!DB[v.duoGames[id]?.player?.leagueId])){notify("该旧存档包含已取消联赛。文件保持原样，不会覆盖当前存档");return}if(!confirm("导入生涯存档会覆盖当前进度，确定？"))return;hydratePayload(v);page="dashboard";save();render();if(!ageMigrationBlocked)notify("同一足球世界生涯导入成功")}catch(e){notify("只支持本游戏双人生涯格式；旧陆白版本不再导入")}}
 function newGameDialog(){if(g&&!confirm("删除当前生涯并重新开档？此操作不能撤销，建议先导出存档。"))return;g=null;duoGames=null;sharedUniverse=null;activeDuo="wang";page="start";localStorage.removeItem(STORE);localStorage.removeItem(SAFETY_STORE);localStorage.removeItem(S1_SAVED_YEAR);v3Paused=null;v3Replay=null;v3Allowed=null;resetDraw();render()}
 function choosePage(p){page=p;render()}
@@ -2941,7 +2941,7 @@ function exportBallotCsv(){
  const lines=[header.map(quote).join(",")];
  b.ballots.forEach((vote,i)=>lines.push([i+1,...vote.map(id=>name[id]||id)].map(quote).join(",")));
  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="绿茵信仰_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
+ a.href=url;a.download="绿茵传奇11人_金球奖百人投票_"+b.year+".csv";document.body.appendChild(a);a.click();
  setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},1200)
 }
 
@@ -3704,7 +3704,7 @@ function duoDashboard(){
  // their presentation so match results remain visible on small screens.
  const advanced=(GL?GL.overview(duoGames,sharedUniverse):"")+v10StoryTimeline()+careerDepthOverview();
  const recent='<section class="card gap"><h2>最近比赛</h2><div class="grid2">'+DUO_IDS.map(id=>'<div class="item"><b>'+E(duoGames[id].player.name)+'</b>'+duoLatestMatch(duoGames[id])+'</div>').join("")+'</div></section>';
- return '<div class="hero career-hero hero-match"><div><div class="cap">'+(trio?"THREE PLAYERS · ONE WORLD":"ONE WORLD · TWO PLAYERS")+'</div><h1>'+(trio?"绿茵三剑客2":"双星同步职业生涯")+'</h1><p>'+(retired?'所有球员均已退役，可以查看完整履历。':allReview?(trio?'本季已结算，继续模拟会自动处理转会。':'本赛季已结束，处理决定后进入下一季。'):'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">球员训练中心</button></div></div></div>' +(trio?trioValuePanel()+(duoGames.third?"":trioPanel()):'<section class="card gap"><label class="field">人机球员姓名<input id="trioName" maxlength="22" placeholder="第三名球员"></label><button class="button" data-action="trioSeason">加入人机球员并自动模拟一季</button></section>')+(trio?'':s1ChoicePanel())+s1BackupReminder()+v3Scores()+summary+seasonDesk()+recent+careerPairs().map(([a,b])=>duoSharedStory(a,b)+duoMatchArchive(a,b)).join("")+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
+ return '<div class="hero career-hero hero-match"><div><div class="cap">'+(trio?"THREE PLAYERS · ONE WORLD":"ONE WORLD · TWO PLAYERS")+'</div><h1>'+(trio?"绿茵传奇11人":"双星同步职业生涯")+'</h1><p>'+(retired?'所有球员均已退役，可以查看完整履历。':allReview?(trio?'本季已结算，继续模拟会自动处理转会。':'本赛季已结束，处理决定后进入下一季。'):'下个比赛日：'+E(date||'待定'))+'</p><div class="flex">'+action+'<button class="button outline" data-page="career">球员训练中心</button></div></div></div>' +(trio?trioValuePanel()+(duoGames.third?"":trioPanel()):'<section class="card gap"><label class="field">人机球员姓名<input id="trioName" maxlength="22" placeholder="第三名球员"></label><button class="button" data-action="trioSeason">加入人机球员并自动模拟一季</button></section>')+(trio?'':s1ChoicePanel())+s1BackupReminder()+v3Scores()+summary+seasonDesk()+recent+careerPairs().map(([a,b])=>duoSharedStory(a,b)+duoMatchArchive(a,b)).join("")+duoNewsFeed()+(advanced?'<details class="card gap career-overview-details"><summary>查看球员成长与生涯详情</summary>'+advanced+'</details>':'');
 }
 function duoWorldPage(){
  const id=DB[g.worldFocus]?g.worldFocus:duoGames.wang.player.leagueId,l=DB[id],year=duoGames.wang.year;
