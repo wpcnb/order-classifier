@@ -112,8 +112,11 @@
     const ceiling=next.potential+(random()>.96?1:0);
     next.rating=round(bounded(next.rating+growth,40,Math.max(ceiling,next.rating)));
     next.attributes=metrics(next.position,next.rating);
-    const rTier=random(),tier=tierFor(next,age,rTier),league=LEAGUES[tier][0];
+    const rTier=random(),tier=tierFor(next,age,rTier);
+    let league=LEAGUES[tier][0];
     const newClub=clubFor(next,tier,age,random());
+    if(tier==="asia")league=newClub.startsWith("日本")?"日本J1":"韩国K1";
+    if(tier==="top")league=newClub.slice(0,2);
     const moved=next.club!==newClub&&age>=18;
     next.club=newClub;next.league=league;next.tier=tier;next.age=age;
     const possible=age<18?20:36;
@@ -130,7 +133,8 @@
     next.caps=caps;next.careerCaps+=caps;next.injuries+=injury?1:0;
     next.lastEvent=injury?"模拟伤病：本季缺席"+miss+"场":moved?"转会至"+newClub:caps?"获得"+caps+"次成年国家队出场":"完成常规赛季";
     const performanceIndex=round(next.rating*.67+(apps/36)*18+goals*.5+assists*.35+(caps?2:0));
-    const trophyRoll=random();
+    // 同球队同赛季共享一次杯赛结果，避免两名队友各自抽出相反冠军。
+    const trophyRoll=rng(hashText(String(world.year+1)+":"+newClub))();
     const trophy=age>=18&&tier!=="c2"&&tier!=="c1"&&trophyRoll>.91?"模拟国内杯赛冠军":null;
     const season={year:world.year+1,age,rating:next.rating,tier,league,club:newClub,
       apps,goals,assists,cleanSheets,caps,injuryGames:miss,performanceIndex,trophy};
