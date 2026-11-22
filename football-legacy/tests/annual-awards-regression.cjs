@@ -3,7 +3,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const root=path.resolve(__dirname,"..");
 const FA=require(path.join(root,"legacy-awards.js"));
-const src=fs.readFileSync(path.join(root,"game.js"),"utf8");
+const src=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8");
 const begin=src.indexOf("function awardLeagueTier(");
 const end=src.indexOf("// A retired player",begin);
 assert(begin>=0&&end>begin,"annual award source boundaries missing");

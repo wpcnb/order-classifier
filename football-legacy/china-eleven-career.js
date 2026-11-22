@@ -4,10 +4,10 @@
  * 此模块不读写历史三人生涯存档。 */
 (function(root,factory){
   "use strict";
-  const api=factory();
+  const api=factory(typeof module==="object"&&module.exports ? require("./eleven-fixtures.js") : root.ElevenFixtures);
   if(typeof module==="object"&&module.exports)module.exports=api;
   root.ElevenCareerCore=api;
-})(typeof window!=="undefined"?window:globalThis,function(){
+})(typeof window!=="undefined"?window:globalThis,function(fixtures){
   "use strict";
   const BASE=[
     ["李昊","GK",16,"马德里竞技青训",57,78],
@@ -51,23 +51,39 @@
     const item=Array.isArray(rows)?rows.find(p=>p&&p.group==="senior"&&p.name===name):null;
     return item||{};
   }
-  function create(seed,rosterRows){
+  const countries=["中国","英格兰","西班牙","法国","葡萄牙"];
+  const divisions={
+    中国:["中乙","中甲","中超"],英格兰:["英甲","英冠","英超"],西班牙:["西班牙第三级","西乙","西甲"],
+    法国:["法国第三级","法乙","法甲"],葡萄牙:["葡萄牙第三级","葡甲","葡超"]
+  };
+  function create(seed,rosterRows,setup={}){
+    const country=setup.country||"中国", team=setup.team||"上海海港";
+    const picks=setup.players;
+    if(!countries.includes(country)||typeof team!=="string"||!team.trim()
+       ||picks&&(picks.length!==11||new Set(picks.map(p=>p.name)).size!==11))throw Error("无效的球队阵容");
+
     const n=Number(seed);
     const key=Number.isSafeInteger(n)&&n>=0&&n<=4294967295?n:20261122;
     const players=BASE.map((entry,i)=>{
-      const [name,position,number,academy,initial,potential]=entry;
-      const record=fromRoster(rosterRows,name);
-      return {id:i+1,name,position,number,academy,academyVerified:false,
-        born:record.born||null,adultClub:record.club||null,
+      const record=picks?picks[i]:fromRoster(rosterRows,entry[0]);
+      const name=picks?record.name:entry[0], position=entry[1], number=entry[2];
+      const reference=BASE[ROW_BY_NAME.get(name)];
+      const talent=rng(key^hashText(name));
+      const initial=reference?reference[4]:52+Math.floor(talent()*12);
+      const potential=reference?reference[5]:69+Math.floor(talent()*19);
+      const academy=team+"青训";
+      return {id:i+1,name,position,number,academy,academyVerified:false,initialRating:initial,
+        country:record.country||"中国",born:record.born||null,adultClub:record.club||null,
         adultHeight:record.height??null,adultWeight:record.weight??null,
-        measurementSource:record.height?"中国队公开球员档案（成年参考）":null,
+        measurementSource:record.selection||"中国队公开球员档案",profileUrl:record.url||null,
         age:16,rating:initial,potential,attributes:metrics(position,initial),
         league:"青训联赛",tier:"youth",club:academy,apps:0,goals:0,assists:0,
         cleanSheets:0,caps:0,careerCaps:0,injuries:0,lastEvent:"16岁进入青训体系",
         seasons:[]};
     });
     return {schema:1,seed:key,startYear:2026,year:2026,age:16,
-      fixture:"2026-11-17 中国 2:2 巴林（本场11名首发）",
+      squad:{country,team,together:setup.together!==false},
+      fixture:picks?"自选首发阵容":"2026-11-17 中国 2:2 巴林（本场11名首发）",
       players,yearsSimulated:0};
   }
   function tierFor(player,age,random){
@@ -103,12 +119,13 @@
     const next={...player,seasons:[...player.seasons],attributes:[...player.attributes]};
     const age=world.age+1;
     const random=rng((world.seed^hashText(player.name+"-"+world.year))>>>0);
-    const injury=age>=18&&random()<(age>=31?.11:.075);
+    const injury=random()<(age<18?.045:age>=31?.11:.075);
     const miss=injury?1+Math.floor(random()*9):0;
     const potentialGap=next.potential-next.rating;
     const youth=age<=20?2.3:age<=23?1.2:age<=27?.55:age<=30?.0:-.85;
     const seasonForm=(random()-.50)*2.0;
-    const growth=youth+seasonForm*(age<24?1.1:.7)+Math.max(0,potentialGap)*.035-(injury?1.7:0);
+    const experience=player.seasons.length?bounded((player.apps-13)*.04,-.4,.4):0;
+    const growth=youth+experience+seasonForm*(age<24?1.1:.7)+Math.max(0,potentialGap)*.035-(injury?1.7:0);
     const ceiling=next.potential+(random()>.96?1:0);
     next.rating=round(bounded(next.rating+growth,40,Math.max(ceiling,next.rating)));
     next.attributes=metrics(next.position,next.rating);
@@ -117,49 +134,105 @@
     const newClub=clubFor(next,tier,age,random());
     if(tier==="asia")league=newClub.startsWith("日本")?"日本J1":"韩国K1";
     if(tier==="top")league=newClub.slice(0,2);
-    const moved=next.club!==newClub&&age>=18;
+
     next.club=newClub;next.league=league;next.tier=tier;next.age=age;
-    const possible=age<18?20:36;
-    const minutesFactor=bounded(.66+(next.rating-65)*.015+(random()-.5)*.35,.28,1);
-    const apps=Math.max(0,Math.round((possible-miss)*minutesFactor));
-    const attack=next.position==="ST"||next.position==="LW"||next.position==="RW";
-    const keeper=next.position==="GK";
-    const goals=keeper?0:Math.max(0,Math.round(apps*(attack?.22:.045)*(.70+random()*.65)));
-    const assists=keeper?0:Math.max(0,Math.round(apps*(attack?.12:.08)*(.70+random()*.9)));
-    const cleanSheets=keeper?Math.max(0,Math.round(apps*(.20+random()*.25))):0;
     const national=age>=18&&next.rating>=(age<21?69:age<25?73:71)&&random()>.30;
     const caps=national?Math.min(12,Math.round(3+random()*10)):0;
-    next.apps=apps;next.goals=goals;next.assists=assists;next.cleanSheets=cleanSheets;
     next.caps=caps;next.careerCaps+=caps;next.injuries+=injury?1:0;
-    next.lastEvent=injury?"模拟伤病：本季缺席"+miss+"场":moved?"转会至"+newClub:caps?"获得"+caps+"次成年国家队出场":"完成常规赛季";
-    const performanceIndex=round(next.rating*.67+(apps/36)*18+goals*.5+assists*.35+(caps?2:0));
-    // 同球队同赛季共享一次杯赛结果，避免两名队友各自抽出相反冠军。
-    const trophyRoll=rng(hashText(String(world.year+1)+":"+newClub))();
-    const trophy=age>=18&&tier!=="c2"&&tier!=="c1"&&trophyRoll>.91?"模拟国内杯赛冠军":null;
-    const season={year:world.year+1,age,rating:next.rating,tier,league,club:newClub,
-      apps,goals,assists,cleanSheets,caps,injuryGames:miss,performanceIndex,trophy};
-    next.seasons.push(season);
+    const squad=world.squad;
+    if(squad){
+      if(age<18 || squad.together){
+        next.club=age<18?next.academy:squad.team;
+        next.tier=age<18?"youth":"domestic";
+        next.league=age<18?squad.country+"青训联赛":divisions[squad.country][2];
+      }else if(squad.country!=="中国"&&["c1","c2","csl"].includes(tier)){
+        const level={c2:0,c1:1,csl:2}[tier];
+        next.league=divisions[squad.country][level];
+        next.club=age===18?squad.team:next.league+["北方竞技","河畔联","海岸竞技"][Math.floor(random()*3)];
+      }
+    }
+    const competition=next.tier==="youth"?"U17":age<20&&!caps?"U19":age<22&&!caps?"U21":age<24&&!caps?"U23":null;
+    next.nationalStage=caps?(next.country||"中国")+"成年队":competition?"争取 "+(next.country||"中国")+" "+competition+" 征召":"未获征召";
+    next.lastEvent=injury?"伤停 "+miss+" 场":next.club!==player.club?"加入"+next.club:caps?"成年国家队出场 "+caps+" 次":"完成赛季";
+    const trophyRoll=rng(world.seed^hashText((world.year+1)+":"+next.club))();
+    const trophy=age>=18&&!["c1","c2"].includes(next.tier)&&trophyRoll>.91?"模拟国内杯赛冠军":null;
+    next.seasons.push({year:world.year+1,age,rating:next.rating,tier:next.tier,league:next.league,club:next.club,
+      apps:0,goals:0,assists:0,cleanSheets:0,caps,injuryGames:miss,trophy});
     return next;
   }
-  function step(state){
-    if(!isValid(state))throw Error("无效的11人职业生涯存档");
+  function advanceYear(state){
     if(state.age>=35)return state;
     const out={...state,age:state.age+1,year:state.year+1,yearsSimulated:state.yearsSimulated+1};
     out.players=state.players.map(p=>seasonPlayer(p,state));
+    const matches=fixtures.season(out.players,label=>rng(out.seed^hashText(out.year+":"+label)));
+    out.fixtures={...(state.fixtures||{}),[out.year]:matches};
+    for(const p of out.players){
+      const s=p.seasons.at(-1);
+      for(const field of ["apps","goals","assists","cleanSheets"])p[field]=s[field];
+      const contribution=p.position==="GK"?s.cleanSheets*1.1:["CB","LB","RB","CDM"].includes(p.position)?s.apps*.21+s.assists*.55:s.goals*.8+s.assists*.6;
+      s.performanceIndex=round(p.rating*.68+s.apps*.7+contribution+s.caps*.22);
+      s.marketValue=Math.round((p.rating/65)**6*(p.age<30?1.2:Math.max(.3,1-(p.age-30)*.11))*(1+s.apps/22)*650000/10000)*10000;
+    }
+    const best=out.players.filter(p=>p.apps>0).sort((a,b)=>b.seasons.at(-1).performanceIndex-a.seasons.at(-1).performanceIndex||a.id-b.id)[0];
+    if(best)best.seasons.at(-1).squadAward="阵容赛季最佳球员";
+    if(out.age>=18)settleGlobalAwards(out);
     return out;
+  }
+  function settleGlobalAwards(world){
+    const results={};
+    for(const award of ["金球奖","世界足球先生"]){
+      const vote=rng(world.seed^hashText(world.year+award));
+      // External contenders compete on the same scale as the controlled players.
+      let top={id:null,name:"其他职业球员",points:0};
+      for(let i=0;i<24;i++)top.points=Math.max(top.points,round(71+vote()*16+vote()*5));
+      for(const player of world.players){
+        const season=player.seasons.at(-1);
+        if(season.apps<10)continue;
+        const level=["top","holland","portugal","belgium"].includes(season.tier)
+          ||["英超","西甲","法甲","葡超"].includes(season.league)?3:0;
+        const ballot=season.performanceIndex*.8+player.rating*.2+level+(season.trophy?3:0)+vote()*6;
+        if(ballot>top.points)top={id:player.id,name:player.name,points:round(ballot)};
+      }
+      results[award]=top;
+    }
+    world.awardHistory={...world.awardHistory,[world.year]:results};
+  }
+  function step(state){
+    if(!isValid(state))throw Error("无效的11人职业生涯存档");
+    return advanceYear(state);
   }
   function simulate(state,years){
     const n=bounded(Math.floor(Number(years)||0),0,20);
+    if(!isValid(state))throw Error("无效的11人职业生涯存档");
     let current=state;
-    for(let i=0;i<n;i++)current=step(current);
+    for(let i=0;i<n&&current.age<35;i++)current=advanceYear(current);
     return current;
+  }
+  function validFixtures(archive,startYear,year){
+    if(archive===undefined)return true;
+    if(!archive||typeof archive!=="object"||Array.isArray(archive))return false;
+    const slot=id=>Number.isInteger(id)&&id>=1&&id<=11;
+    return Object.entries(archive).every(([season,matches])=>Number(season)>startYear&&Number(season)<=year
+      &&Array.isArray(matches)&&matches.length<=242&&matches.every(m=>m&&typeof m.league==="string"
+        &&typeof m.home==="string"&&typeof m.away==="string"&&Number.isInteger(m.round)&&m.round>=1&&m.round<=22
+        &&Array.isArray(m.score)&&m.score.length===2&&m.score.every(n=>Number.isInteger(n)&&n>=0&&n<=6)
+        &&Array.isArray(m.lineups)&&m.lineups.length===2&&m.lineups.every(line=>Array.isArray(line)&&line.every(slot))
+        &&Array.isArray(m.goals)&&m.goals.length===m.score[0]+m.score[1]&&m.goals.every(goal=>Array.isArray(goal)
+          &&goal.length===3&&(goal[0]===0||goal[0]===1)&&goal.slice(1).every(id=>id===null||m.lineups[goal[0]].includes(id)))));
   }
   function isValid(state){
     return !!state&&state.schema===1&&Number.isInteger(state.seed)
+      &&state.startYear===2026&&state.yearsSimulated===state.age-16
+      &&validFixtures(state.fixtures,state.startYear,state.year)
       &&Number.isInteger(state.age)&&state.age>=16&&state.age<=35
       &&Number.isInteger(state.year)&&state.year-state.startYear===state.age-16
-      &&Array.isArray(state.players)&&state.players.length===11
-      &&state.players.every((p,i)=>p&&p.name===BASE[i][0]&&p.age===state.age
+      &&(!state.squad||countries.includes(state.squad.country)&&typeof state.squad.team==="string"&&typeof state.squad.together==="boolean")
+      &&Array.isArray(state.players)&&state.players.length===11&&new Set(state.players.map(p=>p?.name)).size===11
+      &&state.players.every((p,i)=>p&&p.id===i+1&&p.position===BASE[i][1]&&typeof p.name==="string"&&p.name.length>0
+        &&(state.squad?countries.includes(p.country):p.name===BASE[i][0])&&p.age===state.age
+        &&Array.isArray(p.attributes)&&p.attributes.length===5&&p.attributes.every(v=>Number.isFinite(v)&&v>=0&&v<=100)
+        &&Number.isInteger(p.number)&&Number.isFinite(p.potential)&&Number.isInteger(p.careerCaps)
+        &&(p.initialRating===undefined||Number.isFinite(p.initialRating))
         &&Number.isFinite(p.rating)&&p.rating>=35&&p.rating<=105
         &&Array.isArray(p.seasons)&&p.seasons.length===state.age-16
         &&p.seasons.every((season,j)=>season&&typeof season==="object"&&!Array.isArray(season)

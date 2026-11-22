@@ -19,7 +19,7 @@ SPEC.loader.exec_module(audit_clubs)
 
 class ClubAuditTests(unittest.TestCase):
     def test_current_game_data_is_read_without_evaluating_game(self) -> None:
-        raw = audit_clubs.read_clubs((ROOT / "game.js").read_text(encoding="utf-8"))
+        raw = audit_clubs.read_clubs((ROOT / "tests/_fixtures/legacy-engine.txt").read_text(encoding="utf-8"))
         result = audit_clubs.audit(raw)
         self.assertTrue(result["ok"], result["errors"])
         self.assertGreater(result["league_count"], 0)

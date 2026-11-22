@@ -14,7 +14,7 @@ import re
 import sys
 from typing import Any
 
-DEFAULT_SOURCE = Path(__file__).resolve().parents[1] / "game.js"
+DEFAULT_SOURCE = Path(__file__).resolve().parents[1] / "tests/_fixtures/legacy-engine.txt"
 _RAW = re.compile(r"(?m)^\s*const\s+RAW\s*=\s*")
 _IDENTIFIER = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
 

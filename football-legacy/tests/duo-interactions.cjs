@@ -1,12 +1,12 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,"..");
-const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__story={duoSharedStory,duoSeasonComparison,duoLatestMatch};})();');
+const source=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/,'window.__story={duoSharedStory,duoSeasonComparison,duoLatestMatch};})();');
 const nodes={};
 const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(){}});
 const context={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},confirm:()=>true,setTimeout:()=>0,clearTimeout(){},Blob,URL,console};
 for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
-vm.runInNewContext(source,context,{filename:"game.js"});
+vm.runInNewContext(source,context,{filename:"tests/_fixtures/legacy-engine.txt"});
 const {duoSharedStory,duoSeasonComparison,duoLatestMatch}=context.window.__story;
 const fixture={kind:"league",competition:"英超",date:"2031-10-09",home:"阿森纳",away:"切尔西",hs:2,as:1,played:true,goals:1,assists:0};
 const player=(name,club,match,stage="playing")=>({year:2031,generation:1,player:{name,club,retired:false},season:{stage,results:[{...match}],goals:12,assists:5},history:stage==="review"?[{year:2031,generation:1,club}]:[]});

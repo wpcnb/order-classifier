@@ -1,6 +1,6 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
-const source=fs.readFileSync(path.resolve(__dirname,"../game.js"),"utf8");
+const source=fs.readFileSync(path.resolve(__dirname,"_fixtures/legacy-engine.txt"),"utf8");
 function extract(start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert(a>=0&&b>a,"missing role engine section "+start);return source.slice(a,b)}
 const code=extract("function roleAdjustedRating(","// Allocate actual team goals")+
  extract("function clubSeasonNumbers(","function generateOffers(");

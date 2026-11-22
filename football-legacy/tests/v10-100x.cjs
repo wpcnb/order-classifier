@@ -3,7 +3,7 @@
    not 100 claims or extrapolated outcomes. Historical v9 tests run separately. */
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const root=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(root,f),"utf8");
-const loaded={};for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js","career-depth.js","free-star.js","v10-core.js","v10-ui.js","game.js"])loaded[f]=read(f);
+const loaded={};for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js","career-depth.js","free-star.js","v10-core.js","v10-ui.js","tests/_fixtures/legacy-engine.txt"])loaded[f]=read(f);
 const ctx={window:{},console};for(const f of ["real-footballers.js","v10-core.js","v10-ui.js"])vm.runInNewContext(loaded[f],ctx,{filename:f});
 const V=ctx.window.DualV10,UI=ctx.window.DualV10UI,roster=ctx.window.FOOTBALL_AWARD_REAL_PEOPLE;
 const persons=V.catalog(roster);

@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,".."),SAVE="football-dynasty-duo-v2-20261110";
-const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,playEvent,recordRecentMatchMinutes,injuryRiskFor,injuryDuration,offseasonRecovery,save};})();');
+const source=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,playEvent,recordRecentMatchMinutes,injuryRiskFor,injuryDuration,offseasonRecovery,save};})();');
 function harness(saved){
  const storage=new Map(saved||[]),nodes={},handlers={},timers=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn}});
@@ -9,7 +9,7 @@ function harness(saved){
  const context={window:{},Math:deterministicMath,document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
   localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
- vm.runInNewContext(source,context,{filename:"game.js"});
+ vm.runInNewContext(source,context,{filename:"tests/_fixtures/legacy-engine.txt"});
  return {api:context.window.__test,storage,flush(){while(timers.length)timers.shift()()},click(action,extras={}){handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})}};
 }
 const h=harness(),{recordRecentMatchMinutes:r,injuryRiskFor:risk,injuryDuration:duration,offseasonRecovery:recover}=h.api;

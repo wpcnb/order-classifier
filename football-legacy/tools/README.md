@@ -10,7 +10,7 @@ python3 football-legacy/tools/audit_clubs.py --json
 python3 -m unittest discover -s football-legacy/tests -p 'test_audit_clubs.py' -v
 ```
 
-工具从 `game.js` 的 `const RAW` 静态数据中读取联赛名称、国家和球队列表，检查空名称、重复联赛代码、重复球队、无效的数据结构和球队数量，并列出各联赛的球队数量。球队名称在游戏中用于查找，跨联赛重名也会报告，供人工判断。
+工具从历史测试样本 `tests/_fixtures/legacy-engine.txt` 的 `const RAW` 静态数据中读取联赛名称、国家和球队列表，检查空名称、重复联赛代码、重复球队、无效的数据结构和球队数量，并列出各联赛的球队数量。球队名称在游戏中用于查找，跨联赛重名也会报告，供人工判断。
 
 退出码 `0` 表示结构检查通过；`1` 表示检查到数据问题；`2` 表示文件无法读取或数据语法无法解析。`--json` 会输出机器可读报告。
 

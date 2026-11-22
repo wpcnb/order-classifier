@@ -1,7 +1,7 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const root=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(root,f),"utf8");
-const files=["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js","career-depth.js","free-star.js","v10-core.js","v10-ui.js","legend-v1.js","game.js"];
+const files=["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js","career-depth.js","free-star.js","v10-core.js","v10-ui.js","legend-v1.js","tests/_fixtures/legacy-engine.txt"];
 const openingKey="football-dynasty-opening-v3",saveKey="football-dynasty-duo-v2-20261110";
 function harness(existing=[]){
  const storage=new Map(existing),nodes={},handlers={},timers=[];let rejectWrites=false;
@@ -9,7 +9,7 @@ function harness(existing=[]){
  const document={getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
  const localStorage={get length(){return storage.size},key:i=>[...storage.keys()][i]||null,getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(rejectWrites)throw new Error("QuotaExceededError");storage.set(k,String(v))},removeItem:k=>storage.delete(k)};
  const context={window:{FootballMarketV3:require(path.join(root,"market-v3.js")),FootballRolesV3:require(path.join(root,"role-v3.js"))},document,localStorage,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
- for(const file of files){let code=read(file);if(file==="game.js")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,enrollTrio,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
+ for(const file of files){let code=read(file);if(file==="tests/_fixtures/legacy-engine.txt")code=code.replace(/\}\)\(\);\s*$/,'window.__opening={db:DB,names:()=>v10Persons,leagues:()=>openingLeagues,drawn:()=>drawnClubs,duo:()=>duoGames,step:()=>v10Step,prepareTrioTransfer,enrollTrio,save};})();');vm.runInNewContext(code,context,{filename:file,timeout:14000})}
  const trigger=(type,target)=>{for(const fn of handlers["app:"+type]||[])fn({target})};
  return {storage,api:context.window.__opening,get html(){return node("app").innerHTML},get toast(){return node("toast").textContent},get opening(){return JSON.parse(storage.get(openingKey)||"null")},get saved(){return JSON.parse(storage.get(saveKey)||"null")},
   legacyTrio(){

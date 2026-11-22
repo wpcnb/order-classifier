@@ -1,6 +1,6 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),assert=require("node:assert/strict");
-const source=fs.readFileSync(path.join(__dirname,"../game.js"),"utf8");
+const source=fs.readFileSync(path.join(__dirname,"_fixtures/legacy-engine.txt"),"utf8");
 function section(start,end){
  const a=source.indexOf(start),b=source.indexOf(end,a);
  assert(a>=0&&b>a,"missing code section: "+start);return source.slice(a,b);

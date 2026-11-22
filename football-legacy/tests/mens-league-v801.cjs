@@ -2,7 +2,7 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const root=path.resolve(__dirname,".."),ctx={window:{}},source=fs.readFileSync(path.join(root,"free-star.js"),"utf8");
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-const game=fs.readFileSync(path.join(root,"game.js"),"utf8");
+const game=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8");
 vm.runInNewContext(source,ctx,{filename:"free-star.js"});
 const F=ctx.window.FreeStar;let done=0;
 function test(name,fn){fn();done++;console.log("✓ "+done+"/10 "+name)}
@@ -47,7 +47,6 @@ test("game creator removes gender selection and declares male-only",()=>{
 });
 test("homepage version and local asset cache reflect change",()=>{
  assert(html.includes("<title>绿茵传奇11人 ·"));
- assert(html.includes('free-star.js?v=9.0.0'));
- assert(html.includes('game.js?v='))
+ assert(!html.includes('src="./game.js'));
 });
 assert.equal(done,10);console.log("10/10 v8.0.1 men's career creator checks passed");

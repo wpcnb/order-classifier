@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,".."),SAVE="football-dynasty-duo-v2-20261110",OPENING="football-dynasty-opening-v3";
-let source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__profiles={games:()=>duoGames,styles:()=>openingStyles,templates:DUO_TEMPLATES,academyStats,nextSeason,save};})();');
+let source=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/,'window.__profiles={games:()=>duoGames,styles:()=>openingStyles,templates:DUO_TEMPLATES,academyStats,nextSeason,save};})();');
 function harness(initial=[]){
  const storage=new Map(initial),elements={},handlers={},timers=[];
  const node=id=>elements[id]||(elements[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){(handlers[id+":"+type]||=[]).push(fn)},click(){}});
@@ -9,7 +9,7 @@ function harness(initial=[]){
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={},context={document,localStorage,window,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file,timeout:4000});
- vm.runInNewContext(source,context,{filename:"game.js",timeout:4000});
+ vm.runInNewContext(source,context,{filename:"tests/_fixtures/legacy-engine.txt",timeout:4000});
  return {storage,api:window.__profiles,get html(){return node("app").innerHTML},change(dataset,value){for(const fn of handlers["app:change"])fn({target:{dataset,value}})},click(action,extras={}){for(const fn of handlers["app:click"])fn({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},flush(){let n=0;while(timers.length&&n++<100)timers.shift()()}};
 }
 function flip(h,id){h.click("flipOpeningCard",{id,i:0});h.flush()}

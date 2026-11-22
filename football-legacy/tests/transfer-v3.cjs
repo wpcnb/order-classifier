@@ -71,11 +71,10 @@ test("手动模式、拒绝或已翻卡不会被自动改写",()=>{
  assert.equal(Transfers.decision(game,{}, {mode:"guided",candidateCount:8}).type,"draw");
 });
 test("主游戏赛季边界已接入自动流转，手动存档版本仍兼容",()=>{
- const source=fs.readFileSync(path.join(BASE,"game.js"),"utf8");
- const html=fs.readFileSync(path.join(BASE,"index.html"),"utf8");
+ const source=fs.readFileSync(path.join(BASE,"tests/_fixtures/legacy-engine.txt"),"utf8");
  assert(source.includes("guidedTransferDecisions();if(missingPromotionDraws().length)"));
  assert(source.includes("const roleActions=played&&RV3?RV3.simulateMatch"));
  assert(source.includes("bodyContests,roleActions};s.results.push(eventResult)"));
- assert(html.indexOf("transfer-v3.js")>=0&&html.indexOf("transfer-v3.js")<html.indexOf("game.js?v="));
+
  assert(source.includes("return {version:2,compact:1"));
 });

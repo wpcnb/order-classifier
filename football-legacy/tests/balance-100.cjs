@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const dir=path.resolve(__dirname,"..");
-let game=fs.readFileSync(path.join(dir,"game.js"),"utf8").replace(/\}\)\(\);\s*$/, 'window.__bench={state:()=>duoGames,world:()=>sharedUniverse,level:(p)=>transferLevel(p.leagueId,p.club),ratings:(p)=>overall(p)};})();');
+let game=fs.readFileSync(path.join(dir,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/, 'window.__bench={state:()=>duoGames,world:()=>sharedUniverse,level:(p)=>transferLevel(p.leagueId,p.club),ratings:(p)=>overall(p)};})();');
 function run(seed){
  let n=seed>>>0;const math=Object.create(Math);math.random=()=>{n=(Math.imul(1664525,n)+1013904223)>>>0;return n/4294967296};
  const storage=new Map(),timers=[],events={};
@@ -9,7 +9,7 @@ function run(seed){
  const ctx={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},Math:math,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{},Blob,URL};
  for(const name of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","role-v3.js"])vm.runInNewContext(fs.readFileSync(path.join(dir,name),"utf8"),ctx,{filename:name});
  ctx.window.FootballRolesV3=ctx.FootballRolesV3; // Mirror the browser global so promotion is actually evaluated.
- vm.runInNewContext(game,ctx,{filename:"game.js",timeout:10000});
+ vm.runInNewContext(game,ctx,{filename:"tests/_fixtures/legacy-engine.txt",timeout:10000});
  function click(action,id,choice){events["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,id,choice}})}})}
  function drawPromotions(){for(const id of ["wang","vini"]){const d=ctx.window.__bench.state()[id].player.transferDraw;if(d?.options?.length&&!d.accepted&&!d.declined){if(!d.selected){click("flipPromotionCard",id);while(timers.length)timers.shift()()}click("acceptDraw",id)}}}
  click("flipOpeningCard","wang");while(timers.length)timers.shift()();

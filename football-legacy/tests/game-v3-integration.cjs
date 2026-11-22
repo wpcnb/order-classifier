@@ -6,7 +6,7 @@ const vm=require("node:vm");
 const dir=path.join(__dirname,"..");
 const sources=["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js",
  "body-path.js","market-v3.js","career-depth.js","role-v3.js","transfer-v3.js",
- "free-star.js","v10-core.js","v10-ui.js","legend-v1.js","legend-v3.js","game.js"];
+ "free-star.js","v10-core.js","v10-ui.js","legend-v1.js","legend-v3.js","tests/_fixtures/legacy-engine.txt"];
 function harness(){
  const storage=new Map(),nodes={},timers=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(){},click(){}});
@@ -19,7 +19,7 @@ function harness(){
  context.addEventListener=()=>{};
  for(const file of sources){
   let src=fs.readFileSync(path.join(dir,file),"utf8");
-  if(file==="game.js")src=src.replace(/\}\)\(\);\s*$/,
+  if(file==="tests/_fixtures/legacy-engine.txt")src=src.replace(/\}\)\(\);\s*$/,
    'window.__test3={set(world){duoGames=world;sharedUniverse={rounds:{},europeCompetitions:{},awards:{},offseasonYears:[],npcOffseasonYears:[]};g=world.wang;activeDuo="wang"},guidedTransferDecisions,ensurePromotionDraw,seasonPerformance,clubSeasonNumbers};})();');
   vm.runInNewContext(src,context,{filename:file,timeout:7000});
  }

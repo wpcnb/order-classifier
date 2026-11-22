@@ -3,7 +3,7 @@ const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("n
 const root=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(root,f),"utf8");
 const STORE="football-dynasty-duo-v2-20261110",OPENING="football-dynasty-opening-v3";
 const scripts=["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js",
- "career-depth.js","free-star.js","v10-core.js","v10-ui.js","legend-v1.js","game.js"];
+ "career-depth.js","free-star.js","v10-core.js","v10-ui.js","legend-v1.js","tests/_fixtures/legacy-engine.txt"];
 function harness(existing=[]){
  const storage=new Map(existing),nodes={},handlers={},timers=[];let seed=0x20261121;
  const random=Math.create?Math:Math;const seededMath=Object.create(Math);
@@ -20,7 +20,7 @@ function harness(existing=[]){
   setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
  for(const file of scripts){
   let source=read(file);
-  if(file==="game.js")source=source.replace(/\}\)\(\);\s*$/,'window.__chinaProbe={games:()=>duoGames,year:()=>duoGames?.wang?.year};})();');
+  if(file==="tests/_fixtures/legacy-engine.txt")source=source.replace(/\}\)\(\);\s*$/,'window.__chinaProbe={games:()=>duoGames,year:()=>duoGames?.wang?.year};})();');
   vm.runInNewContext(source,context,{filename:file,timeout:16000});
  }
  const fire=(type,target)=>{for(const fn of handlers["app:"+type]||[])fn({target})};
