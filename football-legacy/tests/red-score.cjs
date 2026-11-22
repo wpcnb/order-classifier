@@ -1,13 +1,13 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,"..");
-const core=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,setG:id=>{activeDuo=id;g=duoGames[id]},makeSchedule,linkSharedWorld,playEvent,shared:()=>sharedUniverse,dismissalScoreModifiers,setScore:f=>{simulateScore=f}};})();');
+const core=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/,'window.__test={duo:()=>duoGames,setG:id=>{activeDuo=id;g=duoGames[id]},makeSchedule,linkSharedWorld,playEvent,shared:()=>sharedUniverse,dismissalScoreModifiers,setScore:f=>{simulateScore=f}};})();');
 function harness(){
  const storage=new Map(),nodes={},handlers={},timers=[],math=Object.create(Math);math.random=()=>.0001;
  const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(type,fn){handlers[id+":"+type]=fn},click(){}});
  const context={Math:math,window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,f),"utf8"),context,{filename:f});
- vm.runInNewContext(core,context,{filename:"game.js"});
+ vm.runInNewContext(core,context,{filename:"tests/_fixtures/legacy-engine.txt"});
  return {api:context.window.__test,click(action,extras={}){handlers["app:click"]({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},flush(){while(timers.length)timers.shift()()}};
 }
 function setup(sameLeague=false){

@@ -1,15 +1,14 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,"..");
-const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__quick={verifiedDuoFixtures,duoMatchArchive,duoNewsFeed,quickCareerAdvance,duoDashboard,promotionDrawCard,preference:()=>careerPace,choosePace:value=>careerPace=value,seed:(a,b,world)=>{duoGames={wang:a,vini:b};g=a;sharedUniverse=world||{awards:{}};}};})();');
-const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const source=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/,'window.__quick={verifiedDuoFixtures,duoMatchArchive,duoNewsFeed,quickCareerAdvance,duoDashboard,promotionDrawCard,preference:()=>careerPace,choosePace:value=>careerPace=value,seed:(a,b,world)=>{duoGames={wang:a,vini:b};g=a;sharedUniverse=world||{awards:{}};}};})();');
 const nodes={};
 const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(){}});
 const store=new Map([["football-dynasty-career-pace-v1","week"],["unrelated-legacy-save","keep"]]);
 const localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
 const context={window:{},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage,confirm:()=>true,setTimeout:()=>0,clearTimeout(){},Blob,URL,console};
 for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
-vm.runInNewContext(source,context,{filename:"game.js"});
+vm.runInNewContext(source,context,{filename:"tests/_fixtures/legacy-engine.txt"});
 const api=context.window.__quick;
 let checked=0;
 function check(name,fn){fn();checked++;console.log("✓ "+checked+"/10 "+name)}
@@ -25,6 +24,6 @@ check("同队合作单独记录",()=>{const p=player("维尼修斯","阿森纳",
 check("足球新闻使用现有赛果",()=>{api.seed(a,b);assert.match(api.duoNewsFeed(),/阿森纳 2 : 1 切尔西/)});
 check("缺少比赛记录不生成虚构新闻",()=>{api.seed(player("甲","阿森纳",{played:false}),player("乙","切尔西",{played:false}));assert.doesNotMatch(api.duoNewsFeed(),/阿森纳 2 : 1 切尔西/)});
 check("转会卡展示实力并保留隐藏卡",()=>{api.seed(a,b);a.player.transferDraw={year:2031,from:"阿森纳",level:4,direction:"up",layoutVersion:1,options:Array.from({length:10},(_,i)=>({club:i?"曼城":"皇家马德里",id:i?"ENG":"ESP",tier:i?4:5})),selectedIndex:0,selected:{club:"皇家马德里",id:"ESP",tier:5}};const result=api.promotionDrawCard("wang");assert.match(result,/TRANSFER REVEAL/);assert.match(result,/幸运跳级/);assert.match(result,/draw-card-grid/)});
-check("手机主操作仅提供下一比赛日与整个赛季",()=>{assert.match(html,/career-main-action/);assert.match(html,/news-feed/);assert.match(html,/signing\.webp/);const dashboard=api.duoDashboard();assert.match(dashboard,/整个赛季/);assert.match(dashboard,/下个比赛日/);assert.doesNotMatch(dashboard,/7个比赛日/)});
+check("手机主操作仅提供下一比赛日与整个赛季",()=>{const dashboard=api.duoDashboard();assert.match(dashboard,/整个赛季/);assert.match(dashboard,/下个比赛日/);assert.doesNotMatch(dashboard,/7个比赛日/)});
 assert.equal(checked,10);
 console.log("✓ 仅执行本轮10项专项测试");

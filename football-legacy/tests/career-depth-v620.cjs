@@ -15,7 +15,7 @@ const player=(extra={})=>({
 });
 test("首页版本号与更新日期可见，模块在游戏之前加载",()=>{
  assert.match(html,/<title>绿茵传奇11人 ·/);
- assert(html.indexOf('career-depth.js?v=')<html.indexOf('game.js?v='));
+ assert(!html.includes('src="./game.js'));
 });
 test("新旧存档的技术特质自动推断且稳定",()=>{
  const p=player();assert.equal(D.traitFor(p),"speed");
@@ -64,7 +64,7 @@ function harness(){
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={},context={window,document,localStorage,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","career-depth.js"])vm.runInNewContext(read(file),context,{filename:file,timeout:4000});
- vm.runInNewContext(read("game.js"),context,{filename:"game.js",timeout:4000});
+ vm.runInNewContext(read("tests/_fixtures/legacy-engine.txt"),context,{filename:"tests/_fixtures/legacy-engine.txt",timeout:4000});
  const act=(action,more={})=>handlers["app:click"][0]({target:{closest:()=>({disabled:false,dataset:{action,...more}})}});
  return {act,change:(id,value)=>handlers["app:change"].forEach(fn=>fn({target:{dataset:{positionTarget:id},value}})),flush(){while(timers.length)timers.shift()()},get html(){return node("app").innerHTML},get state(){return JSON.parse(storage.get("football-dynasty-duo-v2-20261110")||"null")},get stored(){return storage}};
 }

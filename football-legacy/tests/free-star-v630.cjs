@@ -1,7 +1,7 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const root=path.resolve(__dirname,".."),read=name=>fs.readFileSync(path.join(root,name),"utf8");
-const html=read("index.html"),source=read("game.js");
+const html=read("index.html"),source=read("tests/_fixtures/legacy-engine.txt");
 function standaloneFS(){const c={window:{}};vm.runInNewContext(read("free-star.js"),c);return c.window.FreeStar}
 const F=standaloneFS();
 let passed=0;
@@ -13,7 +13,7 @@ function harness(loaded=[]){
  const localStorage={getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key),key:i=>Array.from(storage.keys())[i],get length(){return storage.size}};
  const window={},context={window,document,localStorage,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","career-depth.js","free-star.js"]){vm.runInNewContext(read(file),context,{filename:file,timeout:8000})}
- vm.runInNewContext(source,context,{filename:"game.js",timeout:8000});
+ vm.runInNewContext(source,context,{filename:"tests/_fixtures/legacy-engine.txt",timeout:8000});
  const dispatch=(type,e)=>{for(const fn of handlers["app:"+type]||[])fn(e)};
  return {storage,window,click:(action,rest={})=>dispatch("click",{target:{closest:()=>({disabled:false,dataset:{action,...rest}})}}),
  change:(id,field,value)=>dispatch("change",{target:{dataset:{creatorId:id,creatorField:field},value}}),
@@ -23,7 +23,7 @@ function harness(loaded=[]){
 }
 check("版本号和加载顺序",()=>{
  assert.match(html,/<title>绿茵传奇11人 ·/);
- assert(html.indexOf("free-star.js?v=9.0.0")<html.indexOf("game.js?v="));
+ assert(!html.includes('src="./game.js'));
 });
 check("隐藏潜能四档概率区间",()=>{
  assert.equal(F.rollPotential(()=>0),65);assert.equal(F.rollPotential(()=>.45),84);

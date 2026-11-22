@@ -57,19 +57,58 @@ console.log("PASS malformed season records rejected before UI rendering");
 const invalid={...initial,players:initial.players.slice(1)};
 assert(!engine.isValid(invalid));
 assert.equal(initial.players[0].rating,57);
-const home=read("index.html"),play=read("play.html"),script=read("china-eleven-ui.js");
-for(const html of [home,play]){
- assert(html.includes('id="eleven-app"'));
- assert(html.includes('class="eleven-active"'));
- assert(html.includes('china-eleven-career.js'));
- assert(html.includes('china-eleven-ui.js'));
- assert(!html.includes('href="./academy.html">中国青训队</a>'));
- assert(html.indexOf("china-rosters.js?v=")<html.indexOf("china-eleven-career.js?v="));
- assert(html.indexOf("china-eleven-career.js?v=")<html.indexOf("china-eleven-ui.js?v="));
- assert(html.includes('id="app"'),"legacy game must still be available via compatibility link");
+for(const file of ["index.html","play.html"]){
+ const html=read(file);
+ const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
+ assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","academy-squad.js","eleven-fixtures.js","china-eleven-career.js","china-eleven-ui.js"]);
+ assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
 }
-assert(script.includes('?classic=1'));
-assert(script.includes("football-legacy-china-eleven-career-v1"));
-assert(!script.includes('localStorage.removeItem("football-dynasty-duo-v2-20261110")'));
-console.log("PASS homepage eleven starter, legacy-save compatibility and script order");
-console.log("PASS green legend eleven starting lineup and parallel career simulation");
+assert(!read("china-eleven-ui.js").includes("?classic"));
+assert(read("academy.html").includes("url=./play.html"));
+const vm=require("node:vm"),ctx={window:{}};
+for(const file of ["china-rosters.js","world-cup-squads.js","academy-squad.js"])
+ vm.runInNewContext(read(file),ctx,{filename:file});
+const {ChinaAcademyData,WorldCupSquads,AcademySquad}=ctx.window;
+const profiles=AcademySquad.catalog(ChinaAcademyData,WorldCupSquads,engine.BASE);
+assert.equal(profiles.length,151);
+assert.equal(new Set(profiles.map(p=>p.name)).size,151);
+for(const country of Object.keys(AcademySquad.systems)){
+ const picks=Array(11).fill("");
+ picks[0]="李昊";picks[10]="姆巴佩";
+ const players=AcademySquad.select(profiles,country,picks,111);
+ assert.equal(players[0].name,"李昊");assert.equal(players[10].country,"法国");
+ assert.equal(new Set(players.map(p=>p.name)).size,11);
+ assert(players.every((p,i)=>AcademySquad.eligible(p,i)));
+ const options={country,team:AcademySquad.systems[country][0],players};
+ const world=engine.simulate(engine.create(111,[],options),19);
+ assert.equal(world.age,35);assert(engine.isValid(world));
+ for(const [year,matches] of Object.entries(world.fixtures)){
+  assert.equal(matches.length,22);
+  for(const p of world.players){
+   const s=p.seasons.find(row=>row.year===Number(year));
+   const apps=matches.filter(m=>m.lineups.flat().includes(p.id)).length;
+   assert.equal(s.apps,apps);
+   assert.equal(s.goals,matches.flatMap(m=>m.goals).filter(event=>event[1]===p.id).length);
+   assert.equal(s.assists,matches.flatMap(m=>m.goals).filter(event=>event[2]===p.id).length);
+   assert.equal(s.club,world.players[0].seasons[s.age-17].club);
+  }
+  assert.equal(world.players.filter(p=>p.seasons[Number(year)-2027].squadAward).length,1);
+  assert(matches.every(m=>m.goals.every(([side,a,b])=>a===null||b===null||a!==b)));
+ }
+ assert.equal(Object.keys(world.awardHistory).length,18);
+ for(const [year,votes] of Object.entries(world.awardHistory)){
+  for(const name of ["金球奖","世界足球先生"]){
+   const w=votes[name];assert(Number.isFinite(w.points));
+   if(w.id!==null)assert(world.players[w.id-1].seasons[Number(year)-2027].apps>=10);
+  }
+ }
+ assert.deepEqual(engine.step(JSON.parse(JSON.stringify(world))),world);
+ const separate=engine.simulate(engine.create(111,[],{...options,together:false}),10);
+ assert(new Set(separate.players.map(p=>p.club)).size>1);
+ assert(engine.isValid(separate));
+}
+const legacy=structuredClone(initial);
+delete legacy.squad;
+legacy.players.forEach(p=>{delete p.country;delete p.initialRating;});
+assert(engine.isValid(legacy));assert(engine.isValid(engine.step(legacy)));
+console.log("PASS five-country formation, shared score sheets, appearances, awards, transfers and old saves");

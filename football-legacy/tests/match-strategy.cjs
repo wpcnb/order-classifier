@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
-const root=path.resolve(__dirname,'..');let source=fs.readFileSync(root+'/game.js','utf8');
+const root=path.resolve(__dirname,'..');let source=fs.readFileSync(root+'/tests/_fixtures/legacy-engine.txt','utf8');
 source=source.replace(/\}\)\(\);\s*$/,`window.__test={allocateAvailable,playEvent,coachMatch,get:()=>g,set:x=>g=x,prepare:()=>{drawnClubs.wang="北京国安";drawnClubs.vini="山东泰山";buildDuoGame()}};})();`);
 const nodes={};const node=id=>nodes[id]||(nodes[id]={innerHTML:'',classList:{add(){},remove(){}},addEventListener(){},click(){}});
 const math=Object.create(Math);math.random=()=>.5;

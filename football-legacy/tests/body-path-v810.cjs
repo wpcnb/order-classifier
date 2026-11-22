@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const base=path.resolve(__dirname,".."),read=x=>fs.readFileSync(path.join(base,x),"utf8");
-const html=read("index.html"),game=read("game.js");
+const html=read("index.html"),game=read("tests/_fixtures/legacy-engine.txt");
 const mods={window:{}};vm.runInNewContext(read("body-path.js"),mods);vm.runInNewContext(read("free-star.js"),mods);
 vm.runInNewContext(read("career-depth.js"),mods);
 const BP=mods.window.BodyPath,FS=mods.window.FreeStar,CD=mods.window.CareerDepth;
@@ -14,7 +14,7 @@ function harness(initial=[]){
  const localStorage={getItem:key=>store.get(key)||null,setItem:(key,v)=>store.set(key,String(v)),removeItem:key=>store.delete(key)};
  const window={},context={window,document,localStorage,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},console,Blob,URL,confirm:()=>true};
  for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js","career-depth.js","free-star.js"])vm.runInNewContext(read(f),context,{filename:f,timeout:9000});
- vm.runInNewContext(game,context,{filename:"game.js",timeout:9000});
+ vm.runInNewContext(game,context,{filename:"tests/_fixtures/legacy-engine.txt",timeout:9000});
  function dispatch(type,e){for(const fn of handlers["app:"+type]||[])fn(e)}
  return {click:(action,data={})=>dispatch("click",{target:{closest:()=>({disabled:false,dataset:{action,...data}})}}),
   change:dataset=>dispatch("change",{target:{dataset,value:dataset.value}}),
@@ -24,8 +24,7 @@ function harness(initial=[]){
 }
 check("v8.1.0 release and body module precedes game",()=>{
  assert(html.includes("<title>绿茵传奇11人 ·"));
- assert(html.indexOf("body-path.js?v=")<html.indexOf("career-depth.js?v="));
- assert(html.indexOf("body-path.js?v=9.0.0")<html.indexOf("game.js?v="));
+ assert(!html.includes('src="./game.js'));
 });
 check("taller footballer gets aerial gain but loses agility at same mass ratio",()=>{
  const short=BP.profile(male(163,BP.referenceWeight(163)));

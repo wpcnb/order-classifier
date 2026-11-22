@@ -14,10 +14,10 @@ function harness(loaded=null){
  const context={window,document,Math:math,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},URL,Blob};
  const scripts=['real-footballers.js','uefa2026.js','shared-uefa.js','advice.js','body-path.js','market-v3.js','career-depth.js','role-v3.js','transfer-v3.js','free-star.js','v10-core.js','v10-ui.js','legend-v1.js','legend-v3.js','legacy-awards.js','shared-domestic-cups.js'];
  for(const file of scripts){const content=fs.readFileSync(path.join(root,file),'utf8');vm.runInNewContext(content,context,{filename:file,timeout:10000})}
- let source=fs.readFileSync(path.join(root,'game.js'),'utf8');
+ let source=fs.readFileSync(path.join(root,'tests/_fixtures/legacy-engine.txt'),'utf8');
  assert.match(source,/function domesticCupPlan\(/,'游戏内未集成共享国内杯赛');
  source=source.replace(/\}\)\(\);\s*$/,'window.__S103_TEST={get:()=>g,duo:()=>duoGames,setG:(id)=>{activeDuo=id;g=duoGames[id]},setSync:(v)=>syncSeasonChange=v,makeSchedule,linkSharedWorld,playEvent,save,shared:()=>sharedUniverse,db:DB,nextSeason,overall,automaticPrep};})();');
- vm.runInNewContext(source,context,{filename:'game.js',timeout:15000});
+ vm.runInNewContext(source,context,{filename:'tests/_fixtures/legacy-engine.txt',timeout:15000});
  return {api:window.__S103_TEST,math,storage,click(action,extra={}){const fn=handlers['app:click'];assert(fn,'游戏未注册界面事件');fn({target:{closest:()=>({disabled:false,dataset:{action,...extra}})}})},flush(){let n=0;while(timers.length&&n++<200)timers.shift()()},html(){return node('app').innerHTML}};
 }
 function start(){const h=harness();h.click('flipOpeningCard',{id:'wang',i:0});h.flush();h.click('flipOpeningCard',{id:'vini',i:0});h.flush();h.click('preset');assert(h.api.duo(),'开档失败');return h}

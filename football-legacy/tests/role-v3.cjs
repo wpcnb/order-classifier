@@ -42,7 +42,7 @@ test("门将目标不使用进球与助攻",()=>{
  assert(goals.every(goal=>!goal.label.includes("进球")&&!goal.label.includes("助攻")));
 });
 test("一键推进不因决赛或交锋强制暂停",()=>{
- const source=fs.readFileSync(path.join(base,"game.js"),"utf8");
+ const source=fs.readFileSync(path.join(base,"tests/_fixtures/legacy-engine.txt"),"utf8");
  assert(!source.includes("if(critical&&v3Allowed!==date){v3Paused=critical;break}"));
  assert(source.includes("runSharedDay(date,focusDate===date?activeDuo:null,focusChoice)"));
  assert(source.includes("RV3.evaluate(p,n,gate,ov,tier)"));

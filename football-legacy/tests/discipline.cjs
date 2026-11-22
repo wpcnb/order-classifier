@@ -1,6 +1,6 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
-const source=fs.readFileSync(path.resolve(__dirname,"../game.js"),"utf8");
+const source=fs.readFileSync(path.resolve(__dirname,"_fixtures/legacy-engine.txt"),"utf8");
 const start=source.indexOf("function disciplinaryScope(ev){");
 const end=source.indexOf("function refreshSuspensionSummary(p){",start);
 assert(start>=0&&end>start,"match discipline engine must exist");

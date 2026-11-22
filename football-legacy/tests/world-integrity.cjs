@@ -2,7 +2,7 @@
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,"..");
 const SAVE="football-dynasty-duo-v2-20261110",OLD="football-dynasty-v4-independent-20261101";
-let core=fs.readFileSync(path.join(root,"game.js"),"utf8");
+let core=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8");
 core=core.replace(/\}\)\(\);\s*$/,'window.__test={get:()=>g,setG:(id)=>{activeDuo=id;g=duoGames[id]},setSync:(x)=>syncSeasonChange=x,nextSeason,offseason:simulateNPCOffseason,ensureRealAwardPlayers,createCups,db:DB,duo:()=>duoGames,makeSchedule,setupSharedUefaSeason,linkSharedWorld,playEvent,offseasonRecovery,disciplinaryRecord,save,seasonPerformance,generateOffers,shared:()=>sharedUniverse,playerMatchContribution,overall,compact:duoPayload,transferLevel,transferQualified,poissonGoals,simulateScore,awardCandidateScore,awardTeamHonours,cslPool:CSL_DRAW_TEAMS,levels:TRANSFER_LEVELS,gates:TRANSFER_GATES};})();');
 function harness(loaded=null){
  const storage=new Map(),cache={},handlers={},timers=[]; if(loaded)for(const [k,v]of loaded)storage.set(k,v);
@@ -11,7 +11,7 @@ function harness(loaded=null){
  const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)};
  const window={};const context={document,localStorage,window,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file,timeout:4000});
- vm.runInNewContext(core,context,{filename:"game.js",timeout:4000});
+ vm.runInNewContext(core,context,{filename:"tests/_fixtures/legacy-engine.txt",timeout:4000});
  return {get html(){return node("app").innerHTML},get state(){const data=storage.get(SAVE);return data?JSON.parse(data):null},get stored(){return storage},get api(){return window.__test},flush(){let n=0;while(timers.length&&n++<200)timers.shift()()},click(action,extras={}){const fn=handlers["app:click"];fn({target:{closest:()=>({disabled:false,dataset:{action,...extras}})}})},page(p){const fn=handlers["app:click"];fn({target:{closest:()=>({disabled:false,dataset:{page:p}})}})}};
 }
 function start(){const h=harness();h.click("flipOpeningCard",{id:"wang",i:0});h.flush();h.click("flipOpeningCard",{id:"vini",i:0});h.flush();h.click("preset");return h}

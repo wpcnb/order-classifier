@@ -1,13 +1,13 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root=path.resolve(__dirname,"..");
-const source=fs.readFileSync(path.join(root,"game.js"),"utf8").replace(/\}\)\(\);\s*$/,'window.__news={duoNewsFeed,duoDashboard,newsDateLabel,seed:(a,b,world)=>{duoGames={wang:a,vini:b};g=a;sharedUniverse=world||{awards:{}};}};})();');
+const source=fs.readFileSync(path.join(root,"tests/_fixtures/legacy-engine.txt"),"utf8").replace(/\}\)\(\);\s*$/,'window.__news={duoNewsFeed,duoDashboard,newsDateLabel,seed:(a,b,world)=>{duoGames={wang:a,vini:b};g=a;sharedUniverse=world||{awards:{}};}};})();');
 const nodes={};
 const node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(){}});
 let overviewCalls=0;
 const context={window:{GreenLegend:{overview(){overviewCalls++;return '<section id="existing-growth">球员成长内容</section>'}}},document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},confirm:()=>true,setTimeout:()=>0,clearTimeout(){},Blob,URL,console};
 for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js"])vm.runInNewContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
-vm.runInNewContext(source,context,{filename:"game.js"});
+vm.runInNewContext(source,context,{filename:"tests/_fixtures/legacy-engine.txt"});
 const {duoNewsFeed,duoDashboard,newsDateLabel,seed}=context.window.__news;
 const fixture={kind:"league",competition:"英超",date:"2031-10-09",home:"阿森纳",away:"切尔西",hs:2,as:1,played:true,goals:1,assists:0};
 function player(name,club,match){return {year:2031,generation:1,player:{name,club,age:24,retired:false,youth:false,transferHistory:[]},season:{stage:"playing",results:[match],events:[],index:0,apps:1,goals:1,assists:0},history:[],honors:[],logs:[]}}

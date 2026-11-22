@@ -8,9 +8,7 @@ let checked=0;function test(name,fn){fn();checked++;console.log("✓ "+checked+"
 test("v9 release, script order and reproducibility document",()=>{
  const html=read("index.html");
  assert(html.includes("<title>绿茵传奇11人 ·"));
- assert(html.indexOf("./body-path.js?v=")<html.indexOf("./career-depth.js?v="));
- assert(html.indexOf("./career-depth.js?v=")<html.indexOf("./legend-v1.js?v="));
- assert(html.indexOf("legend-v1.js?v=")<html.indexOf("game.js?v="));
+ assert(!html.includes('src="./game.js'));
  assert(read("V9_BALANCE_AUDIT.md").includes("200,000,000"));
 });
 test("old saves missing mass stay neutral without auto-writing derived weight",()=>{
@@ -72,7 +70,7 @@ function harness(initial=[]){
  const window={},context={window,document,localStorage,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL,console};
  for(const file of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","body-path.js","career-depth.js","free-star.js"])
   vm.runInNewContext(read(file),context,{filename:file,timeout:8000});
- vm.runInNewContext(read("game.js"),context,{filename:"game.js",timeout:10000});
+ vm.runInNewContext(read("tests/_fixtures/legacy-engine.txt"),context,{filename:"tests/_fixtures/legacy-engine.txt",timeout:10000});
  const act=(action,more={})=>(handlers["app:click"]||[])[0]({target:{closest:()=>({disabled:false,dataset:{action,...more}})}});
  return {act,flush(){let i=0;while(timers.length&&i++<30)timers.shift()},get saved(){return JSON.parse(storage.get("football-dynasty-duo-v2-20261110")||"null")},get html(){return node("app").innerHTML},storage};
 }

@@ -5,7 +5,7 @@
    yearly candidate pools come from the v8 game engine. */
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
 const dir=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(dir,f),"utf8");
-let src=read("game.js");
+let src=read("tests/_fixtures/legacy-engine.txt");
 const anchor=" nominees.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));";
 assert(src.includes(anchor),"nominee insertion point absent");
 src=src.replace(anchor,`
@@ -23,7 +23,7 @@ function run(seed){
  const storage=new Map(),events={},timers=[],nodes={},node=id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){}},addEventListener(k,fn){(events[id+":"+k]||(events[id+":"+k]=[])).push(fn)},click(){}});
  const w={__abSamples:[]},ctx={window:w,document:{getElementById:node,querySelector:()=>null,createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},Math:math,console,confirm:()=>true,setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},Blob,URL};
  for(const f of ["real-footballers.js","uefa2026.js","shared-uefa.js","advice.js","career-depth.js","free-star.js"])vm.runInNewContext(read(f),ctx,{filename:f,timeout:12000});
- vm.runInNewContext(src,ctx,{filename:"game.js",timeout:12000});
+ vm.runInNewContext(src,ctx,{filename:"tests/_fixtures/legacy-engine.txt",timeout:12000});
  const click=(action,id,i=0,choice=null)=>events["app:click"][0]({target:{closest:()=>({disabled:false,dataset:{action,id,i,choice}})}});
  const flush=()=>{let i=0;while(timers.length&&i++<300)timers.shift()()};
  click("flipOpeningCard","wang");flush();click("flipOpeningCard","vini");flush();click("preset");

@@ -1,6 +1,6 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
-const src=fs.readFileSync(path.resolve(__dirname,"../game.js"),"utf8");
+const src=fs.readFileSync(path.resolve(__dirname,"_fixtures/legacy-engine.txt"),"utf8");
 const begin=src.indexOf("function sharedNationalKnockoutWin("),end=src.indexOf("function playEvent(",begin);
 assert(begin>=0&&end>begin);
 const ctx={g:{year:2031},sharedUniverse:{national:{}},Math};
