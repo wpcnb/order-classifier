@@ -34,6 +34,8 @@ jobs:
         run: node football-legacy/tests/opening-choice.cjs
       - name: Verified China internationals 16-to-18 career simulation
         run: node football-legacy/tests/china-verified-career.cjs
+      - name: China national team 11-player parallel careers and legacy save safety
+        run: node football-legacy/tests/china-eleven-career.cjs
       - name: v10 - ten feature families, 100 independent samples each
         run: node football-legacy/tests/v10-100x.cjs
       - name: v9 body encounters and career balance - ten focused checks
