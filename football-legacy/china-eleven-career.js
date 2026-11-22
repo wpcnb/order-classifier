@@ -161,7 +161,13 @@
       &&Array.isArray(state.players)&&state.players.length===11
       &&state.players.every((p,i)=>p&&p.name===BASE[i][0]&&p.age===state.age
         &&Number.isFinite(p.rating)&&p.rating>=35&&p.rating<=105
-        &&Array.isArray(p.seasons)&&p.seasons.length===state.age-16);
+        &&Array.isArray(p.seasons)&&p.seasons.length===state.age-16
+        &&p.seasons.every((season,j)=>season&&typeof season==="object"&&!Array.isArray(season)
+          &&season.year===state.startYear+j+1&&season.age===17+j
+          &&Number.isFinite(season.rating)&&season.rating>=35&&season.rating<=105
+          &&typeof season.league==="string"&&typeof season.club==="string"
+          &&["apps","goals","assists","cleanSheets","caps","injuryGames"].every(key=>
+            Number.isInteger(season[key])&&season[key]>=0)));
   }
   return Object.freeze({BASE,create,step,simulate,isValid,LEAGUES});
 });
