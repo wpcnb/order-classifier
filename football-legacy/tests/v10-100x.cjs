@@ -74,7 +74,7 @@ verify("mobile wizard renders each stage and original ten-card draw handoff",i=>
   philosophies:{wang:"balanced",vini:"creator"},operations:{wang:"guided",vini:"deep"},
   step,drawn,gameLeagues:{CHN:{name:"中超"},ENG:{name:"英超"}},positionLabels:{LW:"左边锋"},
   development:id=>'<div data-dev="'+id+'">发展</div>',openingCards:id=>'<div data-cards="'+id+'">十张卡</div>'});
- assert(output.includes("绿茵三剑客"));
+ assert(output.includes("绿茵传奇11人"));
  if(step===1)assert(output.includes('data-v10-person="wang"')&&output.includes('data-action="v10League"'));
  if(step===2)assert(output.includes('data-v10-operation="vini"')&&output.includes("发展"));
  if(step===3)assert(output.includes('data-cards="wang"'));
@@ -102,7 +102,7 @@ function harness(seed){
 }
 verify("100 independently initialized gameplay sessions, dual league, archive and real-reference profiles",i=>{
  const h=harness(i);
- assert(h.html.includes("绿茵三剑客"));
+ assert(h.html.includes("绿茵传奇11人"));
  const names=persons.filter(x=>x.name!=="王楚淇"&&x.name!=="维尼修斯");
  const alt=names[i%names.length];
  h.change({v10Person:"wang",value:alt.name});
