@@ -16,6 +16,12 @@
   "拜仁慕尼黑": "https://fcbayern.com/en/teams/first-team",
   "巴黎圣日耳曼": "https://www.psg.fr/en/mens-football/squad/season/2026-2027"
 };
+ const biographicalSources={
+   "皇家马德里":"https://footballsquads.co.uk/spain/2026-2027/laliga/rmadrid.htm",
+   "巴塞罗那":"https://footballsquads.co.uk/spain/2026-2027/laliga/barce.htm",
+   "拜仁慕尼黑":"https://datencenter.dfb.de/en/competitions/bundesliga/seasons/2026-2027/teams/bayern-munich",
+   "巴黎圣日耳曼":"https://datencenter.dfb.de/en/competitions/champions-league/seasons/2026-2027/teams/paris-saint-germain"
+ };
  const rows={
   "皇家马德里": [
     [
@@ -1147,9 +1153,9 @@
    selection:index<11?"俱乐部一线队 · 游戏推荐首发":"俱乐部一线队 · 游戏替补候选",
    squadStatus:index<11?"starter":"bench",
    initialRating:49+Number(grade)*3,potential:68+Number(grade)*5,
-   url:sources[club],
+   url:sources[club],dataSource:biographicalSources[club],
    sourceNote:"一线队归属来自俱乐部2026/27官方名单；16岁能力与潜力由游戏估算"
  }))));
- root.ClubSquadData=Object.freeze({clubs,players,sources});
+ root.ClubSquadData=Object.freeze({clubs,players,sources,biographicalSources});
  if(typeof module==="object"&&module.exports)module.exports=root.ClubSquadData;
 })(typeof window!=="undefined"?window:globalThis);
