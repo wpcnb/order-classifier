@@ -106,6 +106,8 @@ for(const team of fourClubs){
 }
 assert(AcademySquad.systems.德国.includes("拜仁慕尼黑"));
 assert(AcademySquad.systems.法国.includes("巴黎圣日耳曼"));
+assert(read("china-eleven-ui.js").includes("Object.keys(clubSquads.clubs).map(team=>"),
+  "all club players must be visible in every academy's positional picker");
 console.log("PASS 101 official club squad members, four starting XIs, bench swaps, simulated 16-year profiles and long-career saves");
 
 for(const country of Object.keys(AcademySquad.systems)){
