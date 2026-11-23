@@ -87,7 +87,7 @@
       return award+" · "+(years.length?years.join("、")+" 赛季获奖":"暂无获奖记录");
     }).join("<br>");
     const summary='<p class="eleven-club"><b>16岁青训起点（游戏设定）：</b>'+escape(p.academy)+'<br><b>代表协会：</b>'+escape(p.country||"中国")+' · '+escape(p.nationalStage||"青训阶段")+'<br><b>当前球队：</b>'+escape(p.club)+' · '+escape(p.league)+'</p>'+
-      '<p class="eleven-disclaimer">公开生日及成年身高、体重仅在资料可核实时显示，未核实的字段不会编造。16岁身高、体重、能力、潜力与青训路径均为游戏估算，并非历史数据。</p>';
+      '<p class="eleven-disclaimer">公开生日及成年身高、体重仅在资料可核实时显示，未核实的字段不会编造。16岁身高、体重、能力、潜力与青训路径均为游戏估算，并非历史数据。'+(p.profileUrl?'<a href="'+escape(p.profileUrl)+'" target="_blank" rel="noopener noreferrer">查看公开资料来源</a>':'')+'</p>';
     return '<section class="card eleven-detail" aria-label="'+escape(p.name)+'职业生涯详情">'+
       '<div class="eleven-detail-top"><div><span class="eleven-eyebrow">球员生涯档案 · '+escape(labels[p.position]||p.position)+'</span><h2>'+escape(p.name)+'</h2></div>'+
       '<div class="eleven-big-rating"><b>'+p.rating+'</b><small>综合能力</small></div></div>'+
