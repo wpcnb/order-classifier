@@ -54,6 +54,9 @@ a{color:#9edcff}.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,mi
 .eleven-scroll{overflow-x:auto;margin-top:10px}
 .eleven-history{min-width:650px}.eleven-history th,.eleven-history td{padding:9px 8px}
 .eleven-empty{text-align:center;color:#bcd2dc}
+.eleven-club-roster{max-width:100%;min-width:0;padding:12px;margin:8px 0 12px;border:1px solid #355574;border-radius:9px}
+.eleven-club-roster summary{font-weight:750;overflow-wrap:anywhere}
+.eleven-club-roster p{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
 .eleven-links{font-size:12px;line-height:1.7;color:#b8cad9}
 .eleven-links a{color:#b7e4ff}
 @media(max-width:660px){
