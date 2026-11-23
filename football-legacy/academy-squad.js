@@ -24,7 +24,7 @@
       // current 2026/27 club, game youth ratings and club-team selection.
       profiles.set(clubPlayer.name,old?{
         ...old,team:clubPlayer.team,club:clubPlayer.club,
-        role:clubPlayer.role,matchRole:clubPlayer.role,
+        role:clubPlayer.role,matchRole:clubPlayer.role,number:clubPlayer.number,
         position:clubPlayer.position,squadStatus:clubPlayer.squadStatus,
         initialRating:clubPlayer.initialRating,potential:clubPlayer.potential,
         clubSource:clubPlayer.url,sourceNote:clubPlayer.sourceNote
