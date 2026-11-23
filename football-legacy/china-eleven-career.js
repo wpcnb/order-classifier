@@ -233,10 +233,24 @@
       const offset=Number(year)-state.startYear-1;
       if(!Number.isInteger(offset)||String(Number(year))!==year||offset<0||
          Number(year)>state.year||!Array.isArray(matches)||matches.length>242)return false;
-      const seen=new Set();
+      const seen=new Set(),occupied=new Set();
+      const tracked=new Map();
+      for(const player of state.players){
+        const ss=player?.seasons[offset];
+        if(!ss||typeof ss.league!=="string"||typeof ss.club!=="string")return false;
+        if(!tracked.has(ss.league))tracked.set(ss.league,new Set());
+        tracked.get(ss.league).add(ss.club);
+      }
       for(const m of matches){
         if(!validScoreSheet(m)||typeof m.league!=="string"||
           !Number.isInteger(m.round)||m.round<1||m.round>22)return false;
+        if(!tracked.has(m.league)||[m.home,m.away].some(club=>
+          !tracked.get(m.league).has(club)&&!fixtures.filler.includes(club)))return false;
+        for(const club of [m.home,m.away]){
+          const k=[m.league,m.round,club].join("|");
+          if(occupied.has(k))return false;
+          occupied.add(k);
+        }
         const key=[m.league,m.round,m.home,m.away].join("|");
         if(seen.has(key))return false;
         seen.add(key);
