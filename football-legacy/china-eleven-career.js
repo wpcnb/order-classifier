@@ -190,7 +190,7 @@
     for(const p of out.players){
       const s=p.seasons.at(-1);
       for(const field of ["apps","goals","assists","cleanSheets"])p[field]=s[field];
-      const contribution=p.position==="GK"?s.cleanSheets*1.1:["CB","LB","RB","CDM"].includes(p.position)?s.apps*.21+s.assists*.55:s.goals*.8+s.assists*.6;
+      const contribution=p.position==="GK"?s.cleanSheets*1.5:["CB","LB","RB"].includes(p.position)?s.cleanSheets*.9+s.apps*.16+s.assists*.7+s.goals*.9:p.position==="CDM"?s.apps*.25+s.assists*.8+s.goals*.7:s.goals*.8+s.assists*.6;
       s.performanceIndex=round(p.rating*.68+s.apps*.7+contribution+s.caps*.22);
       s.marketValue=Math.round((p.rating/65)**6*(p.age<30?1.2:Math.max(.3,1-(p.age-30)*.11))*(1+s.apps/22)*650000/10000)*10000;
     }
