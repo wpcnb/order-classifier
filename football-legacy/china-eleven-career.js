@@ -88,7 +88,7 @@
       return {id:i+1,name,position,number,academy,academyVerified:false,initialRating:initial,youthHeightEstimate,youthWeightEstimate,
         country:record.country||"中国",born:record.born||null,adultClub:record.club||null,
         adultHeight:record.height??null,adultWeight:record.weight??null,
-        measurementSource:record.selection||"中国队公开球员档案",profileUrl:record.url||null,
+        measurementSource:record.selection||"中国队公开球员档案",profileUrl:record.dataSource||record.url||null,
         age:16,rating:initial,potential,attributes:metrics(position,initial),
         league:"青训联赛",tier:"youth",club:academy,apps:0,goals:0,assists:0,
         cleanSheets:0,caps:0,careerCaps:0,injuries:0,lastEvent:"16岁进入青训体系",
