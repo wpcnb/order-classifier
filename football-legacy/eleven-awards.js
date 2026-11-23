@@ -115,6 +115,14 @@
       String(a.id).localeCompare(String(b.id)))
       .map((p,i)=>({...p,rank:i+1}));
   }
+  // Non-cryptographic checksum to detect accidental or casual manual edits.
+  // This is NOT a secure signature and cannot defeat a determined save editor.
+  function proofFor(seed,year,award,record){
+    const rows=record.rankings.map(p=>[p.id,p.name,p.rank,p.points,p.score,p.origin,
+      p.reason,p.goals,p.assists,p.cleanSheets,p.apps,p.cupChampion,p.votes]);
+    return hash(JSON.stringify([seed,year,award,record.id,record.name,record.points,
+      record.voters,record.criteria,rows])).toString(16).padStart(8,"0");
+  }
   function settle(state,year){
     const nominees=shortlist(state,year),awards={};
     for(const award of ORDER){
@@ -126,6 +134,7 @@
         criteria:award==="金球奖"?"个人表现、所有已记录赛事、球队奖杯及位置贡献":
           "四组独立投票，按个人、团队、位置与选民偏好加权",
         rankings};
+      awards[award].proof=proofFor(state.seed,year,award,awards[award]);
     }
     return awards;
   }
@@ -146,6 +155,7 @@
         if(!isValidWinner(v,year))return false;
         if(v.model!==3)continue; // preserve previously released legacy awards
         if(v.year!==year||!Array.isArray(v.rankings)||v.rankings.length!==30||
+          typeof v.proof!=="string"||v.proof!==proofFor(state.seed,year,award,v)||
           v.voters!==(award==="金球奖"?"100名模拟记者":"模拟教练、队长、媒体、球迷各100票"))return false;
         const seen=new Set();
         let sum=0;
