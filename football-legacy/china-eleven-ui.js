@@ -102,13 +102,17 @@
       return '<option value="'+escape(name)+'" '+(name===value?'selected':'')+'>'+escape(label)+'</option>';
     }).join("");
     const slots=squad.formation.map((pos,i)=>{
-      const clubChoices=people.filter(p=>p.team===draft.team&&squad.eligible(p,i)
-        &&(p.name===draft.picks[i]||!draft.picks.includes(p.name)));
-      const clubGroups=clubChoices.length?["starter","bench"].map(status=>{
-        const subset=clubChoices.filter(p=>p.squadStatus===status);
-        return subset.length?'<optgroup label="'+escape(draft.team)+' · '+(status==="starter"?"推荐首发":"替补候选")+'">'
-          +options(subset.map(p=>({name:p.name,label:p.name})),draft.picks[i])+'</optgroup>':"";
-      }).join(""):"";
+      // Every club's starters and bench are available, regardless of the
+      // selected training academy or the player's national association.
+      const clubGroups=Object.keys(clubSquads.clubs).map(team=>{
+        const clubChoices=people.filter(p=>p.team===team&&squad.eligible(p,i)
+          &&(p.name===draft.picks[i]||!draft.picks.includes(p.name)));
+        return ["starter","bench"].map(status=>{
+          const subset=clubChoices.filter(p=>p.squadStatus===status);
+          return subset.length?'<optgroup label="'+escape(team)+' · '+(status==="starter"?"推荐首发":"替补候选")+'">'
+            +options(subset.map(p=>({name:p.name,label:p.name})),draft.picks[i])+'</optgroup>':"";
+        }).join("");
+      }).join("");
       const groups=Object.keys(squad.systems).map(country=>{
         const pool=people.filter(p=>p.country===country&&squad.eligible(p,i)&&(p.name===draft.picks[i]||!draft.picks.includes(p.name)));
         return '<optgroup label="'+country+'">'+options(pool.map(p=>p.name),draft.picks[i])+'</optgroup>';
