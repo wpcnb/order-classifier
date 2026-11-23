@@ -65,7 +65,12 @@ assert.equal(lifetime.length,11);
 assert(lifetime.every(row=>Number.isFinite(row.points)&&row.peak>0));
 assert.deepEqual(lifetime,ranking.rank(JSON.parse(JSON.stringify(final))));
 assert.deepEqual(lifetime,ranking.rank(final),"read-only rankings must be deterministic");
-assert(lifetime.some(row=>row.topFiveYears>0),"elite leagues reflected in lifetime rank");
+// A user-chosen English academy can spend multiple seasons in a big-five league;
+ // the default China simulation is NOT guaranteed to reach one.
+const eliteWorld=engine.simulate(engine.create(99,[],{country:"英格兰",team:"曼城",together:true}),5);
+const eliteRows=ranking.rank(eliteWorld);
+assert(eliteRows.every(row=>row.topFiveYears===4&&row.topFiveLeagues.includes("英超")),
+  "five-league years must reflect simulated seasons, not guaranteed outcomes");
 const promoted=structuredClone(final);
 promoted.awardHistory={...promoted.awardHistory,2035:{
   "金球奖":{id:11,name:promoted.players[10].name,points:100},
