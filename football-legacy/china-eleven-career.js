@@ -53,10 +53,12 @@
     const item=Array.isArray(rows)?rows.find(p=>p&&p.group==="senior"&&p.name===name):null;
     return item||{};
   }
-  const countries=["中国","英格兰","西班牙","法国","葡萄牙"];
+  const countries=["中国","英格兰","西班牙","法国","葡萄牙","德国"];
+  const playerCountries=new Set(internationals.associations);
   const divisions={
     中国:["中乙","中甲","中超"],英格兰:["英甲","英冠","英超"],西班牙:["西班牙第三级","西乙","西甲"],
-    法国:["法国第三级","法乙","法甲"],葡萄牙:["葡萄牙第三级","葡甲","葡超"]
+    法国:["法国第三级","法乙","法甲"],葡萄牙:["葡萄牙第三级","葡甲","葡超"],
+    德国:["德丙","德乙","德甲"]
   };
   function create(seed,rosterRows,setup={}){
     const country=setup.country||"中国", team=setup.team||"上海海港";
@@ -68,16 +70,25 @@
     const key=Number.isSafeInteger(n)&&n>=0&&n<=4294967295?n:20261122;
     const players=BASE.map((entry,i)=>{
       const record=picks?picks[i]:fromRoster(rosterRows,entry[0]);
-      const name=picks?record.name:entry[0], position=entry[1], number=entry[2];
+      const name=picks?record.name:entry[0], position=entry[1], number=Number.isInteger(record.number)?record.number:entry[2];
       const reference=BASE[ROW_BY_NAME.get(name)];
       const talent=rng(key^hashText(name));
-      const initial=reference?reference[4]:52+Math.floor(talent()*12);
-      const potential=reference?reference[5]:69+Math.floor(talent()*19);
+      const initial=Number.isInteger(record.initialRating)?bounded(record.initialRating,35,90)
+        :reference?reference[4]:52+Math.floor(talent()*12);
+      const potential=Number.isInteger(record.potential)?bounded(record.potential,initial,100)
+        :reference?reference[5]:69+Math.floor(talent()*19);
+      // These are fictional age-16 body estimates, NEVER public measurements.
+      const hRef=Number.isFinite(record.height)?record.height
+        :({GK:191,RB:178,CB:187,LB:179,CDM:182,CM:178,LW:179,RW:177,ST:183})[position];
+      const wRef=Number.isFinite(record.weight)?record.weight
+        :({GK:79,RB:73,CB:82,LB:72,CDM:77,CM:74,LW:73,RW:72,ST:78})[position];
+      const youthHeightEstimate=Math.round(hRef-3-Math.floor(talent()*6));
+      const youthWeightEstimate=Math.round(wRef-6-Math.floor(talent()*6));
       const academy=team+"青训";
-      return {id:i+1,name,position,number,academy,academyVerified:false,initialRating:initial,
+      return {id:i+1,name,position,number,academy,academyVerified:false,initialRating:initial,youthHeightEstimate,youthWeightEstimate,
         country:record.country||"中国",born:record.born||null,adultClub:record.club||null,
         adultHeight:record.height??null,adultWeight:record.weight??null,
-        measurementSource:record.selection||"中国队公开球员档案",profileUrl:record.url||null,
+        measurementSource:record.selection||"中国队公开球员档案",profileUrl:record.dataSource||record.url||null,
         age:16,rating:initial,potential,attributes:metrics(position,initial),
         league:"青训联赛",tier:"youth",club:academy,apps:0,goals:0,assists:0,
         cleanSheets:0,caps:0,careerCaps:0,injuries:0,lastEvent:"16岁进入青训体系",
@@ -267,10 +278,12 @@
       &&(!state.squad||countries.includes(state.squad.country)&&typeof state.squad.team==="string"&&typeof state.squad.together==="boolean")
       &&Array.isArray(state.players)&&state.players.length===11&&new Set(state.players.map(p=>p?.name)).size===11
       &&state.players.every((p,i)=>p&&p.id===i+1&&p.position===BASE[i][1]&&typeof p.name==="string"&&p.name.length>0
-        &&(state.squad?countries.includes(p.country):p.name===BASE[i][0])&&p.age===state.age
+        &&(state.squad?playerCountries.has(p.country):p.name===BASE[i][0])&&p.age===state.age
         &&Array.isArray(p.attributes)&&p.attributes.length===5&&p.attributes.every(v=>Number.isFinite(v)&&v>=0&&v<=100)
         &&Number.isInteger(p.number)&&Number.isFinite(p.potential)&&Number.isInteger(p.careerCaps)
         &&(p.initialRating===undefined||Number.isFinite(p.initialRating))
+        &&(p.youthHeightEstimate===undefined||Number.isInteger(p.youthHeightEstimate)&&p.youthHeightEstimate>=120&&p.youthHeightEstimate<=220)
+        &&(p.youthWeightEstimate===undefined||Number.isInteger(p.youthWeightEstimate)&&p.youthWeightEstimate>=35&&p.youthWeightEstimate<=140)
         &&Number.isFinite(p.rating)&&p.rating>=35&&p.rating<=105
         &&Array.isArray(p.seasons)&&p.seasons.length===state.age-16
         &&p.seasons.every((season,j)=>season&&typeof season==="object"&&!Array.isArray(season)

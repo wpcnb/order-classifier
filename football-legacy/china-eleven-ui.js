@@ -7,7 +7,9 @@
   const STORE="football-legacy-china-eleven-career-v1";
   const roster=window.ChinaAcademyData&&window.ChinaAcademyData.players||[];
   const squad=window.AcademySquad;
-  const people=squad.catalog(window.ChinaAcademyData,window.WorldCupSquads,core.BASE);
+  const clubSquads=window.ClubSquadData||{clubs:{},players:[]};
+  const people=squad.catalog(window.ChinaAcademyData,window.WorldCupSquads,core.BASE,clubSquads.players);
+  function preset(team){return clubSquads.clubs[team]?.starterNames.slice()||Array(11).fill("");}
   const draft={country:"中国",team:squad.systems.中国[0],seed:20261122,picks:Array(11).fill(""),together:false};
   let picking=false, unavailableSave=null;
   const PLACEHOLDER="尚未核实";
@@ -74,6 +76,8 @@
       '<div><small>出生日期</small><strong>'+escape(p.born||PLACEHOLDER)+'</strong></div>'+
       '<div><small>报名参考身高</small><strong>'+height+'</strong></div>'+
       '<div><small>报名参考体重</small><strong>'+weight+'</strong></div>'+
+      '<div><small>16岁身高估算（游戏）</small><strong>'+(p.youthHeightEstimate?escape(p.youthHeightEstimate)+" cm":"未提供")+'</strong></div>'+
+      '<div><small>16岁体重估算（游戏）</small><strong>'+(p.youthWeightEstimate?escape(p.youthWeightEstimate)+" kg":"未提供")+'</strong></div>'+
       '<div><small>16岁能力估算</small><strong>'+(p.initialRating??core.BASE[p.id-1][4])+'</strong></div>'+
       '<div><small>模拟成长潜力</small><strong>'+p.potential+'</strong></div>'+
       '<div><small>成年国家队生涯出场（模拟）</small><strong>'+p.careerCaps+'</strong></div></div>';
@@ -83,7 +87,7 @@
       return award+" · "+(years.length?years.join("、")+" 赛季获奖":"暂无获奖记录");
     }).join("<br>");
     const summary='<p class="eleven-club"><b>16岁青训起点（游戏设定）：</b>'+escape(p.academy)+'<br><b>代表协会：</b>'+escape(p.country||"中国")+' · '+escape(p.nationalStage||"青训阶段")+'<br><b>当前球队：</b>'+escape(p.club)+' · '+escape(p.league)+'</p>'+
-      '<p class="eleven-disclaimer">生日和报名身高取自公开档案。16 岁能力、青训归属和未来表现由游戏估算。</p>';
+      '<p class="eleven-disclaimer">公开生日及成年身高、体重仅在资料可核实时显示，未核实的字段不会编造。16岁身高、体重、能力、潜力与青训路径均为游戏估算，并非历史数据。'+(p.profileUrl?'<a href="'+escape(p.profileUrl)+'" target="_blank" rel="noopener noreferrer">查看公开资料来源</a>':'')+'</p>';
     return '<section class="card eleven-detail" aria-label="'+escape(p.name)+'职业生涯详情">'+
       '<div class="eleven-detail-top"><div><span class="eleven-eyebrow">球员生涯档案 · '+escape(labels[p.position]||p.position)+'</span><h2>'+escape(p.name)+'</h2></div>'+
       '<div class="eleven-big-rating"><b>'+p.rating+'</b><small>综合能力</small></div></div>'+
@@ -93,19 +97,42 @@
   }
   function rosterPicker(){
     if(!picking)return "";
-    const options=(values,value)=>values.map(v=>'<option '+(v===value?'selected':'')+'>'+escape(v)+'</option>').join("");
+    const options=(values,value)=>values.map(v=>{
+      const name=typeof v==="string"?v:v.name,label=typeof v==="string"?v:v.label;
+      return '<option value="'+escape(name)+'" '+(name===value?'selected':'')+'>'+escape(label)+'</option>';
+    }).join("");
     const slots=squad.formation.map((pos,i)=>{
+      // Every club's starters and bench are available, regardless of the
+      // selected training academy or the player's national association.
+      const clubGroups=Object.keys(clubSquads.clubs).map(team=>{
+        const clubChoices=people.filter(p=>p.team===team&&squad.eligible(p,i)
+          &&(p.name===draft.picks[i]||!draft.picks.includes(p.name)));
+        return ["starter","bench"].map(status=>{
+          const subset=clubChoices.filter(p=>p.squadStatus===status);
+          return subset.length?'<optgroup label="'+escape(team)+' · '+(status==="starter"?"推荐首发":"替补候选")+'">'
+            +options(subset.map(p=>({name:p.name,label:p.name})),draft.picks[i])+'</optgroup>':"";
+        }).join("");
+      }).join("");
       const groups=Object.keys(squad.systems).map(country=>{
         const pool=people.filter(p=>p.country===country&&squad.eligible(p,i)&&(p.name===draft.picks[i]||!draft.picks.includes(p.name)));
         return '<optgroup label="'+country+'">'+options(pool.map(p=>p.name),draft.picks[i])+'</optgroup>';
       }).join("");
-      return '<label>'+labels[pos]+'<select data-pick="'+i+'"><option value="">按位置自动补齐</option>'+groups+'</select></label>';
+      return '<label>'+labels[pos]+'<select data-pick="'+i+'"><option value="">按位置自动补齐</option>'+clubGroups+groups+'</select></label>';
     }).join("");
-    return '<section class="card" id="squad-picker"><h2>组建首发阵容</h2><p>可以跨国选人。空位优先使用本体系的同位置球员。</p><div class="pick-grid">'+
+    const c=clubSquads.clubs[draft.team];
+    const detail=c?'<details class="eleven-club-roster"><summary>'+escape(draft.team)+' 2026/27 · 推荐首发11人 / 替补'+c.benchNames.length+'人</summary>'+
+      '<p>仅根据官方一线队名单排列的游戏推荐阵容，非真实比赛首发。每位球员从16岁开始重新模拟。</p>'+
+      ['starterNames','benchNames'].map((key,i)=>'<p><strong>'+(i?'替补候选':'推荐首发')+'：</strong>'+
+        c[key].map(name=>{
+          const p=people.find(row=>row.name===name);
+          return escape(name)+'（16岁能力估算 '+(p?.initialRating??'—')+' / 潜力估算 '+(p?.potential??'—')+'）';
+        }).join('、')+'</p>').join('')+
+      '<p><a href="'+escape(c.source)+'" target="_blank" rel="noopener noreferrer">查看俱乐部官方一线队名单</a></p></details>':"";
+    return '<section class="card" id="squad-picker"><h2>组建首发阵容</h2><p>可选皇马、巴萨、拜仁、巴黎的2026/27官方一线队成员；每队预置游戏推荐11人，并可使用替补换人。首发只是游戏阵容建议，并非指定比赛的官方首发。空位按位置自动补齐。</p><div class="pick-grid">'+
       '<label>青训体系<select data-team-setting="country">'+options(Object.keys(squad.systems),draft.country)+'</select></label>'+
       '<label>青训母队<select data-team-setting="team">'+options(squad.systems[draft.country],draft.team)+'</select></label>'+
       '<label>模拟种子<input type="number" min="0" max="4294967295" step="1" data-team-setting="seed" value="'+escape(draft.seed)+'"></label></div>'+
-      '<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18岁后整队留在母队（不勾选则允许球员各自转会）</label>'+
+      detail+'<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18岁后整队留在母队（不勾选则允许球员各自转会）</label>'+
       '<div class="eleven-actions"><button class="button primary" data-eleven-action="build">确认阵容，从16岁开始</button><button class="button" data-eleven-action="cancel">取消</button></div></section>';
   }
   function teamMatches(p){
@@ -177,8 +204,8 @@
       render();return;
     }
     if(input.dataset.pick!==undefined)draft.picks[Number(input.dataset.pick)]=input.value;
-    else if(input.dataset.teamSetting==="country"){draft.country=input.value;draft.team=squad.systems[draft.country][0]}
-    else if(input.dataset.teamSetting==="team")draft.team=input.value;
+    else if(input.dataset.teamSetting==="country"){draft.country=input.value;draft.team=squad.systems[draft.country][0];draft.picks=preset(draft.team)}
+    else if(input.dataset.teamSetting==="team"){draft.team=input.value;draft.picks=preset(draft.team)}
     else if(input.dataset.teamSetting==="together")draft.together=input.checked;
     else if(input.dataset.teamSetting==="seed"){draft.seed=input.value;return}
     else return;

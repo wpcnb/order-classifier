@@ -60,18 +60,56 @@ assert.equal(initial.players[0].rating,57);
 for(const file of ["index.html","play.html"]){
  const html=read(file);
  const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
- assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","academy-squad.js","eleven-fixtures.js","eleven-internationals.js","china-eleven-career.js","china-eleven-ui.js"]);
+ assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-fixtures.js","eleven-internationals.js","china-eleven-career.js","china-eleven-ui.js"]);
  assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
 }
 assert(!read("china-eleven-ui.js").includes("?classic"));
 assert(read("academy.html").includes("url=./play.html"));
 const vm=require("node:vm"),ctx={window:{}};
-for(const file of ["china-rosters.js","world-cup-squads.js","academy-squad.js"])
+for(const file of ["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js"])
  vm.runInNewContext(read(file),ctx,{filename:file});
-const {ChinaAcademyData,WorldCupSquads,AcademySquad}=ctx.window;
+const {ChinaAcademyData,WorldCupSquads,ClubSquadData,AcademySquad}=ctx.window;
 const profiles=AcademySquad.catalog(ChinaAcademyData,WorldCupSquads,engine.BASE);
 assert.equal(profiles.length,151);
 assert.equal(new Set(profiles.map(p=>p.name)).size,151);
+
+const fourClubs=["皇家马德里","巴塞罗那","拜仁慕尼黑","巴黎圣日耳曼"];
+assert.equal(ClubSquadData.players.length,101,"official squads represented with 11 starters and benches");
+assert(ClubSquadData.players.every(p=>/^\d{4}-\d{2}-\d{2}$/.test(p.born)),
+  "all 101 club candidates must have sourced birth dates");
+assert(ClubSquadData.players.every(p=>Number.isInteger(p.number)&&p.number>0),
+  "all club members have sourced shirt numbers");
+const fullCatalog=AcademySquad.catalog(ChinaAcademyData,WorldCupSquads,engine.BASE,ClubSquadData.players);
+assert.equal(fullCatalog.length,new Set([...profiles,...ClubSquadData.players].map(p=>p.name)).size);
+assert.equal(new Set(fullCatalog.map(p=>p.name)).size,fullCatalog.length);
+const countriesForClub={"皇家马德里":"西班牙","巴塞罗那":"西班牙","拜仁慕尼黑":"德国","巴黎圣日耳曼":"法国"};
+for(const team of fourClubs){
+ const card=ClubSquadData.clubs[team];
+ assert(card&&card.starterNames.length===11&&card.benchNames.length>=10,team+" starters and bench");
+ const picks=card.starterNames.slice();
+ const picked=AcademySquad.select(fullCatalog,countriesForClub[team],picks,4321);
+ assert(picked.every((p,i)=>p.name===picks[i]&&AcademySquad.eligible(p,i)));
+ assert(picked.every(p=>p.team===team),"featured XI must all come from the chosen club");
+ const initialClub=engine.create(4321,[],{country:countriesForClub[team],team,together:false,players:picked});
+ assert(engine.isValid(initialClub));
+ assert(initialClub.players.every((p,i)=>p.number===picked[i].number),"club kit numbers must not leak from China squad slots");
+ assert(initialClub.players.every(p=>Number.isInteger(p.youthHeightEstimate)&&Number.isInteger(p.youthWeightEstimate)
+   &&p.initialRating>=35&&p.potential>=p.initialRating),
+   "all four club squads have clearly simulated age-16 physical and skill attributes");
+ const ending=engine.simulate(initialClub,19);
+ assert(engine.isValid(ending)&&ending.age===35,"club presets complete reproducible 19-year careers");
+ assert.deepEqual(ending,engine.simulate(initialClub,19),"fixed seed and club roster must reproduce");
+ const keeper=ClubSquadData.players.find(p=>p.team===team&&p.squadStatus==="bench"&&p.position==="GK");
+ assert(keeper,team+" keeper substitute must exist");
+ const withBench=picks.slice();withBench[0]=keeper.name;
+ assert.equal(AcademySquad.select(fullCatalog,countriesForClub[team],withBench,4321)[0].name,keeper.name);
+}
+assert(AcademySquad.systems.德国.includes("拜仁慕尼黑"));
+assert(AcademySquad.systems.法国.includes("巴黎圣日耳曼"));
+assert(read("china-eleven-ui.js").includes("Object.keys(clubSquads.clubs).map(team=>"),
+  "all club players must be visible in every academy's positional picker");
+console.log("PASS 101 official club squad members, four starting XIs, bench swaps, simulated 16-year profiles and long-career saves");
+
 for(const country of Object.keys(AcademySquad.systems)){
  const picks=Array(11).fill("");
  picks[0]="李昊";picks[10]="姆巴佩";

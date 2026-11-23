@@ -3,20 +3,34 @@
   "use strict";
   const systems = {
     中国: ["上海海港", "山东泰山", "浙江职业"], 英格兰: ["曼城", "阿森纳", "利物浦"],
-    西班牙: ["巴塞罗那", "皇家马德里", "皇家社会"], 法国: ["里昂", "雷恩", "摩纳哥"],
-    葡萄牙: ["本菲卡", "葡萄牙体育", "波尔图"]
+    西班牙: ["巴塞罗那", "皇家马德里", "皇家社会"], 法国: ["里昂", "雷恩", "摩纳哥", "巴黎圣日耳曼"],
+    葡萄牙: ["本菲卡", "葡萄牙体育", "波尔图"], 德国: ["拜仁慕尼黑"]
   };
   const formation = ["GK", "RB", "CB", "CB", "LB", "CDM", "CM", "CM", "LW", "RW", "ST"];
   const labels = {GK:"门将", RB:"右后卫", CB:"中卫", LB:"左后卫", CDM:"后腰", CM:"中场", LW:"左翼", RW:"右翼", ST:"中锋"};
   const groups = ["GK", "DF", "DF", "DF", "DF", "MF", "MF", "MF", "FW", "FW", "FW"];
-  function catalog(china, european, starters) {
+  function catalog(china, european, starters, clubPlayers=[]) {
     const chinaRoles = {门将:"GK", 后卫:"DF", 中场:"MF", 前锋:"FW"};
-    return [...china.players.map(p => {
+    const national=[...china.players.map(p => {
       const slot = starters.findIndex(row => row[0] === p.name);
       return {...p, country:"中国", role:chinaRoles[p.role], matchRole:slot < 0 ? null : groups[slot],
         url:china.sources[p.group === "u17" ? "fifa" : "cfa"][1],
         selection:p.group === "u17" ? "U17 世界杯" : "国家队集训"};
     }), ...european];
+    const profiles=new Map(national.map(p=>[p.name,p]));
+    for(const clubPlayer of clubPlayers){
+      const old=profiles.get(clubPlayer.name);
+      // Keep registered public facts from the FIFA roster, while supplying
+      // current 2026/27 club, game youth ratings and club-team selection.
+      profiles.set(clubPlayer.name,old?{
+        ...old,team:clubPlayer.team,club:clubPlayer.club,
+        role:clubPlayer.role,matchRole:clubPlayer.role,number:clubPlayer.number,
+        position:clubPlayer.position,squadStatus:clubPlayer.squadStatus,
+        initialRating:clubPlayer.initialRating,potential:clubPlayer.potential,
+        clubSource:clubPlayer.url,dataSource:old.url||clubPlayer.dataSource,sourceNote:clubPlayer.sourceNote
+      }:clubPlayer);
+    }
+    return [...profiles.values()];
   }
   function eligible(person, slot) {
     return person.role === groups[slot] || person.matchRole === groups[slot];
