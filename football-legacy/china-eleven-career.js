@@ -70,7 +70,7 @@
     const key=Number.isSafeInteger(n)&&n>=0&&n<=4294967295?n:20261122;
     const players=BASE.map((entry,i)=>{
       const record=picks?picks[i]:fromRoster(rosterRows,entry[0]);
-      const name=picks?record.name:entry[0], position=entry[1], number=entry[2];
+      const name=picks?record.name:entry[0], position=entry[1], number=Number.isInteger(record.number)?record.number:entry[2];
       const reference=BASE[ROW_BY_NAME.get(name)];
       const talent=rng(key^hashText(name));
       const initial=Number.isInteger(record.initialRating)?bounded(record.initialRating,35,90)
