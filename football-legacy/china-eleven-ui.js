@@ -115,11 +115,20 @@
       }).join("");
       return '<label>'+labels[pos]+'<select data-pick="'+i+'"><option value="">按位置自动补齐</option>'+clubGroups+groups+'</select></label>';
     }).join("");
+    const c=clubSquads.clubs[draft.team];
+    const detail=c?'<details class="eleven-club-roster"><summary>'+escape(draft.team)+' 2026/27 · 推荐首发11人 / 替补'+c.benchNames.length+'人</summary>'+
+      '<p>仅根据官方一线队名单排列的游戏推荐阵容，非真实比赛首发。每位球员从16岁开始重新模拟。</p>'+
+      ['starterNames','benchNames'].map((key,i)=>'<p><strong>'+(i?'替补候选':'推荐首发')+'：</strong>'+
+        c[key].map(name=>{
+          const p=people.find(row=>row.name===name);
+          return escape(name)+'（16岁能力估算 '+(p?.initialRating??'—')+' / 潜力估算 '+(p?.potential??'—')+'）';
+        }).join('、')+'</p>').join('')+
+      '<p><a href="'+escape(c.source)+'" target="_blank" rel="noopener noreferrer">查看俱乐部官方一线队名单</a></p></details>':"";
     return '<section class="card" id="squad-picker"><h2>组建首发阵容</h2><p>可选皇马、巴萨、拜仁、巴黎的2026/27官方一线队成员；每队预置游戏推荐11人，并可使用替补换人。首发只是游戏阵容建议，并非指定比赛的官方首发。空位按位置自动补齐。</p><div class="pick-grid">'+
       '<label>青训体系<select data-team-setting="country">'+options(Object.keys(squad.systems),draft.country)+'</select></label>'+
       '<label>青训母队<select data-team-setting="team">'+options(squad.systems[draft.country],draft.team)+'</select></label>'+
       '<label>模拟种子<input type="number" min="0" max="4294967295" step="1" data-team-setting="seed" value="'+escape(draft.seed)+'"></label></div>'+
-      '<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18岁后整队留在母队（不勾选则允许球员各自转会）</label>'+
+      detail+'<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18岁后整队留在母队（不勾选则允许球员各自转会）</label>'+
       '<div class="eleven-actions"><button class="button primary" data-eleven-action="build">确认阵容，从16岁开始</button><button class="button" data-eleven-action="cancel">取消</button></div></section>';
   }
   function teamMatches(p){
