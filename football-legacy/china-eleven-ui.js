@@ -5,6 +5,7 @@
   if(!root||!window.ElevenCareerCore)return;
   const core=window.ElevenCareerCore;
   const STORE="football-legacy-china-eleven-career-v1";
+  const BACKUP=STORE+"-pre-awards-ledger-backup";
   const roster=window.ChinaAcademyData&&window.ChinaAcademyData.players||[];
   const squad=window.AcademySquad;
   const clubSquads=window.ClubSquadData||{clubs:{},players:[]};
@@ -19,6 +20,12 @@
   let raw;
   try {
     raw=localStorage.getItem(STORE);
+    // One-time, best-effort device-local snapshot BEFORE interpreting or replacing
+    // the save. A storage quota failure never deletes or overwrites the original.
+    if(raw&&!localStorage.getItem(BACKUP)){
+      try{localStorage.setItem(BACKUP,raw)}
+      catch(e){saveNotice="本机自动备份未完成，请先使用“导出11人存档”另存文件。"}
+    }
     const candidate=raw?JSON.parse(raw):null;
     game=candidate&&core.isValid(candidate)?candidate:core.create(20261122,roster);
     if(raw&&!core.isValid(candidate)){unavailableSave=raw;saveNotice="本机进度无法读取。请先下载原始存档，再开始新生涯。"}
@@ -250,6 +257,7 @@
       '<button type="button" class="button goldbtn" data-eleven-action="five" '+(game.age>=35?"disabled":"")+'>连续模拟5年</button>'+
       '<button type="button" class="button" data-eleven-action="retire" '+(game.age>=35?"disabled":"")+'>一键模拟至35岁</button>'+
       '<button type="button" class="button outline" data-eleven-action="export">导出11人存档</button>'+
+      (function(){try{return localStorage.getItem(BACKUP)?'<button type="button" class="button outline" data-eleven-action="export-backup">下载升级前原始备份</button>':""}catch{return ""}})()+
       '<button type="button" class="button outline" data-eleven-action="reset">选择青训体系与阵容</button>'+
       (game.squad?.together&&!unavailableSave&&game.age<35?'<button type="button" class="button outline" data-eleven-action="allow-transfers">解除留队限制（下赛季起）</button>':'')+'</div>'+
       (unavailableSave?'<button class="button" data-eleven-action="recover">下载无法读取的存档</button>':'')+
@@ -308,6 +316,16 @@
     }
     if(action==="archive"){
       download(JSON.stringify(Object.fromEntries(legacyKeys().map(k=>[k,localStorage.getItem(k)]))),"历史生涯原文.json");return;
+    }
+    if(action==="export-backup"){
+      try{
+        const saved=localStorage.getItem(BACKUP);
+        if(!saved)throw Error("没有本机备份");
+        const value=JSON.parse(saved);
+        if(core.isValid(value))download(JSON.stringify({format:"china-eleven-career-v1",game:value}),"十一人升级前备份.json");
+        else download(saved,"十一人升级前原始记录.json");
+      }catch(e){saveNotice="备份下载失败："+e.message;render()}
+      return;
     }
     if(action==="export"){download(JSON.stringify({format:"china-eleven-career-v1",game}),"十一人生涯_"+game.age+"岁.json");return}
     if(action==="build"){
