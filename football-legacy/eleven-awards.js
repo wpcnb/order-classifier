@@ -66,7 +66,7 @@
       const score=round(ability*.52+clamp(impact/apps*38,0,70)+12+
         (cupChampion?13:0)+(10+Math.floor(random()*20))*.43);
       return {id:"sim:"+year+":"+(i+1),name:"模拟候选"+String(i+1).padStart(2,"0"),
-        club:"虚构海外俱乐部",position,origin:"fictional",score,
+        club:null,position,origin:"fictional",score,
         reason:"虚构竞争者（模型估算）："+apps+"场"+goals+"球"+assists+"助攻 · "+
           cleanSheets+"场零封"+(cupChampion?" · 模拟杯赛冠军":""),
         goals,assists,cleanSheets,apps,cupChampion};

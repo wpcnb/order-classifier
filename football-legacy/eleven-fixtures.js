@@ -4,7 +4,7 @@
   const roles = Object.freeze(["GK","RB","CB","CB","LB","CDM","CM","CM","LW","RW","ST"]);
   const shooting = {GK:0,RB:1,CB:1,LB:1,CDM:2,CM:4,LW:8,RW:8,ST:12};
   const passing = {GK:0,RB:4,CB:1,LB:4,CDM:4,CM:9,LW:8,RW:8,ST:4};
-  const filler = ["北城竞技","南岸联队","东港竞技","西城联队","河谷联队","山麓竞技","新城联","滨海竞技","中央联队","河畔竞技","青年联合","星港联队"];
+  const teamsRegistry=typeof module==="object"&&module.exports?require("./eleven-clubs.js"):root.ElevenClubs;
   function weighted(lineup, weights, random, exclude) {
     const candidates = lineup.filter(p => p !== exclude && weights[p.position] > 0);
     const weight = p => weights[p.position] * (p.rating / 65);
@@ -71,7 +71,14 @@
     }
     for(const [league,clubs] of leagues) {
       const teams=[...clubs.keys()].sort();
-      for(const name of filler)if(teams.length<12&&!teams.includes(name))teams.push(name);
+      const members=teamsRegistry.leagueTeams(league);
+      if(teams.some(team=>!members.includes(team)))throw Error("球队未在联赛名单内："+league);
+      const opponents=members.filter(name=>!clubs.has(name));
+      const draw=randomFor("league draw:"+league);
+      while(teams.length<12){
+        if(!opponents.length)throw Error("联赛球队数量不足："+league);
+        teams.push(opponents.splice(Math.floor(draw()*opponents.length),1)[0]);
+      }
       const rounds=teams.length-1;
       for(let day=1;day<=rounds;day++) {
         for(let i=0;i<teams.length/2;i++) {
@@ -88,6 +95,6 @@
     }
     return fixtures.sort((a,b)=>a.round-b.round);
   }
-  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup,filler:Object.freeze([...filler])};
+  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup};
   if(typeof module==="object"&&module.exports)module.exports=root.ElevenFixtures;
 })(typeof window!=="undefined"?window:globalThis);

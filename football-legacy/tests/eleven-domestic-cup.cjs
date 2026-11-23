@@ -59,7 +59,8 @@ assert(engine.isValid(next));
 
 // Eleven controlled clubs in a single division need a sixteen-team draw.
 const players=structuredClone(withCup.players);
-players.forEach(p=>{p.club="球队"+p.id;p.league="中超";Object.assign(p.seasons.at(-1),{club:p.club,league:p.league,trophy:null})});
+const domesticClubs=require("../eleven-clubs").leagueTeams("中超");
+players.forEach(p=>{p.club=domesticClubs[p.id-1];p.league="中超";Object.assign(p.seasons.at(-1),{club:p.club,league:p.league,trophy:null})});
 function randomFor(label){
  let n=Array.from(label).reduce((sum,c)=>Math.imul(sum,31)+c.charCodeAt(0)|0,7);
  return ()=>((n=(Math.imul(1664525,n)+1013904223)>>>0)/4294967296);
