@@ -1,7 +1,7 @@
 /* Double round robin. One score and one event ledger per fixture for all tracked teammates. */
 (function(root) {
   "use strict";
-  const roles = ["GK","RB","CB","CB","LB","CDM","CM","CM","LW","RW","ST"];
+  const roles = Object.freeze(["GK","RB","CB","CB","LB","CDM","CM","CM","LW","RW","ST"]);
   const shooting = {GK:0,RB:1,CB:1,LB:1,CDM:2,CM:4,LW:8,RW:8,ST:12};
   const passing = {GK:0,RB:4,CB:1,LB:4,CDM:4,CM:9,LW:8,RW:8,ST:4};
   const filler = ["北城竞技","南岸联队","东港竞技","西城联队","河谷联队","山麓竞技","新城联","滨海竞技","中央联队","河畔竞技","青年联合","星港联队"];
@@ -26,8 +26,7 @@
       return {id:null, position, rating:60};
     });
   }
-  function playMatch(home, away, round, members, random) {
-    const lines = [lineup(members.get(home) || [],round,random),lineup(members.get(away) || [],round,random)];
+  function scoreLineups(lines, random) {
     const strength = lines.map(line => line.reduce((sum,p) => sum+p.rating,0)/11);
     const score = [0,0], goals = [];
     for (let side = 0; side < 2; side++) {
@@ -37,15 +36,22 @@
         score[side]++;
         const scorer = weighted(lines[side],shooting,random);
         const helper = random()<.74 ? weighted(lines[side],passing,random,scorer) : null;
-        if (scorer.id) scorer.seasons.at(-1).goals++;
-        if (helper?.id) helper.seasons.at(-1).assists++;
         goals.push([side,scorer.id,helper?.id||null]);
       }
     }
+    return {score,goals,lineups:lines.map(line=>line.map(p=>p.id).filter(Boolean))};
+  }
+  function playMatch(home, away, round, members, random) {
+    const lines = [lineup(members.get(home) || [],round,random),lineup(members.get(away) || [],round,random)];
+    const result = scoreLineups(lines,random);
+    for(const [side,scorer,helper] of result.goals){
+      if(scorer)lines[side].find(p=>p.id===scorer).seasons.at(-1).goals++;
+      if(helper)lines[side].find(p=>p.id===helper).seasons.at(-1).assists++;
+    }
     lines.forEach((line,side) => {
-      if (line[0].id && score[1-side]===0) line[0].seasons.at(-1).cleanSheets++;
+      if (line[0].id && result.score[1-side]===0) line[0].seasons.at(-1).cleanSheets++;
     });
-    return {round,home,away,score,goals,lineups:lines.map(line=>line.map(p=>p.id).filter(Boolean))};
+    return {round,home,away,...result};
   }
   function season(players, randomFor) {
     const leagues = new Map(), fixtures = [];
@@ -77,6 +83,6 @@
     }
     return fixtures.sort((a,b)=>a.round-b.round);
   }
-  root.ElevenFixtures={season};
+  root.ElevenFixtures={season,roles,scoreLineups};
   if(typeof module==="object"&&module.exports)module.exports=root.ElevenFixtures;
 })(typeof window!=="undefined"?window:globalThis);
