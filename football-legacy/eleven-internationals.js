@@ -6,7 +6,11 @@
 })(typeof window!=="undefined"?window:globalThis,function(fixtures){
   "use strict";
   const windows=[4,8,12,16,20];
-  const associations=["中国","英格兰","西班牙","法国","葡萄牙","日本"];
+  const baseAssociations=["中国","英格兰","西班牙","法国","葡萄牙","日本"];
+  const extraAssociations=["德国","巴西","比利时","乌克兰","荷兰","乌拉圭","土耳其",
+    "摩洛哥","科特迪瓦","波兰","克罗地亚","丹麦","瑞典","埃及","韩国","加拿大",
+    "奥地利","塞内加尔","哥伦比亚","格鲁吉亚","俄罗斯","厄瓜多尔","意大利","其他国家队"];
+  const associations=[...baseAssociations,...extraAssociations];
   const levels=["U17","U19","U21","U23","成年队"];
   const cutoff={U17:54,U19:58,U21:62,U23:65,成年队:72};
   function youthLevel(age){
@@ -54,7 +58,11 @@
     });
   }
   function season(players,clubMatches,randomFor,year){
-    const matches=[],rotation=associations.slice();
+    // Keep old five-country careers' match calendar and fixed seeds unchanged.
+    // Expanded matchdays only apply when a newly added club player represents
+    // an association outside the original international simulation pool.
+    const extra=players.some(p=>!baseAssociations.includes(p.country||"中国"));
+    const matches=[],rotation=(extra?associations:baseAssociations).slice();
     for(const round of windows){
       const selections=select(players,clubMatches,round,randomFor);
       for(const [level,teams] of selections){
