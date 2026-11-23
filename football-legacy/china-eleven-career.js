@@ -227,6 +227,7 @@
   function validFixtures(state){
     const archive=state.fixtures;
     if(archive===undefined)return true; // pre-fixture archive compatibility
+    if(!Array.isArray(state.players)||state.players.length!==11)return false;
     if(!archive||typeof archive!=="object"||Array.isArray(archive))return false;
     for(const [year,matches] of Object.entries(archive)){
       const offset=Number(year)-state.startYear-1;
