@@ -95,6 +95,32 @@
       '<h3>逐赛季职业生涯</h3><div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>联赛</th><th>俱乐部</th><th>能力</th><th>场次</th><th>进球</th><th>助攻</th><th>成年国家队出场</th></tr></thead><tbody>'+history+'</tbody></table></div>'+
       internationalRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。杯赛荣誉按赛季估算。</p></section>';
   }
+  function leaderboard(){
+    const rows=window.ElevenCareerRankings?.rank(game)||[];
+    if(rows.length!==11)return "";
+    const winners=rows.filter(p=>p.ballonYears.length);
+    const champions=winners.length?winners.map(p=>escape(p.name)+"（"+p.ballonYears.join("、")+"）").join("、"):
+      "截至当前模拟年份，队内暂无金球奖得主。";
+    const heading=game.age===16?"16岁开档实力榜 · 1—11名":"职业生涯综合排名 · 1—11名";
+    return '<section class="card eleven-leaderboard" aria-label="十一人职业生涯排行榜">'+
+      '<h2>'+heading+'</h2>'+
+      '<p class="eleven-disclaimer">只依据本次游戏已经模拟的赛季数据排名，不是现实世界的球员能力或金球奖预测。积分考虑金球奖、世界足球先生、五大联赛经历、最高能力、出场、国家队、杯赛及位置贡献；相同存档得出相同排名。</p>'+
+      '<p class="eleven-ranking-awards"><strong>队内金球奖第一：</strong>'+champions+'</p>'+
+      '<div class="eleven-ranking-list">'+rows.map(p=>{
+        const league=p.topFiveLeagues.length?p.topFiveLeagues.join("、"):"尚未进入";
+        const ballon=p.ballonYears.length?" · 金球奖 "+p.ballonYears.length+"次":"";
+        const world=p.worldYears.length?" · 世界足球先生 "+p.worldYears.length+"次":"";
+        const active=p.id===selected;
+        return '<button type="button" class="eleven-ranking-row'+(active?" active":"")+
+          '" data-eleven-player="'+p.id+'" aria-label="查看第'+p.rank+'名'+escape(p.name)+'的职业生涯">'+
+          '<b class="eleven-ranking-place">#'+p.rank+'</b>'+
+          '<span class="eleven-ranking-person"><strong>'+escape(p.name)+'</strong>'+
+          '<small>五大联赛：'+escape(league)+'（'+p.topFiveYears+'季）'+ballon+world+'</small>'+
+          '<small>最高能力 '+p.peak+' · 联赛 '+p.apps+'场 · '+p.goals+'球 · '+p.assists+'助攻 · 国家队 '+p.caps+'场</small></span>'+
+          '<span class="eleven-ranking-points">'+p.points.toFixed(1)+'分</span></button>';
+      }).join("")+'</div>'+
+      '<p class="eleven-disclaimer">门将与防守球员的贡献包含零封，避免只按进球数评判。点击任意球员可查看其职业生涯。</p></section>';
+  }
   function rosterPicker(){
     if(!picking)return "";
     const options=(values,value)=>values.map(v=>{
@@ -184,7 +210,7 @@
       '<p class="eleven-save-notice" role="status">'+escape(saveNotice)+'</p>'+
       '</div>'+rosterPicker()+'<section class="eleven-squad" aria-label="首发11人阵容"><div class="eleven-squad-head"><div><h2>11人首发阵容</h2><p>4-3-3 排列 · 单击查看职业生涯</p></div><span>模拟进度 '+years+' / 19 年</span></div>'+
       '<div class="eleven-pitch">'+rows.map(line=>'<div class="eleven-line">'+line.map(card).join("")+'</div>').join("")+'</div>'+
-      mini+'</section>'+teamMatches(p)+detail(p)+
+      mini+'</section>'+leaderboard()+teamMatches(p)+detail(p)+
       '<div class="eleven-links"><p>球员资料 · <a href="https://www.thecfa.cn/nanzuwqmd/20261107/38400.html">中国足协集训名单</a> · <a href="https://fdp.fifa.org/assetspublic/ce303/pdf/SquadLists-English.pdf#page=8">中国 U17 报名表</a> · <a href="https://fdp.fifa.org/assetspublic/ce281/pdf/SquadLists-English.pdf">四国世界杯报名表</a> · <a href="https://xinwen.bjd.com.cn/content/s6afd4e91e4b0e42f8f03106e.html">国足对巴林首发</a></p>'+
       (legacyKeys().length?'<button class="button" data-eleven-action="archive">下载历史存档原文</button>':'')+
       '<label>导入十一人存档 <input type="file" data-save-import accept="application/json,.json"></label></div>';
