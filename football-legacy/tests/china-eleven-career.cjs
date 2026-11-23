@@ -5,6 +5,8 @@ const path=require("node:path");
 const engine=require("../china-eleven-career.js");
 const root=path.resolve(__dirname,"..");
 const read=file=>fs.readFileSync(path.join(root,file),"utf8");
+const clubs=require("../eleven-clubs");
+const associations=require("../eleven-internationals").associations;
 const expected=[
 "李昊","杨希","刘浩帆","韩鹏飞","刘洋","徐彬",
 "王上源","杨明洋","王钰栋","林良铭","拜合拉木·阿卜杜外力"
@@ -181,6 +183,18 @@ for(const country of Object.keys(AcademySquad.systems)){
  const separate=engine.simulate(engine.create(111,[],{...options,together:false}),10);
  assert(new Set(separate.players.map(p=>p.club)).size>1);
  assert(engine.isValid(separate));
+ for(const [leagueYear,games] of Object.entries(separate.fixtures)){
+  for(const m of games)assert([m.home,m.away].every(team=>clubs.leagueTeams(m.league).includes(team)));
+  for(const draw of separate.cupHistory?.[leagueYear]||[])for(const m of draw.matches)
+   assert([m.home,m.away].every(team=>clubs.cupTeams(draw.country).includes(team)));
+  for(const m of separate.nationalFixtures[leagueYear])assert([m.home,m.away].every(team=>associations.includes(team)));
+ }
+ for(const p of separate.players)for(const s of p.seasons)assert(clubs.leagueTeams(s.league).includes(s.club));
+ for(const parent of AcademySquad.systems[country]){
+  const intake=engine.create(1,[],{country,team:parent}).players[0];
+  assert(clubs.leagueTeams(intake.league).includes(intake.club),parent+" youth membership");
+ }
+
 }
 // Manchester City intake should not silently lock a career to one club.
 const manCitySetup={country:"英格兰",team:"曼城",together:true};
@@ -245,5 +259,34 @@ const corrupt=structuredClone(year);
 corrupt.nationalFixtures[year.year][0].level="成年队";
 assert(!engine.isValid(corrupt),"underage appearance rejected before rendering/import");
 console.log("PASS five international levels, cross-association fixtures, injury windows, cap totals and reload");
+
+// A match involving an untracked opponent still has to respect league membership.
+const replaced=structuredClone(year);
+const previousGame=replaced.fixtures[year.year][0];
+const side=previousGame.home===year.players[0].club?"away":"home";
+previousGame[side]="阿森纳";
+assert(!engine.isValid(replaced),"prevent a real team from the wrong division entering a new fixture");
+previousGame[side]="北城竞技";
+assert(!engine.isValid(replaced),"prevent placeholder fixtures in new seasons");
+// Earlier saves use the old opponents throughout a season.
+previousGame[side]=year.fixtures[year.year][0][side];
+delete replaced.realTeamsFromYear;
+const oldNames="北城竞技 南岸联队 东港竞技 西城联队 河谷联队 山麓竞技 新城联 滨海竞技 中央联队 河畔竞技 青年联合 星港联队".split(" ");
+const names=new Map();
+for(const m of replaced.fixtures[year.year]){
+ for(const side of ["home","away"])if(m[side]!==year.players[0].club){
+  if(!names.has(m[side]))names.set(m[side],oldNames[names.size]);
+  m[side]=names.get(m[side]);
+ }
+}
+assert(engine.isValid(replaced));
+const continued=engine.step(replaced);
+assert(engine.isValid(continued));
+assert.deepEqual(continued.fixtures[year.year],replaced.fixtures[year.year]);
+assert.equal(continued.realTeamsFromYear,continued.year);
+assert(continued.fixtures[continued.year].every(m=>[m.home,m.away].every(team=>clubs.leagueTeams(m.league).includes(team))));
+assert(!associations.includes("其他国家队"));
+assert.throws(()=>engine.create(1,[],{team:"北城竞技"}));
+console.log("PASS documented league, youth, cup and national opponents and historical season continuity");
 
 require("./eleven-domestic-cup.cjs");

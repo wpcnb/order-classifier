@@ -71,8 +71,7 @@
     const team=homeTeam(country,setup.team);
     if(setup.team!==undefined&&team!==setup.team)throw Error("球队未在青训名单内");
     const picks=setup.players;
-    if(!countries.includes(country)||typeof team!=="string"||!team.trim()
-       ||picks&&(picks.length!==11||new Set(picks.map(p=>p.name)).size!==11))throw Error("无效的球队阵容");
+    if(picks&&(!Array.isArray(picks)||picks.length!==11||new Set(picks.map(p=>p?.name)).size!==11))throw Error("无效的球队阵容");
 
     const n=Number(seed);
     const key=Number.isSafeInteger(n)&&n>=0&&n<=4294967295?n:20261122;
@@ -124,12 +123,12 @@
   const domesticLevel={c2:0,c1:1,csl:2};
   const internationalLeagues={asia:["日本J1","韩国K1"],belgium:["比甲"],portugal:["葡超"],holland:["荷甲"],top:["德甲","法甲","西甲","意甲","英超"]};
   function assignClub(player,tier,age,squad,random){
-    const country=squad?.country||"中国",parent=homeTeam(country,squad?.team);
+    const {country,team:parent}=squad;
     if(age<18){
       const academy=clubs.academy(country,parent);
       return {tier:"youth",league:country+"青训联赛",club:academy,academy};
     }
-    if(squad?.together)return {tier:"domestic",league:divisions[country][2],club:parent};
+    if(squad.together)return {tier:"domestic",league:divisions[country][2],club:parent};
     const options=internationalLeagues[tier]||[divisions[country][domesticLevel[tier]]];
     if(player.tier===tier&&options.includes(player.league)&&clubs.leagueTeams(player.league).includes(player.club)
         &&random()>.26)return {tier,league:player.league,club:player.club};
@@ -137,7 +136,7 @@
     const club=age===18&&members.includes(parent)?parent:members[Math.floor(random()*members.length)];
     return {tier,league,club};
   }
-  function seasonPlayer(player,world){
+  function seasonPlayer(player,world,squad){
     const next={...player,seasons:[...player.seasons],attributes:[...player.attributes]};
     const age=world.age+1;
     const random=rng((world.seed^hashText(player.name+"-"+world.year))>>>0);
@@ -152,7 +151,7 @@
     next.rating=round(bounded(next.rating+growth,40,Math.max(ceiling,next.rating)));
     next.attributes=metrics(next.position,next.rating);
     const rTier=random(),tier=tierFor(next,age,rTier);
-    Object.assign(next,assignClub(next,tier,age,world.squad,random));
+    Object.assign(next,assignClub(next,tier,age,squad,random));
     next.age=age;next.caps=0;next.injuries+=injury?1:0;
     next.nationalStage="本季未入选";
     next.lastEvent=injury?"伤停 "+miss+" 场":next.club!==player.club?"加入"+next.club:"完成赛季";
@@ -165,7 +164,8 @@
     const out={...state,age:state.age+1,year:state.year+1,yearsSimulated:state.yearsSimulated+1};
     out.realTeamsFromYear=state.realTeamsFromYear??out.year;
     if(state.squad)out.squad={...state.squad,team:homeTeam(state.squad.country,state.squad.team)};
-    out.players=state.players.map(p=>seasonPlayer(p,state));
+    const squad=out.squad||{country:"中国",team:"上海海港",together:false};
+    out.players=state.players.map(p=>seasonPlayer(p,state,squad));
     const matches=fixtures.season(out.players,label=>rng(out.seed^hashText(out.year+":"+label)));
     out.fixtures={...(state.fixtures||{}),[out.year]:matches};
     if(out.age>=18){
@@ -279,9 +279,10 @@
       if(!Number.isInteger(offset)||String(Number(year))!==year||offset<0||age>state.age
           ||!Array.isArray(matches)||matches.length>55)return false;
       const played=new Set(),teams=new Set(),caps=Array(11).fill(0);
+      const historical=state.realTeamsFromYear===undefined||Number(year)<state.realTeamsFromYear;
       for(const m of matches){
         if(!validScoreSheet(m)||!internationals.windows.includes(m.round)
-            ||![m.home,m.away].every(team=>playerCountries.has(team)||team==="其他国家队"&&!(year>=state.realTeamsFromYear))
+            ||![m.home,m.away].every(team=>playerCountries.has(team)||historical&&team==="其他国家队")
             ||!internationals.levels.includes(m.level)
             ||(m.level==="成年队"?age<18:m.level!==internationals.youthLevel(age)))return false;
         for(const [side,line] of m.lineups.entries()){
