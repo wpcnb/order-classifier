@@ -36,6 +36,8 @@ jobs:
         run: node football-legacy/tests/china-verified-career.cjs
       - name: China national team 11-player parallel careers and legacy save safety
         run: node football-legacy/tests/china-eleven-career.cjs
+      - name: Eleven defender clean sheet regression
+        run: node football-legacy/tests/eleven-defender-clean-sheets.cjs
       - name: v10 - ten feature families, 100 independent samples each
         run: node football-legacy/tests/v10-100x.cjs
       - name: v9 body encounters and career balance - ten focused checks
