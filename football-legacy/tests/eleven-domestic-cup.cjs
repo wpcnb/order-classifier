@@ -65,12 +65,12 @@ function randomFor(label){
  let n=Array.from(label).reduce((sum,c)=>Math.imul(sum,31)+c.charCodeAt(0)|0,7);
  return ()=>((n=(Math.imul(1664525,n)+1013904223)>>>0)/4294967296);
 }
-const league=fixtures.season(players,randomFor);
+const {matches:league,records}=fixtures.simulateSeason(players,randomFor);
 const clubStats=players.map(p=>p.seasons.at(-1).apps);
 const draws=cup.season(players,league,engine.domesticAssociation,randomFor);
 assert.equal(draws.length,1);
 assert.equal(draws[0].matches.length,15);
 assert.equal(new Set(draws[0].matches.slice(0,8).flatMap(m=>[m.home,m.away])).size,16);
 assert.deepEqual(clubStats,players.map(p=>p.seasons.at(-1).apps));
-assert(engine.isValid({...withCup,players,fixtures:{...withCup.fixtures,2028:league},cupHistory:{2028:draws}}));
+assert(engine.isValid({...withCup,players,leagueSchedules:{...withCup.leagueSchedules,2028:records},fixtures:{...withCup.fixtures,2028:league},cupHistory:{2028:draws}}));
 console.log("PASS shared domestic cups, knockout progression, shootouts, injury windows, honours, and old-save continuity");

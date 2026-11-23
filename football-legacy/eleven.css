@@ -98,3 +98,9 @@ a{color:#9edcff}.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,mi
 .eleven-competition-ledger{border:1px solid #3c5263;border-radius:8px;padding:12px;margin:16px 0}
 .eleven-competition-ledger summary{font-weight:700;cursor:pointer}
 @media(max-width:480px){.eleven-awards-controls{display:block}.eleven-awards-controls .eleven-actions{margin-top:12px}.eleven-award-winner{padding:12px}}
+
+.eleven-league-panel summary{font-weight:700;cursor:pointer}
+.eleven-league-panel .pick-grid{margin-top:14px}
+.eleven-league-panel table{min-width:440px;width:100%}
+.eleven-league-panel caption{text-align:left;padding:8px 0}
+.eleven-league-panel .league-own-club{color:#ffe29b;background:#20434b}

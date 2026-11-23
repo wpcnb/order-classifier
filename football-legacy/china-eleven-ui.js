@@ -214,6 +214,27 @@
       detail+'<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18岁后整队留在母队（不勾选则允许球员各自转会）</label>'+
       '<div class="eleven-actions"><button class="button primary" data-eleven-action="build">确认阵容，从16岁开始</button><button class="button" data-eleven-action="cancel">取消</button></div></section>';
   }
+  function leaguePanel(p,year=game.year,round=22){
+    if(!p.seasons.length)return "";
+    const seasons=p.seasons.filter(s=>game.leagueSchedules?.[s.year]?.[s.league]);
+    if(!seasons.length){
+      const message=game.age>=35?"这份生涯已结束，旧档保留了当时记录的球队比赛。":"推进一个赛季后即可查看新积分榜。";
+      return '<details class="card"><summary>联赛积分榜</summary><p>这份旧档没有记录全组比分。'+message+'</p></details>';
+    }
+    const season=seasons.find(s=>s.year===year)||seasons.at(-1);
+    const record=game.leagueSchedules[season.year][season.league];
+    const rows=window.ElevenLeagues.standings(record,round);
+    const rank=rows.findIndex(row=>row.club===season.club)+1;
+    const seasonOptions=seasons.slice().reverse().map(s=>'<option value="'+s.year+'" '+(s===season?'selected':'')+'>'+s.year+' · '+escape(s.league)+' · '+escape(s.club)+'</option>').join("");
+    const roundOptions=window.ElevenLeagues.rounds.map((_,i)=>'<option value="'+(i+1)+'" '+(i+1===round?'selected':'')+'>第 '+(i+1)+' 轮</option>').join("");
+    const body=rows.map((r,i)=>'<tr'+(r.club===season.club?' class="league-own-club"':'')+'><td>'+(i+1)+'</td><th scope="row">'+escape(r.club)+'</th><td>'+r.wins+'</td><td>'+r.draws+'</td><td>'+r.losses+'</td><td>'+r.for+'–'+r.against+'</td><td>'+(r.for-r.against)+'</td><td>'+r.points+'</td></tr>').join("");
+    const results=window.ElevenLeagues.rounds[round-1].map(([h,a],i)=>'<li>'+escape(record.teams[h])+' <b>'+record.scores[round-1][i].join('–')+'</b> '+escape(record.teams[a])+'</li>').join("");
+    return '<details class="card eleven-league-panel" data-league-table><summary>'+season.year+' '+escape(season.league)+'积分榜 · '+escape(season.club)+'第 '+rank+' 名</summary>'+
+      '<div class="pick-grid"><label>赛季<select data-league-year>'+seasonOptions+'</select></label><label>截至轮次<select data-league-round>'+roundOptions+'</select></label></div>'+
+      (round===22?'<p><b>本组联赛冠军 · '+escape(rows[0].club)+'</b></p>':'')+
+      '<div class="eleven-scroll"><table class="eleven-history"><caption>第 '+round+' 轮后模拟积分榜</caption><thead><tr><th>名次</th><th>球队</th><th>胜</th><th>平</th><th>负</th><th>进–失</th><th>净胜</th><th>积分</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+      '<p>胜 3 分、平 1 分。同分依次比较净胜球、进球数和本季抽签顺序。</p><h3>第 '+round+' 轮比分</h3><ul>'+results+'</ul></details>';
+  }
   function teamMatches(p){
     const matches=(game.fixtures?.[game.year]||[]).filter(m=>m.league===p.league&&(m.home===p.club||m.away===p.club));
     if(!matches.length)return "";
@@ -264,7 +285,7 @@
       '<p class="eleven-save-notice" role="status">'+escape(saveNotice)+'</p>'+
       '</div>'+rosterPicker()+'<section class="eleven-squad" aria-label="首发11人阵容"><div class="eleven-squad-head"><div><h2>11人首发阵容</h2><p>4-3-3 排列 · 单击查看职业生涯</p></div><span>模拟进度 '+years+' / 19 年</span></div>'+
       '<div class="eleven-pitch">'+rows.map(line=>'<div class="eleven-line">'+line.map(card).join("")+'</div>').join("")+'</div>'+
-      mini+'</section>'+leaderboard()+teamMatches(p)+detail(p)+
+      mini+'</section>'+leaderboard()+teamMatches(p)+leaguePanel(p)+detail(p)+
       '<div class="eleven-links"><p>球员资料 · <a href="https://www.thecfa.cn/nanzuwqmd/20261107/38400.html">中国足协集训名单</a> · <a href="https://fdp.fifa.org/assetspublic/ce303/pdf/SquadLists-English.pdf#page=8">中国 U17 报名表</a> · <a href="https://fdp.fifa.org/assetspublic/ce281/pdf/SquadLists-English.pdf">四国世界杯报名表</a> · <a href="https://xinwen.bjd.com.cn/content/s6afd4e91e4b0e42f8f03106e.html">国足对巴林首发</a></p>'+
       '<details data-team-sources><summary>比赛球队与名单来源</summary><p>联赛从对应级别的真实参赛队中抽取十二队，国内杯从同一足球协会的职业队中抽签。青训使用对应年龄梯队。名单固定在以下参考赛季，对阵、比分与球员转会由游戏模拟。</p>'+
       (years>0&&game.realTeamsFromYear!==2027?'<p>旧档保留已结束赛季的原始队名。'+(game.realTeamsFromYear?'从 '+game.realTeamsFromYear+' 赛季起使用真实球队。':'')+'</p>':'')+
@@ -274,6 +295,18 @@
   }
   root.addEventListener("change",async event=>{
     const input=event.target;
+    const panel=input.closest("[data-league-table]");
+    if(panel){
+      const seasonChanged=input.hasAttribute("data-league-year");
+      const year=Number(panel.querySelector("[data-league-year]").value);
+      const round=seasonChanged?22:Number(panel.querySelector("[data-league-round]").value);
+      const player=game.players.find(p=>p.id===selected)||game.players[0];
+      panel.outerHTML=leaguePanel(player,year,round);
+      const updated=root.querySelector("[data-league-table]");
+      updated.open=true;
+      updated.querySelector(seasonChanged?"[data-league-year]":"[data-league-round]").focus({preventScroll:true});
+      return;
+    }
     if(input.hasAttribute("data-save-import")){
       const file=input.files[0];if(!file)return;
       try{
