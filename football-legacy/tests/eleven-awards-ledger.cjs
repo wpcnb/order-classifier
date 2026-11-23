@@ -55,6 +55,7 @@ mutate(b=>{b.awardHistory[2028]["金球奖"].rankings[1].id=b.awardHistory[2028]
 mutate(b=>{b.awardHistory[2028]["金球奖"].id=999});
 mutate(b=>{b.awardHistory[2028]["世界足球先生"].voters="记者"});
 mutate(b=>{b.awardHistory[2028]["金球奖"].rankings[0].rank=8});
+mutate(b=>{b.awardHistory[2028]["金球奖"].rankings[8].reason="伪造的获奖理由"});
 mutate(b=>{b.players[0].seasons.at(-1).apps+=1});
 mutate(b=>{b.awardHistory[2080]=b.awardHistory[2028]});
 const year=world.year,fixture=world.fixtures[year].find(m=>m.lineups.some(l=>l.length));
