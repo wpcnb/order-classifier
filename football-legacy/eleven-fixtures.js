@@ -48,8 +48,13 @@
       if(scorer)lines[side].find(p=>p.id===scorer).seasons.at(-1).goals++;
       if(helper)lines[side].find(p=>p.id===helper).seasons.at(-1).assists++;
     }
+    // Every tracked defender who actually played earns a clean sheet, not only the goalkeeper.
+    // Midfielders and forwards do not receive this defensive statistic.
     lines.forEach((line,side) => {
-      if (line[0].id && result.score[1-side]===0) line[0].seasons.at(-1).cleanSheets++;
+      if(result.score[1-side]!==0)return;
+      for(const p of line){
+        if(p.id && ["GK","RB","CB","LB"].includes(p.position))p.seasons.at(-1).cleanSheets++;
+      }
     });
     return {round,home,away,...result};
   }
@@ -83,6 +88,6 @@
     }
     return fixtures.sort((a,b)=>a.round-b.round);
   }
-  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup};
+  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup,filler:Object.freeze([...filler])};
   if(typeof module==="object"&&module.exports)module.exports=root.ElevenFixtures;
 })(typeof window!=="undefined"?window:globalThis);

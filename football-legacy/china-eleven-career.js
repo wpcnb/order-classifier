@@ -7,10 +7,12 @@
   const node=typeof module==="object"&&module.exports;
   const api=factory(node?require("./eleven-fixtures.js"):root.ElevenFixtures,
     node?require("./eleven-internationals.js"):root.ElevenInternationals,
-    node?require("./eleven-domestic-cup.js"):root.ElevenDomesticCup);
+    node?require("./eleven-domestic-cup.js"):root.ElevenDomesticCup,
+    node?require("./eleven-awards.js"):root.ElevenAnnualAwards,
+    node?require("./eleven-ledger.js"):root.ElevenCompetitionLedger);
   if(typeof module==="object"&&module.exports)module.exports=api;
   root.ElevenCareerCore=api;
-})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups){
+})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups,awards,ledger){
   "use strict";
   const BASE=[
     ["李昊","GK",16,"马德里竞技青训",57,78],
@@ -170,7 +172,7 @@
     }
     next.lastEvent=injury?"伤停 "+miss+" 场":next.club!==player.club?"加入"+next.club:"完成赛季";
     next.seasons.push({year:world.year+1,age,rating:next.rating,tier:next.tier,league:next.league,club:next.club,
-      apps:0,goals:0,assists:0,cleanSheets:0,caps:0,injuryGames:miss,trophy:null});
+      apps:0,goals:0,assists:0,cleanSheets:0,caps:0,injuryGames:miss,trophy:null,statVersion:2});
     return next;
   }
   function advanceYear(state){
@@ -188,7 +190,7 @@
     for(const p of out.players){
       const s=p.seasons.at(-1);
       for(const field of ["apps","goals","assists","cleanSheets"])p[field]=s[field];
-      const contribution=p.position==="GK"?s.cleanSheets*1.1:["CB","LB","RB","CDM"].includes(p.position)?s.apps*.21+s.assists*.55:s.goals*.8+s.assists*.6;
+      const contribution=p.position==="GK"?s.cleanSheets*1.5:["CB","LB","RB"].includes(p.position)?s.cleanSheets*.9+s.apps*.16+s.assists*.7+s.goals*.9:p.position==="CDM"?s.apps*.25+s.assists*.8+s.goals*.7:s.goals*.8+s.assists*.6;
       s.performanceIndex=round(p.rating*.68+s.apps*.7+contribution+s.caps*.22);
       s.marketValue=Math.round((p.rating/65)**6*(p.age<30?1.2:Math.max(.3,1-(p.age-30)*.11))*(1+s.apps/22)*650000/10000)*10000;
     }
@@ -198,23 +200,7 @@
     return out;
   }
   function settleGlobalAwards(world){
-    const results={};
-    for(const award of ["金球奖","世界足球先生"]){
-      const vote=rng(world.seed^hashText(world.year+award));
-      // External contenders compete on the same scale as the controlled players.
-      let top={id:null,name:"其他职业球员",points:0};
-      for(let i=0;i<24;i++)top.points=Math.max(top.points,round(71+vote()*16+vote()*5));
-      for(const player of world.players){
-        const season=player.seasons.at(-1);
-        if(season.apps<10)continue;
-        const level=["top","holland","portugal","belgium"].includes(season.tier)
-          ||["英超","西甲","法甲","葡超"].includes(season.league)?3:0;
-        const ballot=season.performanceIndex*.8+player.rating*.2+level+(season.trophy?3:0)+vote()*6;
-        if(ballot>top.points)top={id:player.id,name:player.name,points:round(ballot)};
-      }
-      results[award]=top;
-    }
-    world.awardHistory={...world.awardHistory,[world.year]:results};
+    world.awardHistory={...world.awardHistory,[world.year]:awards.settle(world,world.year)};
   }
   function step(state){
     if(!isValid(state))throw Error("无效的11人职业生涯存档");
@@ -238,12 +224,59 @@
         &&goal.slice(1).every(id=>id===null||m.lineups[goal[0]].includes(id)))
       &&m.goals.filter(goal=>goal[0]===0).length===m.score[0];
   }
-  function validFixtures(archive,startYear,year){
-    if(archive===undefined)return true;
+  function validFixtures(state){
+    const archive=state.fixtures;
+    if(archive===undefined)return true; // pre-fixture archive compatibility
+    if(!Array.isArray(state.players)||state.players.length!==11)return false;
     if(!archive||typeof archive!=="object"||Array.isArray(archive))return false;
-    return Object.entries(archive).every(([season,matches])=>Number(season)>startYear&&Number(season)<=year
-      &&Array.isArray(matches)&&matches.length<=242&&matches.every(m=>validScoreSheet(m)&&typeof m.league==="string"
-        &&Number.isInteger(m.round)&&m.round>=1&&m.round<=22));
+    for(const [year,matches] of Object.entries(archive)){
+      const offset=Number(year)-state.startYear-1;
+      if(!Number.isInteger(offset)||String(Number(year))!==year||offset<0||
+         Number(year)>state.year||!Array.isArray(matches)||matches.length>242)return false;
+      const seen=new Set(),occupied=new Set();
+      const tracked=new Map();
+      for(const player of state.players){
+        const ss=player?.seasons[offset];
+        if(!ss||typeof ss.league!=="string"||typeof ss.club!=="string")return false;
+        if(!tracked.has(ss.league))tracked.set(ss.league,new Set());
+        tracked.get(ss.league).add(ss.club);
+      }
+      for(const m of matches){
+        if(!validScoreSheet(m)||typeof m.league!=="string"||
+          !Number.isInteger(m.round)||m.round<1||m.round>22)return false;
+        if(!tracked.has(m.league)||[m.home,m.away].some(club=>
+          !tracked.get(m.league).has(club)&&!fixtures.filler.includes(club)))return false;
+        for(const club of [m.home,m.away]){
+          const k=[m.league,m.round,club].join("|");
+          if(occupied.has(k))return false;
+          occupied.add(k);
+        }
+        const key=[m.league,m.round,m.home,m.away].join("|");
+        if(seen.has(key))return false;
+        seen.add(key);
+        for(const [side,line] of m.lineups.entries()){
+          const club=side===0?m.home:m.away;
+          for(const id of line){
+            const player=state.players[id-1],ss=player?.seasons[offset];
+            if(!ss||ss.club!==club||ss.league!==m.league||
+              m.round>=ss.injuryStart&&m.round<ss.injuryStart+ss.injuryGames)return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+  function validSeasonLedger(state){
+    for(const p of state.players){
+      for(const s of p.seasons){
+        if(s.statVersion===undefined)continue; // do not rewrite old save statistics
+        if(s.statVersion!==2||!state.fixtures?.[s.year])return false;
+        const expected=ledger.season(state,s.year,p.id)?.league;
+        if(!expected||["apps","goals","assists","cleanSheets"].some(k=>expected[k]!==s[k]))
+          return false;
+      }
+    }
+    return true;
   }
   function validNationalHistory(state){
     const archive=state.nationalFixtures;
@@ -279,7 +312,7 @@
   function isValid(state){
     return !!state&&state.schema===1&&Number.isInteger(state.seed)
       &&state.startYear===2026&&state.yearsSimulated===state.age-16
-      &&validFixtures(state.fixtures,state.startYear,state.year)
+      &&validFixtures(state)
       &&Number.isInteger(state.age)&&state.age>=16&&state.age<=35
       &&Number.isInteger(state.year)&&state.year-state.startYear===state.age-16
       &&(!state.squad||countries.includes(state.squad.country)&&typeof state.squad.team==="string"&&typeof state.squad.together==="boolean")
@@ -299,7 +332,8 @@
           &&typeof season.league==="string"&&typeof season.club==="string"
           &&["apps","goals","assists","cleanSheets","caps","injuryGames"].every(key=>
             Number.isInteger(season[key])&&season[key]>=0)))
-      &&validNationalHistory(state)&&cups.validHistory(state,countryFor,validScoreSheet);
+      &&validNationalHistory(state)&&cups.validHistory(state,countryFor,validScoreSheet)
+       &&validSeasonLedger(state)&&awards.validHistory(state);
   }
   return Object.freeze({BASE,create,step,simulate,isValid,LEAGUES,domesticAssociation:countryFor});
 });

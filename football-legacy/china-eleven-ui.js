@@ -5,6 +5,7 @@
   if(!root||!window.ElevenCareerCore)return;
   const core=window.ElevenCareerCore;
   const STORE="football-legacy-china-eleven-career-v1";
+  const BACKUP=STORE+"-pre-awards-ledger-backup";
   const roster=window.ChinaAcademyData&&window.ChinaAcademyData.players||[];
   const squad=window.AcademySquad;
   const clubSquads=window.ClubSquadData||{clubs:{},players:[]};
@@ -19,6 +20,12 @@
   let raw;
   try {
     raw=localStorage.getItem(STORE);
+    // One-time, best-effort device-local snapshot BEFORE interpreting or replacing
+    // the save. A storage quota failure never deletes or overwrites the original.
+    if(raw&&!localStorage.getItem(BACKUP)){
+      try{localStorage.setItem(BACKUP,raw)}
+      catch(e){saveNotice="本机自动备份未完成，请先使用“导出11人存档”另存文件。"}
+    }
     const candidate=raw?JSON.parse(raw):null;
     game=candidate&&core.isValid(candidate)?candidate:core.create(20261122,roster);
     if(raw&&!core.isValid(candidate)){unavailableSave=raw;saveNotice="本机进度无法读取。请先下载原始存档，再开始新生涯。"}
@@ -91,6 +98,24 @@
     return '<details data-cup-record><summary>国内杯对阵与个人表现</summary>'+
       (entries.length?entries.join(""):'<p>'+empty+'</p>')+'</details>';
   }
+  function competitionRows(p){
+    const api=window.ElevenCompetitionLedger;
+    const record=api?.career(game,p.id);
+    if(!record||!record.seasons.length)return "";
+    const recent=record.seasons.at(-1);
+    const rows=[["联赛",recent.league],["国内杯",recent.cup],
+      ["国家队",recent.national],["赛季合计",recent.total]];
+    const body=rows.map(([label,data])=>'<tr><td>'+label+'</td><td>'+data.apps+
+      '</td><td>'+data.goals+'</td><td>'+data.assists+'</td><td>'+data.cleanSheets+'</td></tr>').join("");
+    const total=record.total;
+    return '<details class="eleven-competition-ledger"><summary>三项赛事统一数据台账</summary>'+
+      '<p>本赛季各赛事分开统计，合计不重复计入进球、助攻或出场。零封只统计登场的门将和后卫。</p>'+
+      '<div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>赛事</th><th>出场</th>'+
+      '<th>进球</th><th>助攻</th><th>零封</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+      '<p><b>职业生涯总计：</b>'+total.apps+'场 · '+total.goals+'球 · '+total.assists+
+      '助攻 · '+total.cleanSheets+'次零封 · 成年国家队'+record.adultCaps+
+      '场 · 国内杯冠军'+record.cupTitles+'次</p></details>';
+  }
   function detail(p){
     const height=p.adultHeight?escape(p.adultHeight)+" cm":"未核实";
     const weight=p.adultWeight?escape(p.adultWeight)+" kg":"未核实";
@@ -120,7 +145,7 @@
       '<div class="eleven-big-rating"><b>'+p.rating+'</b><small>综合能力</small></div></div>'+
       summary+meta+metrics+'<p>'+worldTitles+'</p><p>本季估算身价 · '+(latest(p)?.marketValue?new Intl.NumberFormat('zh-CN',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(latest(p).marketValue):'待赛季结算')+'</p><p>个人与球队荣誉 · '+(p.seasons.flatMap(s=>[s.squadAward,s.trophy].filter(Boolean).map(t=>s.year+' '+escape(t))).join('、')||'暂无')+'</p>'+
       '<h3>逐赛季职业生涯</h3><div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>联赛</th><th>俱乐部</th><th>能力</th><th>场次</th><th>进球</th><th>助攻</th><th>成年国家队出场</th></tr></thead><tbody>'+history+'</tbody></table></div>'+
-      internationalRecord(p)+cupRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。国内杯采用单场淘汰，平局由点球决胜。</p></section>';
+      competitionRows(p)+internationalRecord(p)+cupRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。国内杯采用单场淘汰，平局由点球决胜。</p></section>';
   }
   function leaderboard(){
     const rows=window.ElevenCareerRankings?.rank(game)||[];
@@ -133,6 +158,7 @@
       '<h2>'+heading+'</h2>'+
       '<p class="eleven-disclaimer">只依据本次游戏已经模拟的赛季数据排名，不是现实世界的球员能力或金球奖预测。积分考虑金球奖、世界足球先生、五大联赛经历、最高能力、出场、国家队、杯赛及位置贡献；相同存档得出相同排名。</p>'+
       '<p class="eleven-ranking-awards"><strong>队内金球奖第一：</strong>'+champions+'</p>'+
+      '<p><a class="button goldbtn" href="./awards.html">年度颁奖典礼 · 查看完整榜单与投票理由</a></p>'+
       '<div class="eleven-ranking-list">'+rows.map(p=>{
         const league=p.topFiveLeagues.length?p.topFiveLeagues.join("、"):"尚未进入";
         const ballon=p.ballonYears.length?" · 金球奖 "+p.ballonYears.length+"次":"";
@@ -231,6 +257,7 @@
       '<button type="button" class="button goldbtn" data-eleven-action="five" '+(game.age>=35?"disabled":"")+'>连续模拟5年</button>'+
       '<button type="button" class="button" data-eleven-action="retire" '+(game.age>=35?"disabled":"")+'>一键模拟至35岁</button>'+
       '<button type="button" class="button outline" data-eleven-action="export">导出11人存档</button>'+
+      (function(){try{return localStorage.getItem(BACKUP)?'<button type="button" class="button outline" data-eleven-action="export-backup">下载升级前原始备份</button>':""}catch{return ""}})()+
       '<button type="button" class="button outline" data-eleven-action="reset">选择青训体系与阵容</button>'+
       (game.squad?.together&&!unavailableSave&&game.age<35?'<button type="button" class="button outline" data-eleven-action="allow-transfers">解除留队限制（下赛季起）</button>':'')+'</div>'+
       (unavailableSave?'<button class="button" data-eleven-action="recover">下载无法读取的存档</button>':'')+
@@ -289,6 +316,16 @@
     }
     if(action==="archive"){
       download(JSON.stringify(Object.fromEntries(legacyKeys().map(k=>[k,localStorage.getItem(k)]))),"历史生涯原文.json");return;
+    }
+    if(action==="export-backup"){
+      try{
+        const saved=localStorage.getItem(BACKUP);
+        if(!saved)throw Error("没有本机备份");
+        const value=JSON.parse(saved);
+        if(core.isValid(value))download(JSON.stringify({format:"china-eleven-career-v1",game:value}),"十一人升级前备份.json");
+        else download(saved,"十一人升级前原始记录.json");
+      }catch(e){saveNotice="备份下载失败："+e.message;render()}
+      return;
     }
     if(action==="export"){download(JSON.stringify({format:"china-eleven-career-v1",game}),"十一人生涯_"+game.age+"岁.json");return}
     if(action==="build"){

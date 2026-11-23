@@ -30,7 +30,8 @@
       const peak=Math.max(safeInt(p.initialRating),safeInt(p.rating),
         ...seasons.map(s=>safeInt(s.rating)));
       const contribution=p.position==="GK"?cleanSheets*2.5
-        :["CB","LB","RB","CDM"].includes(p.position)?cleanSheets*1.4+assists*1.5+goals*2
+        :["CB","LB","RB"].includes(p.position)?cleanSheets*1.4+assists*1.5+goals*2
+         :p.position==="CDM"?apps*.4+assists*1.7+goals*1.5
         :goals*2+assists*1.6;
       const points=Math.round((ballonYears.length*2000+worldYears.length*1100+
         premier.length*95+peak*5+apps*.2+caps*1.5+

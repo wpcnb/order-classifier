@@ -71,5 +71,5 @@ assert.equal(draws.length,1);
 assert.equal(draws[0].matches.length,15);
 assert.equal(new Set(draws[0].matches.slice(0,8).flatMap(m=>[m.home,m.away])).size,16);
 assert.deepEqual(clubStats,players.map(p=>p.seasons.at(-1).apps));
-assert(engine.isValid({...withCup,players,cupHistory:{2028:draws}}));
+assert(engine.isValid({...withCup,players,fixtures:{...withCup.fixtures,2028:league},cupHistory:{2028:draws}}));
 console.log("PASS shared domestic cups, knockout progression, shootouts, injury windows, honours, and old-save continuity");

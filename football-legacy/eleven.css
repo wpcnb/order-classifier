@@ -83,3 +83,18 @@ a{color:#9edcff}.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,mi
  .eleven-actions .button{flex:1 1 145px}
 }
 @media(max-width:370px){.eleven-player{min-height:110px}.eleven-player-name{font-size:11px}.eleven-league{font-size:9px}.eleven-pitch{padding:12px 5px}}
+
+/* Read-only annual award ceremony and three-competition ledger. */
+.eleven-awards-page .card{margin-top:16px}
+.eleven-awards-page h1{font-size:clamp(20px,4vw,30px)}
+.eleven-awards-controls{display:flex;flex-wrap:wrap;align-items:end;gap:14px;margin:18px 0}
+.eleven-awards-controls label{display:flex;flex-direction:column;gap:6px}
+.eleven-awards-controls select{min-width:115px;min-height:43px;background:#112b40;color:#f4f7fc;border:1px solid #61788b;border-radius:7px;padding:7px}
+.eleven-award-winner{padding:18px;border:1px solid #9e7d2c;border-radius:12px;background:#293125;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+.eleven-award-winner strong{font-size:clamp(20px,4vw,29px);color:#ffe9ac}
+.eleven-award-winner small{color:#fff6d9}
+.eleven-award-table{width:100%;min-width:610px;table-layout:auto}
+.eleven-award-table th:last-child,.eleven-award-table td:last-child{min-width:280px;overflow-wrap:anywhere}
+.eleven-competition-ledger{border:1px solid #3c5263;border-radius:8px;padding:12px;margin:16px 0}
+.eleven-competition-ledger summary{font-weight:700;cursor:pointer}
+@media(max-width:480px){.eleven-awards-controls{display:block}.eleven-awards-controls .eleven-actions{margin-top:12px}.eleven-award-winner{padding:12px}}
