@@ -217,7 +217,10 @@
   function leaguePanel(p,year=game.year,round=22){
     if(!p.seasons.length)return "";
     const seasons=p.seasons.filter(s=>game.leagueSchedules?.[s.year]?.[s.league]);
-    if(!seasons.length)return '<details class="card"><summary>联赛积分榜</summary><p>这份旧档没有记录全组比分。推进一个赛季后即可查看新积分榜。</p></details>';
+    if(!seasons.length){
+      const message=game.age>=35?"这份生涯已结束，旧档保留了当时记录的球队比赛。":"推进一个赛季后即可查看新积分榜。";
+      return '<details class="card"><summary>联赛积分榜</summary><p>这份旧档没有记录全组比分。'+message+'</p></details>';
+    }
     const season=seasons.find(s=>s.year===year)||seasons.at(-1);
     const record=game.leagueSchedules[season.year][season.league];
     const rows=window.ElevenLeagues.standings(record,round);
