@@ -75,6 +75,10 @@ assert.equal(new Set(profiles.map(p=>p.name)).size,151);
 
 const fourClubs=["皇家马德里","巴塞罗那","拜仁慕尼黑","巴黎圣日耳曼"];
 assert.equal(ClubSquadData.players.length,101,"official squads represented with 11 starters and benches");
+assert(ClubSquadData.players.every(p=>/^\\d{4}-\\d{2}-\\d{2}$/.test(p.born)),
+  "all 101 club candidates must have sourced birth dates");
+assert(ClubSquadData.players.every(p=>Number.isInteger(p.number)&&p.number>0),
+  "all club members have sourced shirt numbers");
 const fullCatalog=AcademySquad.catalog(ChinaAcademyData,WorldCupSquads,engine.BASE,ClubSquadData.players);
 assert.equal(fullCatalog.length,new Set([...profiles,...ClubSquadData.players].map(p=>p.name)).size);
 assert.equal(new Set(fullCatalog.map(p=>p.name)).size,fullCatalog.length);
@@ -88,6 +92,7 @@ for(const team of fourClubs){
  assert(picked.every(p=>p.team===team),"featured XI must all come from the chosen club");
  const initialClub=engine.create(4321,[],{country:countriesForClub[team],team,together:false,players:picked});
  assert(engine.isValid(initialClub));
+ assert(initialClub.players.every((p,i)=>p.number===picked[i].number),"club kit numbers must not leak from China squad slots");
  assert(initialClub.players.every(p=>Number.isInteger(p.youthHeightEstimate)&&Number.isInteger(p.youthWeightEstimate)
    &&p.initialRating>=35&&p.potential>=p.initialRating),
    "all four club squads have clearly simulated age-16 physical and skill attributes");
