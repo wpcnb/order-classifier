@@ -68,7 +68,7 @@ const legacy=structuredClone(world);
 for(const [yr,entry] of Object.entries(legacy.awardHistory)){
  for(const award of awards.ORDER){
   const w=entry[award];
-  entry[award]={id:w.id,name:w.name,points:w.points};
+  entry[award]={id:w.id,name:w.id===null?"其他职业球员":w.name,points:w.points};
  }
 }
 for(const p of legacy.players)for(const s of p.seasons)delete s.statVersion;
