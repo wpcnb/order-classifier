@@ -1,10 +1,11 @@
 /* A single season draw for clubs in each association represented in the career. */
 (function(root,factory){
   const node=typeof module==="object"&&module.exports;
-  const api=factory(node?require("./eleven-fixtures.js"):root.ElevenFixtures);
+  const api=factory(node?require("./eleven-fixtures.js"):root.ElevenFixtures,
+    node?require("./eleven-clubs.js"):root.ElevenClubs);
   if(node)module.exports=api;
   else root.ElevenDomesticCup=api;
-})(typeof window!=="undefined"?window:globalThis,function(fixtures){
+})(typeof window!=="undefined"?window:globalThis,function(fixtures,registry){
   "use strict";
   const matchdays=[3,7,13,21];
   const stageNames={3:"十六强",7:"八强",13:"半决赛",21:"决赛"};
@@ -38,12 +39,15 @@
   function playCup(country,clubs,opponents,randomFor){
     const size=clubs.size<=8?8:16;
     const draw=randomFor("draw:"+country);
-    const pool=shuffled([...opponents].filter(name=>!clubs.has(name)).sort(),draw);
-    // A sixteen-club draw can exceed the twelve sides in a simulated league.
-    for(let n=1;clubs.size+pool.length<size;n++){
-      const invited=country+"资格赛球队"+n;
-      if(!clubs.has(invited)&&!pool.includes(invited))pool.push(invited);
+    const members=registry.cupTeams(country);
+    if([...clubs.keys()].some(team=>!members.includes(team)))throw Error("球队未在杯赛名单内："+country);
+    const leaguePeers=[...opponents].filter(name=>members.includes(name)&&!clubs.has(name));
+    const pool=shuffled(leaguePeers,draw);
+    if(clubs.size+pool.length<size){
+      const reserves=members.filter(name=>!clubs.has(name)&&!opponents.has(name));
+      pool.push(...shuffled(reserves,draw));
     }
+    if(clubs.size+pool.length<size)throw Error("杯赛球队数量不足："+country);
     let teams=shuffled([...clubs.keys()].sort().concat(pool.slice(0,size-clubs.size)),draw);
     const matches=[];
     for(const round of matchdays.slice(-Math.log2(size))){
@@ -127,6 +131,10 @@
       const countries=new Set(state.players.map(p=>countryFor(p.seasons[offset].league)).filter(Boolean));
       if(countries.size!==cups.length)return false;
       for(const cup of cups){
+        if(Number(year)>=state.realTeamsFromYear && Array.isArray(cup?.matches)){
+          const members=registry.cupTeams(cup.country);
+          if(cup.matches.some(m=>!m||!members.includes(m.home)||!members.includes(m.away)))return false;
+        }
         if(!countries.delete(cup?.country)||!validDraw(cup,state.players,offset,countryFor,validScoreSheet))return false;
       }
     }

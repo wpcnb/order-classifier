@@ -3,7 +3,7 @@ const assert=require("node:assert/strict");
 const fixtures=require("../eleven-fixtures.js");
 const positions=["GK","RB","CB","CB","LB","CDM","CM","CM","LW","RW","ST"];
 function player(id,position){
-  return {id,position,rating:75,seasons:[{apps:0,goals:0,assists:0,cleanSheets:0,injuryStart:0,injuryGames:0}]};
+  return {id,position,club:"上海海港",league:"中超",rating:75,seasons:[{apps:0,goals:0,assists:0,cleanSheets:0,injuryStart:0,injuryGames:0}]};
 }
 const team=positions.map((position,i)=>player(i+1,position));
 const matches=fixtures.season(team,label=>{
