@@ -75,7 +75,7 @@ assert.equal(new Set(profiles.map(p=>p.name)).size,151);
 
 const fourClubs=["皇家马德里","巴塞罗那","拜仁慕尼黑","巴黎圣日耳曼"];
 assert.equal(ClubSquadData.players.length,101,"official squads represented with 11 starters and benches");
-assert(ClubSquadData.players.every(p=>/^\\d{4}-\\d{2}-\\d{2}$/.test(p.born)),
+assert(ClubSquadData.players.every(p=>/^\d{4}-\d{2}-\d{2}$/.test(p.born)),
   "all 101 club candidates must have sourced birth dates");
 assert(ClubSquadData.players.every(p=>Number.isInteger(p.number)&&p.number>0),
   "all club members have sourced shirt numbers");
