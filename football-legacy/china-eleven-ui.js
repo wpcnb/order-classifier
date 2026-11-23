@@ -8,7 +8,7 @@
   const roster=window.ChinaAcademyData&&window.ChinaAcademyData.players||[];
   const squad=window.AcademySquad;
   const people=squad.catalog(window.ChinaAcademyData,window.WorldCupSquads,core.BASE);
-  const draft={country:"中国",team:squad.systems.中国[0],seed:20261122,picks:Array(11).fill(""),together:true};
+  const draft={country:"中国",team:squad.systems.中国[0],seed:20261122,picks:Array(11).fill(""),together:false};
   let picking=false, unavailableSave=null;
   const PLACEHOLDER="尚未核实";
   let saveNotice="";
@@ -105,7 +105,7 @@
       '<label>青训体系<select data-team-setting="country">'+options(Object.keys(squad.systems),draft.country)+'</select></label>'+
       '<label>青训母队<select data-team-setting="team">'+options(squad.systems[draft.country],draft.team)+'</select></label>'+
       '<label>模拟种子<input type="number" min="0" max="4294967295" step="1" data-team-setting="seed" value="'+escape(draft.seed)+'"></label></div>'+
-      '<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18 岁后整队留在母队</label>'+
+      '<div class="pick-grid">'+slots+'</div><label><input type="checkbox" data-team-setting="together" '+(draft.together?'checked':'')+'> 18岁后整队留在母队（不勾选则允许球员各自转会）</label>'+
       '<div class="eleven-actions"><button class="button primary" data-eleven-action="build">确认阵容，从16岁开始</button><button class="button" data-eleven-action="cancel">取消</button></div></section>';
   }
   function teamMatches(p){
@@ -145,13 +145,14 @@
     root.innerHTML='<div class="eleven-summary card"><div class="eleven-intro">'+
       '<span class="eleven-eyebrow">'+escape(game.fixture||"首发阵容")+'</span>'+
       '<h1>'+escape(game.squad?game.squad.team+" · 十一人生涯":"国足十一人生涯")+'</h1>'+
-      '<p>按位置组成一支球队，点选球员可查看成长、比赛和荣誉。</p></div>'+
+      '<p>按位置组成一支球队，点选球员可查看成长、比赛和荣誉。当前职业道路：'+(game.squad?.together?'整队留在母队':'18岁后允许各自转会')+'。</p></div>'+
       '<div class="eleven-dashboard"><div><small>模拟年份</small><b>'+game.year+'</b></div><div><small>统一年龄</small><b>'+game.age+'岁</b></div><div><small>阵容人数</small><b>11 / 11</b></div><div><small>平均能力</small><b>'+average()+'</b></div></div>'+
       '<div class="eleven-actions"><button type="button" class="button primary" data-eleven-action="next" '+(game.age>=35?"disabled":"")+'>模拟下一年</button>'+
       '<button type="button" class="button goldbtn" data-eleven-action="five" '+(game.age>=35?"disabled":"")+'>连续模拟5年</button>'+
       '<button type="button" class="button" data-eleven-action="retire" '+(game.age>=35?"disabled":"")+'>一键模拟至35岁</button>'+
       '<button type="button" class="button outline" data-eleven-action="export">导出11人存档</button>'+
-      '<button type="button" class="button outline" data-eleven-action="reset">选择青训体系与阵容</button></div>'+
+      '<button type="button" class="button outline" data-eleven-action="reset">选择青训体系与阵容</button>'+
+      (game.squad?.together&&!unavailableSave&&game.age<35?'<button type="button" class="button outline" data-eleven-action="allow-transfers">解除留队限制（下赛季起）</button>':'')+'</div>'+
       (unavailableSave?'<button class="button" data-eleven-action="recover">下载无法读取的存档</button>':'')+
       '<p class="eleven-save-notice" role="status">'+escape(saveNotice)+'</p>'+
       '</div>'+rosterPicker()+'<section class="eleven-squad" aria-label="首发11人阵容"><div class="eleven-squad-head"><div><h2>11人首发阵容</h2><p>4-3-3 排列 · 单击查看职业生涯</p></div><span>模拟进度 '+years+' / 19 年</span></div>'+
@@ -196,6 +197,12 @@
     const action=button.getAttribute("data-eleven-action");
     if(action==="reset"){picking=true;render();document.getElementById("squad-picker").scrollIntoView();return}
     if(action==="cancel"){picking=false;render();return}
+    if(action==="allow-transfers"){
+      if(unavailableSave||!game.squad?.together)return;
+      if(!confirm("从下一赛季起允许球员各自转会？已模拟的职业生涯记录不会改变。"))return;
+      game={...game,squad:{...game.squad,together:false}};
+      persistence();render();return;
+    }
     if(action==="recover"){
       download(unavailableSave,"十一人原始存档.json");unavailableSave=null;
       saveNotice="已导出原文，下次保存时将写入当前进度。";render();return;
