@@ -64,6 +64,33 @@
       (years.length?'<p>'+escape(years[0][0])+' 赛季起的逐场记录 · 青年队 '+youth+' 场 · 成年队 '+(appearances.length-youth)+' 场</p>':'')+
       (entries?'<ol>'+entries+'</ol>':'<p>'+empty+'</p>')+'</details>';
   }
+  function cupRecord(p){
+    const {winner,stageNames}=window.ElevenDomesticCup;
+    const entries=[];
+    for(const s of p.seasons.slice().reverse()){
+      const cup=game.cupHistory?.[s.year]?.find(c=>c.country===core.domesticAssociation(s.league));
+      if(!cup)continue;
+      const final=cup.matches.at(-1),champion=winner(final);
+      const path=cup.matches.filter(m=>m.home===s.club||m.away===s.club);
+      const last=path.at(-1),outcome=s.club===champion?"冠军":stageNames[last.round]+"出局";
+      const games=cup.matches.map(m=>{
+        const tracked=m.home===s.club||m.away===s.club;
+        const played=m.lineups.some(line=>line.includes(p.id));
+        const goals=m.goals.filter(([,id])=>id===p.id).length;
+        const assists=m.goals.filter(([,,id])=>id===p.id).length;
+        const score=escape(m.home)+" "+m.score.join("–")+" "+escape(m.away);
+        const penalties=m.penalties?" · 点球 "+m.penalties.join("–"):"";
+        const display=stageNames[m.round]+" · "+score+penalties;
+        return "<li>"+(tracked?"<strong>"+display+"</strong>":display)+
+          (tracked?" · "+(played?"出场 · "+goals+" 球 "+assists+" 助攻":"未出场"):"")+"</li>";
+      }).join("");
+      entries.push('<details><summary>'+s.year+' · '+escape(s.club)+' · '+outcome+'</summary><p>'+
+        escape(cup.country)+'国内杯 · 冠军 '+escape(champion)+'</p><ol>'+games+'</ol></details>');
+    }
+    const empty=game.age<18?"18 岁升入职业队后参加国内杯。":"这份存档保留了原有荣誉，当时未记录逐场杯赛对阵。";
+    return '<details data-cup-record><summary>国内杯对阵与个人表现</summary>'+
+      (entries.length?entries.join(""):'<p>'+empty+'</p>')+'</details>';
+  }
   function detail(p){
     const height=p.adultHeight?escape(p.adultHeight)+" cm":"未核实";
     const weight=p.adultWeight?escape(p.adultWeight)+" kg":"未核实";
@@ -93,7 +120,7 @@
       '<div class="eleven-big-rating"><b>'+p.rating+'</b><small>综合能力</small></div></div>'+
       summary+meta+metrics+'<p>'+worldTitles+'</p><p>本季估算身价 · '+(latest(p)?.marketValue?new Intl.NumberFormat('zh-CN',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(latest(p).marketValue):'待赛季结算')+'</p><p>个人与球队荣誉 · '+(p.seasons.flatMap(s=>[s.squadAward,s.trophy].filter(Boolean).map(t=>s.year+' '+escape(t))).join('、')||'暂无')+'</p>'+
       '<h3>逐赛季职业生涯</h3><div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>联赛</th><th>俱乐部</th><th>能力</th><th>场次</th><th>进球</th><th>助攻</th><th>成年国家队出场</th></tr></thead><tbody>'+history+'</tbody></table></div>'+
-      internationalRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。杯赛荣誉按赛季估算。</p></section>';
+      internationalRecord(p)+cupRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。国内杯采用单场淘汰，平局由点球决胜。</p></section>';
   }
   function leaderboard(){
     const rows=window.ElevenCareerRankings?.rank(game)||[];
