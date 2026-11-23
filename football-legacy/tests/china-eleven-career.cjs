@@ -80,9 +80,10 @@ const playerInFinal=ranking.rank(final).find(row=>row.id===11);
 const playerPromoted=ranking.rank(promoted).find(row=>row.id===11);
 assert(playerPromoted.ballonYears.includes(2035));
 assert(playerPromoted.worldYears.includes(2035));
-assert.equal(playerPromoted.points-playerInFinal.points,
-  (final.awardHistory?.[2035]?.["金球奖"]?.id===11?0:2000)+
-  (final.awardHistory?.[2035]?.["世界足球先生"]?.id===11?0:1100));
+const expectedAwardBonus=(final.awardHistory?.[2035]?.["金球奖"]?.id===11?0:2000)+
+  (final.awardHistory?.[2035]?.["世界足球先生"]?.id===11?0:1100);
+assert(Math.abs(playerPromoted.points-playerInFinal.points-expectedAwardBonus)<1e-6,
+  "award points must be accurate within JS floating-point precision");
 assert.equal(ranking.eliteSeason({tier:"domestic",league:"英超"}),true);
 assert.equal(ranking.eliteSeason({tier:"top",league:"德甲"}),true);
 assert.equal(ranking.eliteSeason({tier:"youth",league:"青训联赛"}),false);
