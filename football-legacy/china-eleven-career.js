@@ -159,9 +159,8 @@
         next.league=age<18?squad.country+"青训联赛":divisions[squad.country][2];
       }else if(squad.country!=="中国"&&["c1","c2","csl"].includes(tier)){
         const level={c2:0,c1:1,csl:2}[tier];
-        next.league=age===18?divisions[squad.country][2]:divisions[squad.country][level];
+        next.league=divisions[squad.country][level];
         next.club=age===18?squad.team:next.league+["北方竞技","河畔联","海岸竞技"][Math.floor(random()*3)];
-        if(age===18)next.tier="domestic";
       }
     }
     next.lastEvent=injury?"伤停 "+miss+" 场":next.club!==player.club?"加入"+next.club:"完成赛季";
