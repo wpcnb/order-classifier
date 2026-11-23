@@ -10,13 +10,13 @@
   "use strict";
   const zero=()=>({apps:0,goals:0,assists:0,cleanSheets:0,wins:0,draws:0,losses:0});
   const add=(a,b)=>Object.fromEntries(Object.keys(a).map(k=>[k,a[k]+b[k]]));
-  function tally(matches,id){
+  function tally(matches,id,position){
     const total=zero();
     for(const match of matches||[]){
       const side=match.lineups?.findIndex(line=>line.includes(id))??-1;
       if(side<0)continue;
       total.apps++;
-      if(match.score[1-side]===0)total.cleanSheets++;
+      if(match.score[1-side]===0&&["GK","RB","CB","LB"].includes(position))total.cleanSheets++;
       if(match.score[side]>match.score[1-side])total.wins++;
       else if(match.score[side]<match.score[1-side])total.losses++;
       else total.draws++;
@@ -37,7 +37,7 @@
       (m.home===s.club||m.away===s.club));
     const cups=(state.cupHistory?.[year]||[]).flatMap(c=>c.matches).filter(m=>m.home===s.club||m.away===s.club);
     const national=(state.nationalFixtures?.[year]||[]).filter(m=>m.lineups.some(line=>line.includes(id)));
-    const stats={league:tally(league,id),cup:tally(cups,id),national:tally(national,id)};
+    const stats={league:tally(league,id,p.position),cup:tally(cups,id,p.position),national:tally(national,id,p.position)};
     const total=add(add(stats.league,stats.cup),stats.national);
     const caps=national.filter(m=>m.level==="成年队").length;
     const cupChampion=!!s.trophy;
