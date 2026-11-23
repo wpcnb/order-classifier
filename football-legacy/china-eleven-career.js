@@ -6,10 +6,11 @@
   "use strict";
   const node=typeof module==="object"&&module.exports;
   const api=factory(node?require("./eleven-fixtures.js"):root.ElevenFixtures,
-    node?require("./eleven-internationals.js"):root.ElevenInternationals);
+    node?require("./eleven-internationals.js"):root.ElevenInternationals,
+    node?require("./eleven-domestic-cup.js"):root.ElevenDomesticCup);
   if(typeof module==="object"&&module.exports)module.exports=api;
   root.ElevenCareerCore=api;
-})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals){
+})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups){
   "use strict";
   const BASE=[
     ["李昊","GK",16,"马德里竞技青训",57,78],
@@ -60,6 +61,10 @@
     法国:["法国第三级","法乙","法甲"],葡萄牙:["葡萄牙第三级","葡甲","葡超"],
     德国:["德丙","德乙","德甲"]
   };
+  const leagueCountries=new Map(Object.entries(divisions).flatMap(([country,leagues])=>leagues.map(league=>[league,country])));
+  for(const [league,country] of [["意甲","意大利"],["荷甲","荷兰"],["比甲","比利时"],["日本J1","日本"],["韩国K1","韩国"]])
+    leagueCountries.set(league,country);
+  const countryFor=league=>leagueCountries.get(league);
   function create(seed,rosterRows,setup={}){
     const country=setup.country||"中国", team=setup.team||"上海海港";
     const picks=setup.players;
@@ -164,10 +169,8 @@
       }
     }
     next.lastEvent=injury?"伤停 "+miss+" 场":next.club!==player.club?"加入"+next.club:"完成赛季";
-    const trophyRoll=rng(world.seed^hashText((world.year+1)+":"+next.club))();
-    const trophy=age>=18&&!["c1","c2"].includes(next.tier)&&trophyRoll>.91?"模拟国内杯赛冠军":null;
     next.seasons.push({year:world.year+1,age,rating:next.rating,tier:next.tier,league:next.league,club:next.club,
-      apps:0,goals:0,assists:0,cleanSheets:0,caps:0,injuryGames:miss,trophy});
+      apps:0,goals:0,assists:0,cleanSheets:0,caps:0,injuryGames:miss,trophy:null});
     return next;
   }
   function advanceYear(state){
@@ -176,6 +179,10 @@
     out.players=state.players.map(p=>seasonPlayer(p,state));
     const matches=fixtures.season(out.players,label=>rng(out.seed^hashText(out.year+":"+label)));
     out.fixtures={...(state.fixtures||{}),[out.year]:matches};
+    if(out.age>=18){
+      const brackets=cups.season(out.players,matches,countryFor,label=>rng(out.seed^hashText(out.year+":cup:"+label)));
+      out.cupHistory={...state.cupHistory,[out.year]:brackets};
+    }
     const nationalMatches=internationals.season(out.players,matches,label=>rng(out.seed^hashText(out.year+":national:"+label)),out.year);
     out.nationalFixtures={...state.nationalFixtures,[out.year]:nationalMatches};
     for(const p of out.players){
@@ -292,7 +299,7 @@
           &&typeof season.league==="string"&&typeof season.club==="string"
           &&["apps","goals","assists","cleanSheets","caps","injuryGames"].every(key=>
             Number.isInteger(season[key])&&season[key]>=0)))
-      &&validNationalHistory(state);
+      &&validNationalHistory(state)&&cups.validHistory(state,countryFor,validScoreSheet);
   }
-  return Object.freeze({BASE,create,step,simulate,isValid,LEAGUES});
+  return Object.freeze({BASE,create,step,simulate,isValid,LEAGUES,domesticAssociation:countryFor});
 });

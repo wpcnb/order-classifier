@@ -19,7 +19,6 @@
         const p = available.splice(index, 1)[0], season = p.seasons.at(-1);
         if (!(round >= season.injuryStart && round < season.injuryStart + season.injuryGames)
             && random() < Math.max(.58, Math.min(.97, .78 + (p.rating - 60) / 100))) {
-          season.apps++;
           return p;
         }
       }
@@ -44,6 +43,7 @@
   function playMatch(home, away, round, members, random) {
     const lines = [lineup(members.get(home) || [],round,random),lineup(members.get(away) || [],round,random)];
     const result = scoreLineups(lines,random);
+    for(const line of lines)for(const p of line)if(p.id)p.seasons.at(-1).apps++;
     for(const [side,scorer,helper] of result.goals){
       if(scorer)lines[side].find(p=>p.id===scorer).seasons.at(-1).goals++;
       if(helper)lines[side].find(p=>p.id===helper).seasons.at(-1).assists++;
@@ -83,6 +83,6 @@
     }
     return fixtures.sort((a,b)=>a.round-b.round);
   }
-  root.ElevenFixtures={season,roles,scoreLineups};
+  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup};
   if(typeof module==="object"&&module.exports)module.exports=root.ElevenFixtures;
 })(typeof window!=="undefined"?window:globalThis);
