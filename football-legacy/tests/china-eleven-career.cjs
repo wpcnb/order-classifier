@@ -60,7 +60,7 @@ assert.equal(initial.players[0].rating,57);
 for(const file of ["index.html","play.html"]){
  const html=read(file);
  const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
- assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","academy-squad.js","eleven-fixtures.js","china-eleven-career.js","china-eleven-ui.js"]);
+ assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","academy-squad.js","eleven-fixtures.js","eleven-internationals.js","china-eleven-career.js","china-eleven-ui.js"]);
  assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
 }
 assert(!read("china-eleven-ui.js").includes("?classic"));
@@ -112,3 +112,45 @@ delete legacy.squad;
 legacy.players.forEach(p=>{delete p.country;delete p.initialRating;});
 assert(engine.isValid(legacy));assert(engine.isValid(engine.step(legacy)));
 console.log("PASS five-country formation, shared score sheets, appearances, awards, transfers and old saves");
+
+// National appearances are sourced from shared fixtures. Club totals remain separate.
+const windowRounds=[4,8,12,16,20];
+const stages=new Set(),byId=Array(11).fill(0);
+for(const [year,international] of Object.entries(final.nationalFixtures)){
+ const age=Number(year)-final.startYear+16,seen=new Set();
+ for(const match of international){
+  assert(windowRounds.includes(match.round));
+  stages.add(match.level);
+  assert(match.level==="成年队"?age>=18:age<=Number(match.level.slice(1)));
+  for(const [side,line] of match.lineups.entries())for(const id of line){
+   const key=match.round+":"+id,player=final.players[id-1],s=player.seasons[age-17];
+   assert(!seen.has(key));seen.add(key);
+   assert.equal(side===0?match.home:match.away,player.country);
+   assert(!(match.round>=s.injuryStart&&match.round<s.injuryStart+s.injuryGames));
+   if(match.level==="成年队")byId[id-1]++;
+  }
+ }
+}
+assert.equal(stages.size,5);
+assert.deepEqual(byId,final.players.map(p=>p.careerCaps));
+for(const p of final.players)assert.equal(p.careerCaps,p.seasons.reduce((n,s)=>n+s.caps,0));
+assert.deepEqual(engine.simulate(JSON.parse(JSON.stringify(engine.simulate(initial,8))),11),final);
+
+// Reuse the original eleven-player format, including seasons with the old caps model.
+const old=structuredClone(year);
+delete old.nationalFixtures;
+old.players[0].caps=old.players[0].careerCaps=old.players[0].seasons[0].caps=9;
+const resumed=engine.step(old);
+assert(engine.isValid(resumed));
+assert.deepEqual(resumed.players[0].seasons[0],old.players[0].seasons[0]);
+assert.equal(resumed.players[0].careerCaps,9+resumed.players[0].caps);
+assert.deepEqual(Object.keys(resumed.nationalFixtures),[String(resumed.year)]);
+
+const mixedPlayers=initial.players.map((p,i)=>({...p,country:i%2?"英格兰":"中国",height:180}));
+const mixed=engine.simulate(engine.create(77,[],{players:mixedPlayers}),19);
+assert(engine.isValid(mixed));
+assert(Object.values(mixed.nationalFixtures).flat().some(m=>m.lineups.every(side=>side.length)));
+const corrupt=structuredClone(year);
+corrupt.nationalFixtures[year.year][0].level="成年队";
+assert(!engine.isValid(corrupt),"underage appearance rejected before rendering/import");
+console.log("PASS five international levels, cross-association fixtures, injury windows, cap totals and reload");

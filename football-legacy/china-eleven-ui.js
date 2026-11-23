@@ -44,6 +44,24 @@
       '<span class="eleven-rating">能力 '+p.rating+'</span>'+
       '<span class="eleven-league">'+escape(stats?stats.league:"青训起步")+'</span></button>';
   }
+  function internationalRecord(p){
+    const years=Object.entries(game.nationalFixtures||{});
+    const appearances=years.flatMap(([year,matches])=>matches
+      .filter(m=>m.lineups.some(line=>line.includes(p.id))).map(m=>({year,match:m}))).reverse();
+    const youth=appearances.filter(row=>row.match.level!=="成年队").length;
+    const name=id=>escape(game.players[id-1].name);
+    const entries=appearances.map(({year,match:m})=>{
+      const goals=m.goals.filter(([,scorer])=>scorer===p.id).length;
+      const assists=m.goals.filter(([,,helper])=>helper===p.id).length;
+      const participants=m.lineups.map((line,i)=>line.length?escape(i===0?m.home:m.away)+" · "+line.map(name).join("、"):"").filter(Boolean).join(" / ");
+      return '<li><strong>'+year+' · '+m.level+' · '+escape(m.home)+' '+m.score.join("–")+' '+escape(m.away)+'</strong>'+
+        '<br>联赛第 '+m.round+' 轮后 · '+goals+' 球 '+assists+' 助攻<br><small>本阵容出场：'+participants+'</small></li>';
+    }).join("");
+    const empty=years.length?"已记录赛季内暂无代表队出场。":"模拟下一季后可查看逐场国家队记录。";
+    return '<details data-national-record><summary>国家队比赛履历 · 成年 '+p.careerCaps+' 场</summary>'+
+      (years.length?'<p>'+escape(years[0][0])+' 赛季起的逐场记录 · 青年队 '+youth+' 场 · 成年队 '+(appearances.length-youth)+' 场</p>':'')+
+      (entries?'<ol>'+entries+'</ol>':'<p>'+empty+'</p>')+'</details>';
+  }
   function detail(p){
     const height=p.adultHeight?escape(p.adultHeight)+" cm":"未核实";
     const weight=p.adultWeight?escape(p.adultWeight)+" kg":"未核实";
@@ -70,8 +88,8 @@
       '<div class="eleven-detail-top"><div><span class="eleven-eyebrow">球员生涯档案 · '+escape(labels[p.position]||p.position)+'</span><h2>'+escape(p.name)+'</h2></div>'+
       '<div class="eleven-big-rating"><b>'+p.rating+'</b><small>综合能力</small></div></div>'+
       summary+meta+metrics+'<p>'+worldTitles+'</p><p>本季估算身价 · '+(latest(p)?.marketValue?new Intl.NumberFormat('zh-CN',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(latest(p).marketValue):'待赛季结算')+'</p><p>个人与球队荣誉 · '+(p.seasons.flatMap(s=>[s.squadAward,s.trophy].filter(Boolean).map(t=>s.year+' '+escape(t))).join('、')||'暂无')+'</p>'+
-      '<h3>逐赛季职业生涯</h3><div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>联赛</th><th>俱乐部</th><th>能力</th><th>场次</th><th>进球</th><th>助攻</th><th>国家队</th></tr></thead><tbody>'+history+'</tbody></table></div>'+
-      '<p class="eleven-disclaimer">俱乐部联赛按轮结算，国家队出场和杯赛荣誉按赛季估算。</p></section>';
+      '<h3>逐赛季职业生涯</h3><div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>联赛</th><th>俱乐部</th><th>能力</th><th>场次</th><th>进球</th><th>助攻</th><th>成年国家队出场</th></tr></thead><tbody>'+history+'</tbody></table></div>'+
+      internationalRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。杯赛荣誉按赛季估算。</p></section>';
   }
   function rosterPicker(){
     if(!picking)return "";
