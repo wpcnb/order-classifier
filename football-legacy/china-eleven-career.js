@@ -10,10 +10,11 @@
     node?require("./eleven-domestic-cup.js"):root.ElevenDomesticCup,
     node?require("./eleven-awards.js"):root.ElevenAnnualAwards,
     node?require("./eleven-ledger.js"):root.ElevenCompetitionLedger,
-    node?require("./eleven-clubs.js"):root.ElevenClubs);
+    node?require("./eleven-clubs.js"):root.ElevenClubs,
+    node?require("./eleven-leagues.js"):root.ElevenLeagues);
   if(typeof module==="object"&&module.exports)module.exports=api;
   root.ElevenCareerCore=api;
-})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups,awards,ledger,clubs){
+})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups,awards,ledger,clubs,leagues){
   "use strict";
   const BASE=[
     ["李昊","GK",16,"马德里竞技青训",57,78],
@@ -166,7 +167,8 @@
     if(state.squad)out.squad={...state.squad,team:homeTeam(state.squad.country,state.squad.team)};
     const squad=out.squad||{country:"中国",team:"上海海港",together:false};
     out.players=state.players.map(p=>seasonPlayer(p,state,squad));
-    const matches=fixtures.season(out.players,label=>rng(out.seed^hashText(out.year+":"+label)));
+    const {matches,records}=fixtures.simulateSeason(out.players,label=>rng(out.seed^hashText(out.year+":"+label)));
+    out.leagueSchedules={...state.leagueSchedules,[out.year]:records};
     out.fixtures={...(state.fixtures||{}),[out.year]:matches};
     if(out.age>=18){
       const brackets=cups.season(out.players,matches,countryFor,label=>rng(out.seed^hashText(out.year+":cup:"+label)));
@@ -328,7 +330,7 @@
           &&["apps","goals","assists","cleanSheets","caps","injuryGames"].every(key=>
             Number.isInteger(season[key])&&season[key]>=0)))
       &&validNationalHistory(state)&&cups.validHistory(state,countryFor,validScoreSheet)
-       &&validSeasonLedger(state)&&awards.validHistory(state);
+       &&leagues.validHistory(state)&&validSeasonLedger(state)&&awards.validHistory(state);
   }
   return Object.freeze({BASE,create,step,simulate,isValid,LEAGUES,domesticAssociation:countryFor});
 });

@@ -5,6 +5,7 @@
   const shooting = {GK:0,RB:1,CB:1,LB:1,CDM:2,CM:4,LW:8,RW:8,ST:12};
   const passing = {GK:0,RB:4,CB:1,LB:4,CDM:4,CM:9,LW:8,RW:8,ST:4};
   const teamsRegistry=typeof module==="object"&&module.exports?require("./eleven-clubs.js"):root.ElevenClubs;
+  const schedule=typeof module==="object"&&module.exports?require("./eleven-leagues.js"):root.ElevenLeagues;
   function weighted(lineup, weights, random, exclude) {
     const candidates = lineup.filter(p => p !== exclude && weights[p.position] > 0);
     const weight = p => weights[p.position] * (p.rating / 65);
@@ -58,8 +59,8 @@
     });
     return {round,home,away,...result};
   }
-  function season(players, randomFor) {
-    const leagues = new Map(), fixtures = [];
+  function simulateSeason(players, randomFor) {
+    const leagues = new Map(), fixtures = [], records = {};
     for(const p of players) {
       const s=p.seasons.at(-1);
       Object.assign(s,{apps:0,goals:0,assists:0,cleanSheets:0});
@@ -79,22 +80,17 @@
         if(!opponents.length)throw Error("联赛球队数量不足："+league);
         teams.push(opponents.splice(Math.floor(draw()*opponents.length),1)[0]);
       }
-      const rounds=teams.length-1;
-      for(let day=1;day<=rounds;day++) {
-        for(let i=0;i<teams.length/2;i++) {
-          const a=teams[i],b=teams[teams.length-1-i];
-          if(!clubs.has(a)&&!clubs.has(b))continue;
-          for(let leg=0;leg<2;leg++) {
-            const round=day+leg*rounds,swap=(i+day+leg)%2===0;
-            const home=swap?a:b,away=swap?b:a;
-            fixtures.push({...playMatch(home,away,round,clubs,randomFor(JSON.stringify([league,round,home,away]))),league});
-          }
-        }
-        teams.splice(1,0,teams.pop());
-      }
+      const scores=schedule.rounds.map((pairs,day)=>pairs.map(([h,a])=>{
+        const home=teams[h],away=teams[a],round=day+1;
+        const match=playMatch(home,away,round,clubs,randomFor(JSON.stringify([league,round,home,away])));
+        if(clubs.has(home)||clubs.has(away))fixtures.push({...match,league});
+        return match.score;
+      }));
+      records[league]={teams,scores};
     }
-    return fixtures.sort((a,b)=>a.round-b.round);
+    return {matches:fixtures.sort((a,b)=>a.round-b.round),records};
   }
-  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup};
+  function season(players,randomFor){return simulateSeason(players,randomFor).matches;}
+  root.ElevenFixtures={season,simulateSeason,roles,scoreLineups,clubLineup:lineup};
   if(typeof module==="object"&&module.exports)module.exports=root.ElevenFixtures;
 })(typeof window!=="undefined"?window:globalThis);

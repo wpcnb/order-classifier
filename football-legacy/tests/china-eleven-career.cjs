@@ -99,7 +99,7 @@ assert.equal(initial.players[0].rating,57);
 for(const file of ["index.html","play.html"]){
  const html=read(file);
  const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
- assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-clubs.js","eleven-fixtures.js","eleven-internationals.js","eleven-domestic-cup.js","eleven-ledger.js","eleven-awards.js","china-eleven-career.js","eleven-rankings.js","china-eleven-ui.js"]);
+ assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-clubs.js","eleven-leagues.js","eleven-fixtures.js","eleven-internationals.js","eleven-domestic-cup.js","eleven-ledger.js","eleven-awards.js","china-eleven-career.js","eleven-rankings.js","china-eleven-ui.js"]);
  assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
 }
 assert(!read("china-eleven-ui.js").includes("?classic"));
@@ -271,6 +271,7 @@ assert(!engine.isValid(replaced),"prevent placeholder fixtures in new seasons");
 // Earlier saves use the old opponents throughout a season.
 previousGame[side]=year.fixtures[year.year][0][side];
 delete replaced.realTeamsFromYear;
+delete replaced.leagueSchedules;
 const oldNames="北城竞技 南岸联队 东港竞技 西城联队 河谷联队 山麓竞技 新城联 滨海竞技 中央联队 河畔竞技 青年联合 星港联队".split(" ");
 const names=new Map();
 for(const m of replaced.fixtures[year.year]){
@@ -290,3 +291,4 @@ assert.throws(()=>engine.create(1,[],{team:"北城竞技"}));
 console.log("PASS documented league, youth, cup and national opponents and historical season continuity");
 
 require("./eleven-domestic-cup.cjs");
+require("./eleven-league-tables.cjs");
