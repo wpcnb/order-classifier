@@ -27,7 +27,7 @@
         role:clubPlayer.role,matchRole:clubPlayer.role,number:clubPlayer.number,
         position:clubPlayer.position,squadStatus:clubPlayer.squadStatus,
         initialRating:clubPlayer.initialRating,potential:clubPlayer.potential,
-        clubSource:clubPlayer.url,sourceNote:clubPlayer.sourceNote
+        clubSource:clubPlayer.url,dataSource:old.url||clubPlayer.dataSource,sourceNote:clubPlayer.sourceNote
       }:clubPlayer);
     }
     return [...profiles.values()];
