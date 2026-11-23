@@ -107,6 +107,22 @@ for(const country of Object.keys(AcademySquad.systems)){
  assert(new Set(separate.players.map(p=>p.club)).size>1);
  assert(engine.isValid(separate));
 }
+// Manchester City intake should not silently lock a career to one club.
+const manCitySetup={country:"英格兰",team:"曼城",together:true};
+const manCityStay=engine.simulate(engine.create(4321,[],manCitySetup),8);
+assert(manCityStay.players.every(p=>p.club==="曼城"));
+const previousSeasons=manCityStay.players.map(p=>structuredClone(p.seasons));
+const manCityReleased={...manCityStay,squad:{...manCityStay.squad,together:false}};
+assert(engine.isValid(manCityReleased),"switching career policy preserves save format");
+const manCityCareer=engine.simulate(manCityReleased,3);
+assert(manCityCareer.players.some(p=>p.club!=="曼城"),"released academy players can transfer");
+manCityCareer.players.forEach((p,i)=>assert.deepEqual(p.seasons.slice(0,previousSeasons[i].length),previousSeasons[i],
+  "switching transfer policy must never rewrite past seasons"));
+const transferUi=read("china-eleven-ui.js");
+assert(transferUi.includes('picks:Array(11).fill(""),together:false'),"new academy drafts default to transfers");
+assert(transferUi.includes('data-eleven-action="allow-transfers"'),"existing stay-at-club saves can unlock transfers");
+console.log("PASS Manchester City free transfers and safe release of existing locked careers");
+
 const legacy=structuredClone(initial);
 delete legacy.squad;
 legacy.players.forEach(p=>{delete p.country;delete p.initialRating;});
