@@ -57,6 +57,16 @@ a{color:#9edcff}.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,mi
 .eleven-club-roster{max-width:100%;min-width:0;padding:12px;margin:8px 0 12px;border:1px solid #355574;border-radius:9px}
 .eleven-club-roster summary{font-weight:750;overflow-wrap:anywhere}
 .eleven-club-roster p{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.eleven-leaderboard h2{margin:0 0 8px}
+.eleven-ranking-awards{padding:11px;background:#1a3745;border-radius:9px;font-size:14px;overflow-wrap:anywhere}
+.eleven-ranking-list{display:grid;gap:7px}
+.eleven-ranking-row{display:flex;align-items:center;gap:12px;text-align:left;min-width:0;width:100%;padding:10px;border-radius:10px;border:1px solid #345c70;background:#102f43;color:#eff7ff;cursor:pointer}
+.eleven-ranking-row.active{border-color:#ffce72;background:#1e4654}
+.eleven-ranking-place{flex:0 0 35px;font-size:17px;color:#ffda91}
+.eleven-ranking-person{min-width:0;flex:1;display:grid;gap:3px}
+.eleven-ranking-person small{font-size:12px;color:#bdd7e5;line-height:1.45;overflow-wrap:anywhere}
+.eleven-ranking-points{font-weight:850;color:#9ce6cc;white-space:nowrap}
+@media(max-width:420px){.eleven-ranking-row{gap:7px;padding:8px 6px}.eleven-ranking-place{flex-basis:25px;font-size:13px}.eleven-ranking-person small{font-size:11px}.eleven-ranking-points{font-size:12px}}
 .eleven-links{font-size:12px;line-height:1.7;color:#b8cad9}
 .eleven-links a{color:#b7e4ff}
 @media(max-width:660px){

@@ -54,13 +54,50 @@ for(const corrupt of [null,{}, { ...year.players[0].seasons[0],apps:-1 },
  assert.throws(()=>engine.step(bad),/无效的11人职业生涯存档/);
 }
 console.log("PASS malformed season records rejected before UI rendering");
+// Player-facing lifetime rankings must be derived entirely from the existing save.
+const ranking=require("../eleven-rankings.js");
+const early=ranking.rank(initial);
+assert.equal(early.length,11);
+assert.deepEqual(early.map(row=>row.rank),Array.from({length:11},(_,i)=>i+1));
+assert(early.every(row=>row.topFiveYears===0&&row.ballonYears.length===0));
+const lifetime=ranking.rank(final);
+assert.equal(lifetime.length,11);
+assert(lifetime.every(row=>Number.isFinite(row.points)&&row.peak>0));
+assert.deepEqual(lifetime,ranking.rank(JSON.parse(JSON.stringify(final))));
+assert.deepEqual(lifetime,ranking.rank(final),"read-only rankings must be deterministic");
+// A user-chosen English academy can spend multiple seasons in a big-five league;
+ // the default China simulation is NOT guaranteed to reach one.
+const eliteWorld=engine.simulate(engine.create(99,[],{country:"英格兰",team:"曼城",together:true}),5);
+const eliteRows=ranking.rank(eliteWorld);
+assert(eliteRows.every(row=>row.topFiveYears===4&&row.topFiveLeagues.includes("英超")),
+  "five-league years must reflect simulated seasons, not guaranteed outcomes");
+const promoted=structuredClone(final);
+promoted.awardHistory={...promoted.awardHistory,2035:{
+  "金球奖":{id:11,name:promoted.players[10].name,points:100},
+  "世界足球先生":{id:11,name:promoted.players[10].name,points:100}
+}};
+const playerInFinal=ranking.rank(final).find(row=>row.id===11);
+const playerPromoted=ranking.rank(promoted).find(row=>row.id===11);
+assert(playerPromoted.ballonYears.includes(2035));
+assert(playerPromoted.worldYears.includes(2035));
+const expectedAwardBonus=(final.awardHistory?.[2035]?.["金球奖"]?.id===11?0:2000)+
+  (final.awardHistory?.[2035]?.["世界足球先生"]?.id===11?0:1100);
+assert(Math.abs(playerPromoted.points-playerInFinal.points-expectedAwardBonus)<1e-6,
+  "award points must be accurate within JS floating-point precision");
+assert.equal(ranking.eliteSeason({tier:"domestic",league:"英超"}),true);
+assert.equal(ranking.eliteSeason({tier:"top",league:"德甲"}),true);
+assert.equal(ranking.eliteSeason({tier:"youth",league:"青训联赛"}),false);
+assert.equal(final.players.length,11);
+assert(read("china-eleven-ui.js").includes("leaderboard()+teamMatches(p)"));
+console.log("PASS eleven-player league and Ballon career rankings, stable seed and read-only save integrity");
+
 const invalid={...initial,players:initial.players.slice(1)};
 assert(!engine.isValid(invalid));
 assert.equal(initial.players[0].rating,57);
 for(const file of ["index.html","play.html"]){
  const html=read(file);
  const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
- assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-fixtures.js","eleven-internationals.js","china-eleven-career.js","china-eleven-ui.js"]);
+ assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-fixtures.js","eleven-internationals.js","china-eleven-career.js","eleven-rankings.js","china-eleven-ui.js"]);
  assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
 }
 assert(!read("china-eleven-ui.js").includes("?classic"));
