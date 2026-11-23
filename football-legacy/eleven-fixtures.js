@@ -88,6 +88,6 @@
     }
     return fixtures.sort((a,b)=>a.round-b.round);
   }
-  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup};
+  root.ElevenFixtures={season,roles,scoreLineups,clubLineup:lineup,filler:Object.freeze([...filler])};
   if(typeof module==="object"&&module.exports)module.exports=root.ElevenFixtures;
 })(typeof window!=="undefined"?window:globalThis);
