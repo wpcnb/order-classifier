@@ -39,6 +39,7 @@
     belgium:["比甲", "比利时职业俱乐部"],
     portugal:["葡超", "葡萄牙职业俱乐部"],
     holland:["荷甲", "荷兰职业俱乐部"],
+    europe:["其他欧洲顶级联赛", "欧洲职业俱乐部"],
     top:["欧洲五大联赛", "欧洲职业俱乐部"]
   };
   function hashText(value){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0;}
@@ -114,6 +115,8 @@
     if(age===18)return r>=69?"csl":r>=62?"c1":"c2";
     if(r<58)return "c2";
     if(r<65)return random<.65?"c1":"csl";
+    // A moderate additional route to European leagues for emerging professionals.
+    if(r>=68&&r<82&&random>=.45&&random<.59)return "europe";
     if(r<70)return random<.73?"csl":"asia";
     if(r<74)return random<.60?"csl":random<.80?"asia":"belgium";
     if(r<78)return random<.33?"csl":random<.55?"asia":random<.75?"belgium":"portugal";
@@ -122,7 +125,7 @@
     return random<.32?"holland":"top";
   }
   const domesticLevel={c2:0,c1:1,csl:2};
-  const internationalLeagues={asia:["日本J1","韩国K1"],belgium:["比甲"],portugal:["葡超"],holland:["荷甲"],top:["德甲","法甲","西甲","意甲","英超"]};
+  const internationalLeagues={asia:["日本J1","韩国K1"],belgium:["比甲"],portugal:["葡超"],holland:["荷甲"],europe:clubs.europeLeagues,top:["德甲","法甲","西甲","意甲","英超"]};
   function assignClub(player,tier,age,squad,random){
     const {country,team:parent}=squad;
     if(age<18){

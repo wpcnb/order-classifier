@@ -292,3 +292,5 @@ console.log("PASS documented league, youth, cup and national opponents and histo
 
 require("./eleven-domestic-cup.cjs");
 require("./eleven-league-tables.cjs");
+
+require('./eleven-europe-leagues.cjs');

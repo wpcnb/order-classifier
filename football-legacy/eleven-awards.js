@@ -34,7 +34,7 @@
     const individual=clamp(impact/Math.max(12,played)*38,0,70);
     const personalForm=(Number(s.performanceIndex)||s.rating)*.52;
     const level=BIG_FIVE.includes(s.league)?12:
-      ["葡超","荷甲","比甲"].includes(s.league)?8:
+      ["葡超","荷甲","比甲"].includes(s.league)?8:s.tier==="europe"?7:
       s.tier==="top"?10:s.tier==="youth"?0:5;
     const club=stats.cupChampion?13:0;
     const matchHonors=(all.wins*.43+stats.cup.wins*.65+stats.national.wins*.85+

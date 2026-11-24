@@ -288,6 +288,8 @@
       mini+'</section>'+leaderboard()+teamMatches(p)+leaguePanel(p)+detail(p)+
       '<div class="eleven-links"><p>球员资料 · <a href="https://www.thecfa.cn/nanzuwqmd/20261107/38400.html">中国足协集训名单</a> · <a href="https://fdp.fifa.org/assetspublic/ce303/pdf/SquadLists-English.pdf#page=8">中国 U17 报名表</a> · <a href="https://fdp.fifa.org/assetspublic/ce281/pdf/SquadLists-English.pdf">四国世界杯报名表</a> · <a href="https://xinwen.bjd.com.cn/content/s6afd4e91e4b0e42f8f03106e.html">国足对巴林首发</a></p>'+
       '<details data-team-sources><summary>比赛球队与名单来源</summary><p>联赛从对应级别的真实参赛队中抽取十二队，国内杯从同一足球协会的职业队中抽签。青训使用对应年龄梯队。名单固定在以下参考赛季，对阵、比分与球员转会由游戏模拟。</p>'+
+      '<details><summary>欧洲联赛真实球队数据库</summary><p>2025/26赛季登记球队池，非实时积分榜；游戏仍每个联赛抽取十二队。</p>'+
+      ["英超","西甲","德甲","意甲","法甲","葡超","荷甲","比甲","土超","苏超","瑞士超","奥甲","丹超","希腊超","波兰超","捷甲","罗甲","塞尔超"].map(name=>'<p><b>'+escape(name)+'</b>（'+window.ElevenClubs.leagueTeams(name).length+'队） · '+window.ElevenClubs.leagueTeams(name).map(escape).join("、")+'</p>').join("")+'</details>'+
       (years>0&&game.realTeamsFromYear!==2027?'<p>旧档保留已结束赛季的原始队名。'+(game.realTeamsFromYear?'从 '+game.realTeamsFromYear+' 赛季起使用真实球队。':'')+'</p>':'')+
       '<ul>'+window.ElevenClubs.sources.map(([label,url])=>'<li><a href="'+escape(url)+'">'+escape(label)+'</a></li>').join('')+'</ul></details>'+
       (legacyKeys().length?'<button class="button" data-eleven-action="archive">下载历史存档原文</button>':'')+
