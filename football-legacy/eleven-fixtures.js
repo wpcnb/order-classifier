@@ -6,6 +6,7 @@
   const passing = {GK:0,RB:4,CB:1,LB:4,CDM:4,CM:9,LW:8,RW:8,ST:4};
   const teamsRegistry=typeof module==="object"&&module.exports?require("./eleven-clubs.js"):root.ElevenClubs;
   const schedule=typeof module==="object"&&module.exports?require("./eleven-leagues.js"):root.ElevenLeagues;
+  const bodyPath=typeof module==="object"&&module.exports?require("./body-path.js"):root.BodyPath;
   function weighted(lineup, weights, random, exclude) {
     const candidates = lineup.filter(p => p !== exclude && weights[p.position] > 0);
     const weight = p => weights[p.position] * (p.rating / 65);
@@ -27,7 +28,11 @@
     });
   }
   function scoreLineups(lines, random) {
-    const strength = lines.map(line => line.reduce((sum,p) => sum+p.rating,0)/11);
+    const strength=lines.map(line=>line.reduce((sum,p)=>{
+      const body=p.seasons?.at(-1)?.body;
+      const fit=body?bodyPath.matchup({position:p.position,...body}):1;
+      return sum+p.rating*fit;
+    },0)/11);
     const score = [0,0], goals = [];
     for (let side = 0; side < 2; side++) {
       const chance = Math.max(.12,Math.min(.48,.25 + (side === 0 ? .035 : 0) + (strength[side]-strength[1-side])*.005));

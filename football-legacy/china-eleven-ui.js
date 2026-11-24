@@ -116,6 +116,19 @@
       '助攻 · '+total.cleanSheets+'次零封 · 成年国家队'+record.adultCaps+
       '场 · 国内杯冠军'+record.cupTitles+'次</p></details>';
   }
+  function bodyHistory(p){
+    const recorded=p.seasons.filter(s=>s.body);
+    const latestBody=recorded.at(-1)?.body;
+    const summary=latestBody?" · "+latestBody.heightCm+" cm / "+latestBody.weightKg+" kg":"";
+    const rows=recorded.slice().reverse().map(s=>'<tr><th scope="row">'+s.age+' 岁</th><td>'+s.body.heightCm+'</td><td>'+s.body.weightKg+'</td></tr>');
+    if(p.youthHeightEstimate!=null||p.youthWeightEstimate!=null){
+      rows.push('<tr><th scope="row">16 岁</th><td>'+(p.youthHeightEstimate??'—')+'</td><td>'+(p.youthWeightEstimate??'—')+'</td></tr>');
+    }
+    const gap=recorded.length<p.seasons.length?'<p>旧档仅展示当时保存的体格数据。</p>':'';
+    return '<details class="eleven-competition-ledger" data-body-history><summary>身体成长（模拟）'+summary+'</summary>'+
+      '<p>模型为每名球员分配身高增长节奏，上季联赛出场和伤停影响本季体重。体格按位置影响比赛中的阵容实力。</p>'+
+      (rows.length?'<div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>模拟身高（cm）</th><th>模拟体重（kg）</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>':'')+gap+'</details>';
+  }
   function detail(p){
     const height=p.adultHeight?escape(p.adultHeight)+" cm":"未核实";
     const weight=p.adultWeight?escape(p.adultWeight)+" kg":"未核实";
@@ -139,11 +152,11 @@
       return award+" · "+(years.length?years.join("、")+" 赛季获奖":"暂无获奖记录");
     }).join("<br>");
     const summary='<p class="eleven-club"><b>16岁青训起点（游戏设定）：</b>'+escape(p.academy)+'<br><b>代表协会：</b>'+escape(p.country||"中国")+' · '+escape(p.nationalStage||"青训阶段")+'<br><b>当前球队：</b>'+escape(p.club)+' · '+escape(p.league)+'</p>'+
-      '<p class="eleven-disclaimer">公开生日及成年身高、体重仅在资料可核实时显示，未核实的字段不会编造。16岁身高、体重、能力、潜力与青训路径均为游戏估算，并非历史数据。'+(p.profileUrl?'<a href="'+escape(p.profileUrl)+'" target="_blank" rel="noopener noreferrer">查看公开资料来源</a>':'')+'</p>';
+      '<p class="eleven-disclaimer">公开档案中的身高、体重按报名或资料来源展示。16 岁起的逐季体格、能力与青训路径由游戏模拟。'+(p.profileUrl?'<a href="'+escape(p.profileUrl)+'" target="_blank" rel="noopener noreferrer">查看公开资料来源 · '+escape(p.measurementSource||"球员档案")+'</a>':'')+'</p>';
     return '<section class="card eleven-detail" aria-label="'+escape(p.name)+'职业生涯详情">'+
       '<div class="eleven-detail-top"><div><span class="eleven-eyebrow">球员生涯档案 · '+escape(labels[p.position]||p.position)+'</span><h2>'+escape(p.name)+'</h2></div>'+
       '<div class="eleven-big-rating"><b>'+p.rating+'</b><small>综合能力</small></div></div>'+
-      summary+meta+metrics+'<p>'+worldTitles+'</p><p>本季估算身价 · '+(latest(p)?.marketValue?new Intl.NumberFormat('zh-CN',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(latest(p).marketValue):'待赛季结算')+'</p><p>个人与球队荣誉 · '+(p.seasons.flatMap(s=>[s.squadAward,s.trophy].filter(Boolean).map(t=>s.year+' '+escape(t))).join('、')||'暂无')+'</p>'+
+      summary+meta+bodyHistory(p)+metrics+'<p>'+worldTitles+'</p><p>本季估算身价 · '+(latest(p)?.marketValue?new Intl.NumberFormat('zh-CN',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(latest(p).marketValue):'待赛季结算')+'</p><p>个人与球队荣誉 · '+(p.seasons.flatMap(s=>[s.squadAward,s.trophy].filter(Boolean).map(t=>s.year+' '+escape(t))).join('、')||'暂无')+'</p>'+
       '<h3>逐赛季职业生涯</h3><div class="eleven-scroll"><table class="eleven-history"><thead><tr><th>年龄</th><th>联赛</th><th>俱乐部</th><th>能力</th><th>场次</th><th>进球</th><th>助攻</th><th>成年国家队出场</th></tr></thead><tbody>'+history+'</tbody></table></div>'+
       competitionRows(p)+internationalRecord(p)+cupRecord(p)+'<p class="eleven-disclaimer">每季五个模拟友谊赛比赛日，按位置、近期联赛表现和伤停选人。国内杯采用单场淘汰，平局由点球决胜。</p></section>';
   }

@@ -96,5 +96,7 @@ function label(p){
  const signed=x=>x>0?"+"+x+"%":x+"%";
  return {aerial:signed(str(v.aerial)),agility:signed(str(v.agility)),duel:signed(str(v.duel)),endurance:signed(str(v.endurance))};
 }
-window.BodyPath=Object.freeze({POSITIONS,PATHS,referenceWeight,defaultWeight,quickWeight,sanitizedPath,profile,matchup,matchScoreBonus,starterBonus,contributionBonus,trainingThreshold,appearancesBonus,lineupBonus,encounterChance,simulateContests,label});
+const api=Object.freeze({POSITIONS,PATHS,referenceWeight,defaultWeight,quickWeight,sanitizedPath,profile,matchup,matchScoreBonus,starterBonus,contributionBonus,trainingThreshold,appearancesBonus,lineupBonus,encounterChance,simulateContests,label});
+if(typeof window!=="undefined")window.BodyPath=api;
+if(typeof module==="object"&&module.exports)module.exports=api;
 })();

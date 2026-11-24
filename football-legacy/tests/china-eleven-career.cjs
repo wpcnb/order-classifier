@@ -99,7 +99,7 @@ assert.equal(initial.players[0].rating,57);
 for(const file of ["index.html","play.html"]){
  const html=read(file);
  const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
- assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-clubs.js","eleven-leagues.js","eleven-fixtures.js","eleven-internationals.js","eleven-domestic-cup.js","eleven-ledger.js","eleven-awards.js","china-eleven-career.js","eleven-rankings.js","china-eleven-ui.js"]);
+ assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-clubs.js","eleven-leagues.js","body-path.js","eleven-fixtures.js","eleven-internationals.js","eleven-domestic-cup.js","eleven-ledger.js","eleven-awards.js","china-eleven-career.js","eleven-rankings.js","china-eleven-ui.js"]);
  assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
 }
 assert(!read("china-eleven-ui.js").includes("?classic"));
@@ -294,3 +294,4 @@ require("./eleven-domestic-cup.cjs");
 require("./eleven-league-tables.cjs");
 
 require('./eleven-europe-leagues.cjs');
+require("./eleven-body-growth.cjs");
