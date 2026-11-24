@@ -11,10 +11,11 @@
     node?require("./eleven-awards.js"):root.ElevenAnnualAwards,
     node?require("./eleven-ledger.js"):root.ElevenCompetitionLedger,
     node?require("./eleven-clubs.js"):root.ElevenClubs,
-    node?require("./eleven-leagues.js"):root.ElevenLeagues);
+    node?require("./eleven-leagues.js"):root.ElevenLeagues,
+    node?require("./body-path.js"):root.BodyPath);
   if(typeof module==="object"&&module.exports)module.exports=api;
   root.ElevenCareerCore=api;
-})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups,awards,ledger,clubs,leagues){
+})(typeof window!=="undefined"?window:globalThis,function(fixtures,internationals,cups,awards,ledger,clubs,leagues,bodyPath){
   "use strict";
   const BASE=[
     ["李昊","GK",16,"马德里竞技青训",57,78],
@@ -46,14 +47,40 @@
   function rng(seed){let x=seed>>>0;return function(){x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};}
   function bounded(x,lo,hi){return Math.max(lo,Math.min(hi,x));}
   function round(x){return Math.round(x*10)/10;}
-  function metrics(position,overall){
+  const positionReference={
+    GK:[191,79],RB:[178,73],CB:[187,82],LB:[179,72],CDM:[182,77],CM:[178,74],LW:[179,73],RW:[177,72],ST:[183,78]
+  };
+  // All dimensions here describe the player's simulated season, including when a registration measurement exists.
+  function seasonBody(player,age,seed){
+    const random=rng(seed^hashText("development:"+player.name));
+    const matureAge=18+Math.floor(random()*5);
+    const heightGain=2+random()*5+(matureAge-18)*.5;
+    const weightGain=5+random()*6;
+    const [typicalHeight,typicalWeight]=positionReference[player.position];
+    const height16=player.youthHeightEstimate??typicalHeight-5;
+    const weight16=player.youthWeightEstimate??typicalWeight-8;
+    const progress=until=>{
+      const fraction=bounded((age-16)/(until-16),0,1);
+      return fraction*(2-fraction);
+    };
+    const last=player.seasons.at(-1);
+    const workload=last?bounded((last.apps-13)/9,-1,1)-bounded(last.injuryGames/9,0,1):0;
+    const height=Math.max(last?.body?.heightCm??height16,height16+heightGain*progress(matureAge));
+    return {
+      heightCm:round(bounded(height,120,225)),
+      weightKg:round(bounded(weight16+weightGain*progress(matureAge+2)+workload*.65,35,155))
+    };
+  }
+  function metrics(position,overall,body){
     const templates={
       GK:[43,55,53,48,59], RB:[71,65,48,61,58], LB:[68,64,53,58,56],
       CB:[56,59,64,53,66], CDM:[62,70,55,62,65], CM:[63,66,53,64,59],
       LW:[78,63,52,70,46], RW:[73,62,51,68,47], ST:[69,65,65,57,44]
     };
     const t=templates[position]||templates.CM,extra=(overall-57)*0.65;
-    return t.map(n=>bounded(Math.round(n+extra),35,92));
+    const shape=bodyPath.profile(body);
+    const factors=[shape.agility,shape.endurance,shape.duel,1,1];
+    return t.map((n,i)=>bounded(Math.round((n+extra)*factors[i]),35,92));
   }
   function fromRoster(rows,name){
     const item=Array.isArray(rows)?rows.find(p=>p&&p.group==="senior"&&p.name===name):null;
@@ -89,9 +116,9 @@
         :reference?reference[5]:69+Math.floor(talent()*19);
       // These are fictional age-16 body estimates, NEVER public measurements.
       const hRef=Number.isFinite(record.height)?record.height
-        :({GK:191,RB:178,CB:187,LB:179,CDM:182,CM:178,LW:179,RW:177,ST:183})[position];
+        :positionReference[position][0];
       const wRef=Number.isFinite(record.weight)?record.weight
-        :({GK:79,RB:73,CB:82,LB:72,CDM:77,CM:74,LW:73,RW:72,ST:78})[position];
+        :positionReference[position][1];
       const youthHeightEstimate=Math.round(hRef-3-Math.floor(talent()*6));
       const youthWeightEstimate=Math.round(wRef-6-Math.floor(talent()*6));
       const academy=clubs.academy(country,team);
@@ -99,7 +126,7 @@
         country:record.country||"中国",born:record.born||null,adultClub:record.club||null,
         adultHeight:record.height??null,adultWeight:record.weight??null,
         measurementSource:record.selection||"中国队公开球员档案",profileUrl:record.dataSource||record.url||null,
-        age:16,rating:initial,potential,attributes:metrics(position,initial),
+        age:16,rating:initial,potential,attributes:metrics(position,initial,{heightCm:youthHeightEstimate,weightKg:youthWeightEstimate}),
         league:country+"青训联赛",tier:"youth",club:academy,apps:0,goals:0,assists:0,
         cleanSheets:0,caps:0,careerCaps:0,injuries:0,lastEvent:"16岁进入青训体系",
         seasons:[]};
@@ -153,13 +180,14 @@
     const growth=youth+experience+seasonForm*(age<24?1.1:.7)+Math.max(0,potentialGap)*.035-(injury?1.7:0);
     const ceiling=next.potential+(random()>.96?1:0);
     next.rating=round(bounded(next.rating+growth,40,Math.max(ceiling,next.rating)));
-    next.attributes=metrics(next.position,next.rating);
+    const body=seasonBody(player,age,world.seed);
+    next.attributes=metrics(next.position,next.rating,body);
     const rTier=random(),tier=tierFor(next,age,rTier);
     Object.assign(next,assignClub(next,tier,age,squad,random));
     next.age=age;next.caps=0;next.injuries+=injury?1:0;
     next.nationalStage="本季未入选";
     next.lastEvent=injury?"伤停 "+miss+" 场":next.club!==player.club?"加入"+next.club:"完成赛季";
-    next.seasons.push({year:world.year+1,age,rating:next.rating,tier:next.tier,league:next.league,club:next.club,
+    next.seasons.push({year:world.year+1,age,body,rating:next.rating,tier:next.tier,league:next.league,club:next.club,
       apps:0,goals:0,assists:0,cleanSheets:0,caps:0,injuryGames:miss,trophy:null,statVersion:2});
     return next;
   }
@@ -307,6 +335,23 @@
     }
     return true;
   }
+  function validMeasurements(player){
+    let previousHeight=player.youthHeightEstimate;
+    let hasSeason=false;
+    for(const season of player.seasons){
+      const body=season.body;
+      if(body===undefined){
+        if(hasSeason)return false;
+        continue;
+      }
+      if(!body||!Number.isFinite(body.heightCm)||body.heightCm<120||body.heightCm>225||
+        !Number.isFinite(body.weightKg)||body.weightKg<35||body.weightKg>155||
+        (previousHeight!==undefined&&body.heightCm<previousHeight))return false;
+      previousHeight=body.heightCm;
+      hasSeason=true;
+    }
+    return true;
+  }
   function isValid(state){
     return !!state&&state.schema===1&&Number.isInteger(state.seed)
       &&state.startYear===2026&&state.yearsSimulated===state.age-16
@@ -331,7 +376,7 @@
           &&Number.isFinite(season.rating)&&season.rating>=35&&season.rating<=105
           &&typeof season.league==="string"&&typeof season.club==="string"
           &&["apps","goals","assists","cleanSheets","caps","injuryGames"].every(key=>
-            Number.isInteger(season[key])&&season[key]>=0)))
+            Number.isInteger(season[key])&&season[key]>=0))&&validMeasurements(p))
       &&validNationalHistory(state)&&cups.validHistory(state,countryFor,validScoreSheet)
        &&leagues.validHistory(state)&&validSeasonLedger(state)&&awards.validHistory(state);
   }
