@@ -53,3 +53,9 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
   .stages { max-width:430px; margin:14px auto 9px } .output { margin:10px 0 }
   .machine-foot { padding-top:7px } dl { grid-template-columns:1fr }
 }
+#replay-options { border:0; border-top:1px solid #d4dacb; padding:12px 0 0; margin:12px 0 0; min-width:0 }
+#replay-options legend { padding:0 7px 0 0; font-weight:650 }
+#replay-options label,#replay-options small { display:block; font-size:.82rem; color:#526159 }
+.replay-controls { display:flex; flex-wrap:wrap; gap:8px; margin:5px 0 }
+.replay-controls select { max-width:100%; min-height:42px; flex:1; color:#152f29; background:#fffef9; border:1px solid #acb9aa; border-radius:6px; font:inherit }
+#replay { background:#e7eddb; border-color:#cad5bd; padding:8px 14px }

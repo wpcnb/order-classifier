@@ -30,33 +30,46 @@ function resetBalls() {
     position(ball,...resting[i]);
   });
 }
-function finish(number) {
-  const item = document.createElement("li");
-  item.textContent = number;
-  history.prepend(item);
-  if (history.children.length > 10) history.lastElementChild.remove();
-  document.querySelector("#empty-history").hidden = true;
-  indicator.textContent = "已出球";
-  status.textContent = "本次模拟号码为 " + number + "。";
-  button.firstChild.textContent = "再摇一次 ";
-  button.disabled = false;
+function setBusy(busy) {
+  button.disabled = busy;
+  document.querySelector("#replay").disabled = busy;
+  document.querySelector("#replay-issue").disabled = busy;
+}
+function finish(number, issue) {
+  if (!issue) {
+    const item = document.createElement("li");
+    item.textContent = number;
+    history.prepend(item);
+    if (history.children.length > 10) history.lastElementChild.remove();
+    document.querySelector("#empty-history").hidden = true;
+  }
+  indicator.textContent = issue ? "回放完成" : "已出球";
+  status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" : "本次模拟号码为 " + number + "。";
+  button.firstChild.textContent = issue ? "开始摇奖 " : "再摇一次 ";
+  setBusy(false);
+}
+export function replayDraw(row) {
+  if (!button.disabled) animate(row.number,row.issue);
 }
 function startDraw() {
   if (button.disabled) return;
-  button.disabled = true;
   let number;
   try {
     number = drawNumber();
   } catch {
     status.textContent = "浏览器随机数服务不可用，请刷新后重试。";
-    button.disabled = false;
     return;
   }
+  animate(number,null);
+}
+function animate(number,issue) {
+  setBusy(true);
+  document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : "本次模拟号码";
   resetBalls();
   for (const outlet of outlets) outlet.textContent = "";
   for (const slot of outputs) slot.textContent = "–";
   indicator.textContent = "混球中";
-  status.textContent = "正在混球，准备依次出球。";
+  status.textContent = issue ? "正在回放已公布的号码。" : "正在混球，准备依次出球。";
   let shown = 0;
   const start = performance.now();
   function frame(now) {
@@ -71,7 +84,7 @@ function startDraw() {
       indicator.textContent = places[shown] + "出球";
       shown++;
     }
-    if (shown === 3) { finish(number); return; }
+    if (shown === 3) { finish(number,issue); return; }
     for (let g=shown; g<groups.length; g++) {
       groups[g].forEach((ball,i) => {
         const angle = i * 2.4 + g + elapsed * (.0035 + i * .00012);
