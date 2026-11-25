@@ -1,8 +1,15 @@
 """Exact enumeration, no prediction or betting interface."""
+from argparse import ArgumentParser
+from secrets import randbelow
 from itertools import product
 from fractions import Fraction
 
 OUTCOMES = tuple(product(range(10), repeat=3))
+
+def draw_number(sample=randbelow):
+    """Draw hundreds, tens and units from independent ten-ball sets."""
+    return tuple(sample(10) for _ in range(3))
+
 
 def payout(kind, pick, draw):
     if kind == "direct":
@@ -31,5 +38,10 @@ def evaluate(kind, pick):
             "expected_net": Fraction(sum(prizes), n) - 2}
 
 if __name__ == "__main__":
-    for kind, pick in [("direct",(1,2,3)),("group3",(1,1,2)),("group6",(1,2,3)),("guess1",(1,))]:
-        print(kind, evaluate(kind,pick))
+    parser = ArgumentParser()
+    parser.add_argument("--draw", action="store_true", help="Generate one simulated 3D number")
+    if parser.parse_args().draw:
+        print("".join(map(str, draw_number())))
+    else:
+        for kind, pick in [("direct",(1,2,3)),("group3",(1,1,2)),("group6",(1,2,3)),("guess1",(1,))]:
+            print(kind, evaluate(kind,pick))

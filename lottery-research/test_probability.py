@@ -1,8 +1,18 @@
 import unittest
 from fractions import Fraction
-from probability import evaluate, OUTCOMES
+from probability import draw_number, evaluate, OUTCOMES, payout
 
 class ProbabilityTests(unittest.TestCase):
+    def test_machine_outcomes(self):
+        for result in OUTCOMES:
+            digits = iter(result)
+            def sample(size):
+                self.assertEqual(size, 10)
+                return next(digits)
+            drawn = draw_number(sample)
+            self.assertEqual(drawn, result)
+            self.assertEqual(payout("direct", result, drawn), 1040)
+
     def test_space(self):
         self.assertEqual(len(set(OUTCOMES)), 1000)
     def test_baseline(self):

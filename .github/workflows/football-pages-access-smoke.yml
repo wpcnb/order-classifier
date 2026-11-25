@@ -1,9 +1,12 @@
-name: Football game public URL smoke
+name: Public draw simulator and bookmark checks
 on:
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/football-pages-access-smoke.yml'
+      - 'index.html'
+      - 'lottery-research/**'
+      - 'football-legacy/*.html'
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,20 +16,24 @@ jobs:
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
-      - name: Verify the eleven-player entry points in Chromium
+      - name: Check probability model and draw sampler
+        run: |
+          python3 -m unittest discover -s lottery-research -p 'test_*.py'
+          node --test lottery-research/test_draw.mjs
+      - name: Verify the simulator loads through all public bookmarks
         shell: bash
         run: |
           set -euo pipefail
-          root="https://wpcnb.github.io/order-classifier/football-legacy"
+          root="https://wpcnb.github.io/order-classifier"
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
-            python3 -m http.server 8123 --bind 127.0.0.1 >/tmp/eleven-http.log 2>&1 &
-            root="http://127.0.0.1:8123/football-legacy"
+            python3 -m http.server 8123 --bind 127.0.0.1 >/tmp/draw-http.log 2>&1 &
+            root="http://127.0.0.1:8123"
             curl --retry 5 --retry-all-errors --fail --silent "$root/" >/dev/null
           fi
-          for path in "/" "/play.html" "/?classic=1" "/academy.html"; do
+          for path in "/" "/football-legacy/" "/football-legacy/play.html" "/football-legacy/?classic=1" "/football-legacy/academy.html" "/football-legacy/awards.html"; do
             google-chrome --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
-              --virtual-time-budget=12000 --dump-dom "$root$path" >/tmp/rendered-eleven.html
-            test "$(grep -o 'data-eleven-player="[0-9]*"' /tmp/rendered-eleven.html | wc -l)" -eq 11
-            grep -q 'data-eleven-action="next"' /tmp/rendered-eleven.html
-            ! grep -q 'data-action="trioSeason"' /tmp/rendered-eleven.html
+              --virtual-time-budget=12000 --dump-dom "$root$path" >/tmp/rendered-draw.html
+            grep -q 'id="draw"' /tmp/rendered-draw.html
+            grep -q '准备就绪。' /tmp/rendered-draw.html
+            test "$(grep -o 'class="ball"' /tmp/rendered-draw.html | wc -l)" -eq 30
           done

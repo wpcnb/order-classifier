@@ -1,1 +1,48 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>概率研究</title></head><body><h1>福彩3D概率研究</h1><p>仅作数学、随机性与风险研究。不提供购买彩票或盈利保证。</p><p>公平独立开奖假设下，历史数据不能改变下一期开奖结果。</p><p><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码与上游项目</a></p></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#183d36">
+  <title>福彩 3D · 模拟摇奖机</title>
+  <link rel="stylesheet" href="./lottery-research/draw.css">
+  <script type="module" src="./lottery-research/draw-ui.mjs"></script>
+</head>
+<body>
+<header><div class="container mast"><span class="wordmark"><i aria-hidden="true"></i> 概率研究室</span><a href="#specs">设备参数 ↘</a></div></header>
+<main class="container">
+  <h1>福彩 <span>3D</span> 模拟摇奖机</h1>
+  <p class="intro">按百位、十位、个位依次出球，模拟一次完整摇奖。</p>
+  <div class="desk">
+    <section class="machine" aria-label="三色球气动搅拌示意">
+      <div class="machine-head"><strong>气动摇奖台</strong><span class="indicator" id="machine-state">待机</span></div>
+      <div class="stages" aria-hidden="true">
+        <div class="unit red"><div class="neck"></div><div class="glass"></div><div class="base"></div><span>百位</span></div>
+        <div class="unit yellow"><div class="neck"></div><div class="glass"></div><div class="base"></div><span>十位</span></div>
+        <div class="unit blue"><div class="neck"></div><div class="glass"></div><div class="base"></div><span>个位</span></div>
+      </div>
+      <div class="machine-foot"><span>TOPAZE</span><small>气流与球路示意</small></div>
+    </section>
+    <section class="control" aria-labelledby="result-title">
+      <h2 id="result-title">本次模拟号码</h2>
+      <div class="output" aria-hidden="true">
+        <div><small>百位</small><b>–</b></div><div><small>十位</small><b>–</b></div><div><small>个位</small><b>–</b></div>
+      </div>
+      <button id="draw" type="button" disabled>开始摇奖 <span aria-hidden="true">→</span></button>
+      <p class="status" role="status" aria-live="polite">正在准备摇奖机…</p>
+      <noscript>请启用 JavaScript 后开始摇奖。</noscript>
+    </section>
+  </div>
+  <section class="history" aria-labelledby="history-title"><h2 id="history-title">最近模拟记录</h2><p id="empty-history">摇奖后，这里会显示本页最近 10 次结果。</p><ol id="history"></ol></section>
+  <details id="specs"><summary>设备参数与模拟方法</summary>
+    <p>设备参考 2021 年中国福彩公开的法国 AKANIS Topaze 气动搅拌式摇奖机。</p>
+    <dl><div><dt>整机规格</dt><dd>高 1.50 米，宽 0.66 米，重 90 千克</dd></div>
+    <div><dt>搅拌室</dt><dd>直径 30 厘米，底座以上为高强度有机玻璃</dd></div>
+    <div><dt>摇奖球</dt><dd>两套正式球，每套黄、红、蓝各 10 颗。聚氨酯与发泡材料，实心结构</dd></div>
+    <div><dt>单球标准</dt><dd>质量 4 克（±5%），直径 44.5 毫米（−0.7 / +0.8 毫米）</dd></div></dl>
+    <p>本页用三组 0–9 数字球演示出球，每组独立等概率抽取一球。浏览器生成随机数，每个三位号码的理论概率均为 1/1000。配色位置、动画时长和球路为展示设定。实机风速、逐球测量和现场工况缺少可用的校准数据。</p>
+    <p><a href="https://www.szlottery.org/fcw/fcxw/csdt/content/post_752635.html">福彩公开设备资料 ↗</a> · <a href="https://www.swlc.net.cn/games/3d.html">福彩 3D 开奖规则 ↗</a></p>
+  </details>
+</main>
+<footer class="container"><span>仅作随机模拟与概率研究</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
+</body></html>
