@@ -1,0 +1,15 @@
+[submodule "lottery-research/upstream/LotteryCN"]
+	path = lottery-research/upstream/LotteryCN
+	url = https://github.com/UlionTse/lotterycn.git
+
+[submodule "lottery-research/upstream/LottoLab"]
+	path = lottery-research/upstream/LottoLab
+	url = https://github.com/LeilaoMi/LottoLab.git
+
+[submodule "lottery-research/upstream/LotteryAnalysisV5"]
+	path = lottery-research/upstream/LotteryAnalysisV5
+	url = https://github.com/saqinghui-huaian/lottery-analysis-smart-V5.git
+
+[submodule "lottery-research/upstream/JackpotPredict"]
+	path = lottery-research/upstream/JackpotPredict
+	url = https://github.com/chendok/jackpot-preditct.git
