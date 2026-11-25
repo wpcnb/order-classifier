@@ -25,6 +25,7 @@ h2 { font-size:1.12rem; margin:0 }
 .yellow { --ball:#e9c563 }.blue { --ball:#8cbfdd }
 .unit span { display:block; font-size:.78rem; margin-top:6px; color:#d9e7df }
 .neck { width:17%; height:12px; margin:0 auto -2px; border:2px solid #91aaa1; border-radius:4px 4px 0 0; background:linear-gradient(90deg,#41675d,#c5d4c944,#406359) }
+.neck:not(:empty) { color:#172922; background:var(--ball); border-color:var(--ball); font:700 10px/1 "IBM Plex Mono",monospace }
 .glass { position:relative; aspect-ratio:1; border:2px solid #adccc19c; border-radius:50%; overflow:hidden; background:radial-gradient(circle at 29% 16%,#eafaf458,transparent 20%),radial-gradient(circle at 60% 72%,#12342e55,#96b7a62b 82%,#e7f8ea55); box-shadow:inset 0 0 0 3px #b7d3c621,0 8px 14px #102a2444 }
 .base { position:relative; width:72%; height:12px; margin:-2px auto 0; transform:perspective(18px) rotateX(13deg); border:1px solid #8da99a; border-radius:3px; background:linear-gradient(#719287,#34564d) }
 .ball { position:absolute; width:15%; aspect-ratio:1; border-radius:50%; display:grid; place-items:center; font:700 clamp(7px,1.1vw,14px)/1 "IBM Plex Mono",monospace; color:#142a23; background:radial-gradient(at 30% 22%,#fff8,transparent 45%),var(--ball); box-shadow:inset -2px -2px 4px #182d2a44,0 1px 2px #102a2488; transform:translate(-50%,-50%) }

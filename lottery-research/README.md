@@ -23,4 +23,4 @@
 
 在[公开首页](https://wpcnb.github.io/order-classifier/)点「开始摇奖」，或运行 `python lottery-research/probability.py --draw` 生成一组三位号码。三个位置各自从 0–9 等概率抽取，保留前导零和重复数字。网页使用 Web Crypto，对字节 250–255 重抽以消除取模偏差。Python 返回可直接交给 `payout` 的数字元组。网页记录仅保留本页最近十次模拟。
 
-气动搅拌演示参考[福彩公开的 Topaze 设备参数](https://www.szlottery.org/fcw/fcxw/csdt/content/post_752635.html)及[福彩 3D 开奖规则](https://www.swlc.net.cn/games/3d.html)。画面布局、球路和时长用于演示。公开规格不足以复原当期现场气流和每一颗球的实际运动。运行 `node --test lottery-research/test_draw.mjs` 核对网页采样。
+气动搅拌演示参考[福彩公开的 Topaze 设备参数](https://www.szlottery.org/fcw/fcxw/csdt/content/post_752635.html)、[三仓结构、颜色对应和顶部出球位置](https://caipiao.people.com.cn/n1/2015/1231/c373276-27999921.html)及[福彩 3D 开奖规则](https://www.swlc.net.cn/games/3d.html)。画面布局、球路和时长用于演示。公开规格不足以复原当期现场气流和每一颗球的实际运动。运行 `node --test lottery-research/test_draw.mjs` 核对网页采样。

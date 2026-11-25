@@ -4,6 +4,7 @@ const button = document.querySelector("#draw");
 const status = document.querySelector(".status");
 const indicator = document.querySelector("#machine-state");
 const outputs = [...document.querySelectorAll(".output b")];
+const outlets = [...document.querySelectorAll(".neck")];
 const history = document.querySelector("#history");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const places = ["百位", "十位", "个位"];
@@ -52,6 +53,7 @@ function startDraw() {
     return;
   }
   resetBalls();
+  for (const outlet of outlets) outlet.textContent = "";
   for (const slot of outputs) slot.textContent = "–";
   indicator.textContent = "混球中";
   status.textContent = "正在混球，准备依次出球。";
@@ -62,6 +64,7 @@ function startDraw() {
     const next = reducedMotion.matches ? 3 : Math.min(3, Math.max(0, 1 + Math.floor((elapsed-1100)/600)));
     while (shown < next) {
       outputs[shown].textContent = number[shown];
+      outlets[shown].textContent = number[shown];
       const balls = groups[shown];
       balls.forEach((ball,i) => position(ball,...resting[i]));
       balls[Number(number[shown])].style.visibility = "hidden";
@@ -73,7 +76,11 @@ function startDraw() {
       groups[g].forEach((ball,i) => {
         const angle = i * 2.4 + g + elapsed * (.0035 + i * .00012);
         const radius = 19 + 18 * Math.sin(i * 1.7 + elapsed * .0015);
-        position(ball,50 + radius * Math.cos(angle),50 + radius * Math.sin(angle));
+        const x = 50 + radius * Math.cos(angle);
+        const y = 50 + radius * Math.sin(angle);
+        // In the final quarter-second the selected ball travels to the top outlet.
+        const lift = i === Number(number[g]) ? Math.max(0,(elapsed - (850 + g*600))/250) : 0;
+        position(ball,x + (50-x)*lift,y + (5-y)*lift);
       });
     }
     requestAnimationFrame(frame);
