@@ -96,14 +96,12 @@ console.log("PASS eleven-player league and Ballon career rankings, stable seed a
 const invalid={...initial,players:initial.players.slice(1)};
 assert(!engine.isValid(invalid));
 assert.equal(initial.players[0].rating,57);
-for(const file of ["index.html","play.html"]){
+for(const file of ["index.html","play.html","academy.html","awards.html"]){
  const html=read(file);
- const assets=Array.from(html.matchAll(/<script src="\.\/([^?"]+)/g),m=>m[1]);
- assert.deepEqual(assets,["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js","eleven-clubs.js","eleven-leagues.js","body-path.js","eleven-fixtures.js","eleven-internationals.js","eleven-domestic-cup.js","eleven-ledger.js","eleven-awards.js","china-eleven-career.js","eleven-rankings.js","china-eleven-ui.js"]);
- assert(html.includes('id="eleven-app"')&&!html.includes('id="app"'));
+ assert(html.includes('content="0;url=../"') && html.includes('href="../"'), file+" must lead to the active site");
+ assert(!html.includes("<script") && !html.includes('id="eleven-app"'), file+" must leave archived saves untouched");
 }
 assert(!read("china-eleven-ui.js").includes("?classic"));
-assert(read("academy.html").includes("url=./play.html"));
 const vm=require("node:vm"),ctx={window:{}};
 for(const file of ["china-rosters.js","world-cup-squads.js","club-squads.js","academy-squad.js"])
  vm.runInNewContext(read(file),ctx,{filename:file});

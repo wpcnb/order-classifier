@@ -45,8 +45,8 @@ test("game creator removes gender selection and declares male-only",()=>{
  assert(game.includes("原有存档保持不变"));
  assert(game.includes("FS.validate(profile)"))
 });
-test("homepage version and local asset cache reflect change",()=>{
- assert(html.includes("<title>绿茵传奇11人 ·"));
+test("旧书签进入当前主页且不启动足球引擎",()=>{
+ assert(html.includes('content="0;url=../"'));
  assert(!html.includes('src="./game.js'));
 });
 assert.equal(done,10);console.log("10/10 v8.0.1 men's career creator checks passed");

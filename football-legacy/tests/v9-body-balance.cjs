@@ -5,9 +5,9 @@ const context={window:{},console};vm.runInNewContext(read("body-path.js"),contex
 const BP=context.window.BodyPath,CD=context.window.CareerDepth;
 const p=(h,w,pos="LW",careerPath="balanced")=>({heightCm:h,weightKg:w,position:pos,careerPath,coachTrust:60,form:65,stats:{pace:80,shoot:80,pass:80,dribble:80,defense:80,physical:80,mental:80}});
 let checked=0;function test(name,fn){fn();checked++;console.log("✓ "+checked+"/10 "+name)}
-test("v9 release, script order and reproducibility document",()=>{
+test("旧书签进入当前主页且不启动足球引擎",()=>{
  const html=read("index.html");
- assert(html.includes("<title>绿茵传奇11人 ·"));
+ assert(html.includes('content="0;url=../"'));
  assert(!html.includes('src="./game.js'));
  assert(read("V9_BALANCE_AUDIT.md").includes("200,000,000"));
 });

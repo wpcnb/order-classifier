@@ -21,8 +21,8 @@ function harness(loaded=[]){
  get html(){return node("app").innerHTML},get saved(){return JSON.parse(storage.get("football-dynasty-duo-v2-20261110")||"null")},
  get draft(){return JSON.parse(storage.get("football-dynasty-opening-v3")||"null")}};
 }
-check("版本号和加载顺序",()=>{
- assert.match(html,/<title>绿茵传奇11人 ·/);
+check("旧书签进入当前主页且不启动足球引擎",()=>{
+ assert(html.includes('content="0;url=../"'));
  assert(!html.includes('src="./game.js'));
 });
 check("隐藏潜能四档概率区间",()=>{

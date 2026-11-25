@@ -35,7 +35,7 @@ function finishSeason(h){
  }
  throw Error("S1 midseason decisions could not be completed");
 }
-const html=fs.readFileSync(path.join(root,"index.html"),"utf8");assert(html.includes('src="./china-eleven-career.js'));
+const html=fs.readFileSync(path.join(root,"index.html"),"utf8");assert(html.includes('content="0;url=../"'));
 const oldData=JSON.stringify({version:4,player:{name:"陆白"}});
 const oldDuo="football-dynasty-duo-v1-20261110",oldKeys=[OLD,OLD+"-safety",oldDuo,oldDuo+"-safety"];
 const x=harness(oldKeys.map(k=>[k,oldData]));

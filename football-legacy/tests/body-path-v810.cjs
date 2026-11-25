@@ -22,8 +22,8 @@ function harness(initial=[]){
   get html(){return node("app").innerHTML},get opening(){return JSON.parse(store.get("football-dynasty-opening-v3")||"null")},
   get saved(){return JSON.parse(store.get("football-dynasty-duo-v2-20261110")||"null")},store};
 }
-check("v8.1.0 release and body module precedes game",()=>{
- assert(html.includes("<title>绿茵传奇11人 ·"));
+check("旧书签进入当前主页且不启动足球引擎",()=>{
+ assert(html.includes('content="0;url=../"'));
  assert(!html.includes('src="./game.js'));
 });
 check("taller footballer gets aerial gain but loses agility at same mass ratio",()=>{

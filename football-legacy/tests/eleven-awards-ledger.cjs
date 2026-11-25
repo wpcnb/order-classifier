@@ -79,13 +79,8 @@ assert.equal(core.step(legacy).awardHistory[2028]["金球奖"].model,undefined,
  "historical old ballots must not be fabricated");
 console.log("PASS old awards and XI save schema remain loadable without fabricated ballots");
 
-for(const page of ["index.html","play.html"]){
- const html=fs.readFileSync(path.join(root,page),"utf8");
- assert(html.indexOf("eleven-ledger.js")<html.indexOf("eleven-awards.js"));
- assert(html.indexOf("eleven-awards.js")<html.indexOf("china-eleven-career.js"));
-}
 const ceremony=fs.readFileSync(path.join(root,"awards.html"),"utf8");
-assert(ceremony.includes("eleven-awards-page.js")&&ceremony.includes("viewport"));
+assert(ceremony.includes('content="0;url=../"')&&!ceremony.includes("<script"));
 const ui=fs.readFileSync(path.join(root,"china-eleven-ui.js"),"utf8");
 assert(ui.includes('href="./awards.html"')&&ui.includes("competitionRows(p)"));
-console.log("PASS ceremony entrypoint, read-only history presentation and script dependency order");
+console.log("PASS archived ceremony route and read-only history presentation");
