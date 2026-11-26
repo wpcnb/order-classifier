@@ -40,6 +40,11 @@
       <div class="output" aria-hidden="true">
         <div><small>百位</small><b>–</b></div><div><small>十位</small><b>–</b></div><div><small>个位</small><b>–</b></div>
       </div>
+      <div class="playback-controls">
+        <label for="playback-speed">动画速度</label>
+        <select id="playback-speed"><option value="1">正常</option><option value="0.5">半速</option></select>
+        <button id="pause" type="button" disabled>暂停动画</button>
+      </div>
       <button id="draw" type="button" disabled>开始摇奖 <span aria-hidden="true">→</span></button>
       <p class="status" role="status" aria-live="polite">正在准备摇奖机…</p>
       <fieldset id="replay-options" disabled>
