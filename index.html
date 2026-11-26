@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-3d1">
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-physics1">
   <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-archive-reload"></script>
   <script type="module" src="./lottery-research/history-view.mjs?v=20261126-archive-reload"></script>
 <style>
@@ -92,6 +92,25 @@
       <button id="archive-export" type="button" disabled>导出存档（JSON）</button>
     </details>
   </section>
+  <section class="history" aria-labelledby="physics-title">
+    <h2 id="physics-title">刚体碰撞实验室</h2>
+    <p>独立的透明实验箱，无编号球体。观察重力、碰撞、反弹与旋转，不产生开奖号码或写入模拟存档。</p>
+    <button id="physics-open" type="button" aria-expanded="false" aria-controls="physics-panel">打开物理实验</button>
+    <div id="physics-panel" hidden>
+      <div id="physics-canvas" role="img" aria-label="透明实验箱内的六颗无编号球体"></div>
+      <div class="physics-controls">
+        <label for="physics-bounce">反弹系数</label>
+        <select id="physics-bounce"><option value="0.2">0.2 低</option><option value="0.55" selected>0.55 中</option><option value="0.8">0.8 高</option></select>
+        <button id="physics-start" type="button">开始实验</button>
+        <button id="physics-pause" type="button" disabled>暂停</button>
+        <button id="physics-reset" type="button">复位</button>
+      </div>
+      <p id="physics-readout">仿真时间 0.00 秒</p>
+      <p>演示设定：固定步长 1/60 秒，六颗等尺寸球、封闭箱体，单次最长 8 秒。反弹系数为实验参数，不是官方设备测量数据。</p>
+    </div>
+    <p id="physics-status" role="status">未加载 · 不影响原摇奖机</p>
+  </section>
+  <script type="module" src="./lottery-research/physics-ui.mjs"></script>
   <section class="history" id="official-history" aria-labelledby="official-history-title">
     <h2 id="official-history-title">近100期历史开奖与概率分析</h2>
     <p id="official-meta">正在加载历史数据…</p>

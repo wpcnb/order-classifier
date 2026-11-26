@@ -152,3 +152,12 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .view3d-cameras{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 5px}
 #view3d-stage small{font-size:.72rem;color:#d7e4ed}
 @media(max-width:700px){#view3d-canvas{aspect-ratio:1.2}.view-toolbar{gap:6px}}
+
+#physics-open {margin:12px 0 8px}
+#physics-panel[hidden]{display:none!important}
+#physics-panel{min-width:0;max-width:720px}
+#physics-canvas{width:100%;aspect-ratio:1.7;min-height:200px;background:#152a43;border:1px solid #8da5bb;border-radius:9px;overflow:hidden}
+#physics-canvas canvas{display:block;width:100%;height:100%}
+.physics-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0}
+.physics-controls select,.physics-controls button{min-height:44px;font:inherit;border:1px solid #a2b3bf;border-radius:6px;padding:6px 10px;background:#eef5f8;color:#1c3546}
+#physics-readout{font-variant-numeric:tabular-nums;font-weight:600}

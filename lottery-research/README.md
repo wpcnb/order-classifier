@@ -65,3 +65,7 @@
 在原摇奖台点击「切换三维观察」进入可选 WebGL 展示，支持四个固定视角。三维机体、三仓、出球管、支架、设备柜、数字球、灯光均用几何体与程序纹理生成。三维层只读取现有平面动画的球位置和已揭晓数字，不调用抽样、不写存档，停止时释放渲染资源；加载失败、WebGL 不可用或上下文丢失时回到平面模式。该版为几何及动画展示，不是物理求解器或精确实机复刻。未接入 Rapier、外部模型或实测气流。
 
 依赖：[Three.js 0.186.1](https://www.jsdelivr.com/package/npm/three?version=0.186.1)（MIT，[许可证](https://github.com/mrdoob/three.js/blob/r186/LICENSE)；[安装文档](https://threejs.org/manual/pages/installation.html)）。浏览器主动切换时通过固定版本 CDN 加载，网络失败不影响基础模拟；CI 用同版本本地 npm 包进行 WebGL 与故障回退验收。下一步建议在三维展示层增加独立刚体演示，不参与正式模拟号码生成。
+
+### 第二轮：独立刚体碰撞实验
+
+采用 [Rapier JS 0.21.0](https://www.npmjs.com/package/@dimforge/rapier3d-compat/v/0.21.0)（Apache-2.0，[官方文档](https://rapier.rs/docs/user_guides/javascript/getting_started_js/)）及既有 Three.js。独立透明箱体内六颗无编号球，演示重力、碰撞、摩擦、反弹和旋转；固定 60Hz 步长，最长8秒，可选择三档反弹系数、暂停、复位。减弱动态效果时逐帧推进；关闭释放资源，加载失败不影响基础页面。参数为教学示意，非真实气流、机械测量或开奖号码生成模型。此模块不调用原抽样或存档接口。CI 包含真实 WASM 数值边界检查和浏览器失败回退、复位、存档隔离测试。
