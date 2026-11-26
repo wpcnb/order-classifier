@@ -181,3 +181,39 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .frequency-table td,.frequency-table th{padding:4px 8px;text-align:right;border-bottom:1px solid #d9e4eb}
 .recent-frequency details{padding:12px 0 0;border-bottom:0}
 @media(max-width:600px){.frequency-cards{grid-template-columns:1fr}.recent-frequency{padding:12px}}
+
+/* Compact desktop dashboard: machine and recent log at left, analysis and controls at right. */
+.container{width:min(1440px,calc(100% - 40px))}
+.mast{min-height:54px}
+h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
+.intro{margin:6px 0 16px}
+.desk{grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);grid-template-areas:"machine control" "history control";grid-template-rows:auto 1fr;gap:12px;align-items:start}
+.desk>.machine{grid-area:machine;padding:clamp(12px,1.5vw,22px)}
+.desk>.control{grid-area:control;justify-content:flex-start;padding:clamp(12px,1.5vw,20px)}
+.desk-history{grid-area:history;min-width:0;padding:12px;border:1px solid #d4dacb;border-radius:10px;background:#fffef9}
+.desk-history #history{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.desk-history #history li{font-size:.78rem;letter-spacing:0;padding:5px 7px;overflow-wrap:anywhere}
+.desk-history details{padding:9px 0 0;border-bottom:0;font-size:.85rem}
+.desk .recent-frequency{margin:0 0 12px;padding:10px}
+.desk .recent-frequency h3{font-size:.98rem;margin:0}
+#recent-frequency-sample{margin:3px 0;font-size:.74rem;color:#536876}
+.desk .frequency-cards{grid-template-columns:1fr;gap:5px;margin:6px 0}
+.desk .frequency-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-items:center;gap:2px 8px;padding:6px 8px;border-top:1px solid #d2e0e7;border-left:3px solid #7295b0}
+.desk .frequency-card h4{font-size:.78rem}
+.desk .frequency-card output{margin:0;text-align:right;font-size:clamp(1.05rem,1.5vw,1.45rem)}
+.desk .frequency-card small{grid-column:1/-1;font-size:.72rem;line-height:1.35}
+.desk .frequency-note{margin:5px 0;font-size:.72rem!important;line-height:1.4}
+.desk .recent-frequency details{padding:4px 0 0;font-size:.77rem}
+.desk .output{margin:7px 0}
+.desk .output b{font-size:clamp(1.9rem,3vw,2.9rem)}
+.desk #draw-sum{margin-bottom:8px;padding:5px 8px}
+.desk .playback-controls{gap:5px;margin-bottom:6px}
+.desk .playback-controls select,.desk .playback-controls button{padding:5px 8px}
+.desk #pause{margin-left:0}
+.desk #replay-options{padding-top:7px;margin-top:8px}
+.desk .studio{flex:initial}
+@media(max-width:700px){
+  .container{width:calc(100% - 24px)}
+  .desk{grid-template-columns:minmax(0,1fr);grid-template-areas:"machine" "control" "history";grid-template-rows:auto auto auto;gap:10px}
+  .desk-history #history{grid-template-columns:1fr}
+}
