@@ -8,7 +8,8 @@ from playwright.sync_api import sync_playwright
 def check(base):
     with sync_playwright() as pw:
         browser = pw.chromium.launch(executable_path=which("chromium") or which("google-chrome"))
-        page = browser.new_page(viewport={"width": 390, "height": 844})
+        context = browser.new_context(viewport={"width": 390, "height": 844})
+        page = context.new_page()
         page.add_init_script("""window.drawCalls = 0;
           Object.defineProperty(crypto, 'getRandomValues', {value(bytes) {
             ++window.drawCalls;
