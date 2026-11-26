@@ -64,3 +64,40 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .playback-controls select,.playback-controls button { min-height:44px; border:1px solid #acb9aa; border-radius:6px; padding:6px 12px; background:#fffef9; color:#203b30; font:inherit }
 #pause { margin-left:auto }
 @media (prefers-reduced-motion:reduce) { .playback-controls { display:none } }
+
+/* Studio presentation. Visual styling only; dimensions and lighting are illustrative. */
+.desk {grid-template-columns:minmax(0,1.85fr) minmax(0,1fr);gap:20px}
+.machine {min-width:0;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 38%,#365267 0%,#172b3d 45%,#091622 100%);border-color:#35495b;box-shadow:0 16px 40px #10283a20;display:flex;flex-direction:column;justify-content:space-between;color:#edf4fa}
+.machine-head,.machine-foot {position:relative;z-index:2}
+.machine-head strong {letter-spacing:.12em}
+.indicator {color:#e1ebf3;background:#0a1925aa;border:1px solid #90a8b74d;border-radius:30px;padding:5px 10px;white-space:nowrap}
+.indicator::before {background:#a6d9bd;box-shadow:0 0 8px #9ce5c877}
+.studio {isolation:isolate;position:relative;display:grid;place-items:center;padding:clamp(24px,4vw,54px) 0 24px;min-width:0;flex:1}
+.studio-backdrop {position:absolute;inset:8% -8% 5%;z-index:-2;overflow:hidden;background:radial-gradient(ellipse at 50% 78%,#8fa9bc38,transparent 67%)}
+.studio-backdrop i {position:absolute;top:2%;height:82%;width:1px;background:linear-gradient(transparent,#b2d5ea7d,transparent)}
+.studio-backdrop i:nth-child(1){left:8%}.studio-backdrop i:nth-child(2){left:50%;opacity:.35}.studio-backdrop i:nth-child(3){right:8%}
+.machine-housing {position:relative;width:min(96%,620px);z-index:1;border:1px solid #b3c0c9;border-radius:12px 12px 7px 7px;padding:clamp(8px,1.5vw,18px);background:linear-gradient(100deg,#455967 0%,#dce6eb 6%,#97a7b1 12%,#eef3f5 42%,#a2b3be 77%,#536775 100%);box-shadow:inset 1px 1px 2px #fff,0 16px 24px #0007,0 2px 3px #0009}
+.housing-top {display:flex;align-items:center;justify-content:space-between;gap:5px;color:#243743;padding:4px 4px 9px}
+.housing-top span {font:800 clamp(.7rem,1.5vw,1rem)/1.2 "IBM Plex Mono",monospace;letter-spacing:.12em}
+.housing-top small {font-size:clamp(.45rem,.8vw,.65rem);letter-spacing:.06em;text-align:right}
+.stages {gap:3%;margin:0;padding:clamp(6px,1.3vw,16px);background:linear-gradient(155deg,#263d4b,#0e1d28 65%,#2a4150);border:1px solid #233746;border-radius:8px;box-shadow:inset 0 3px 12px #0009,0 1px 0 #fff8;max-width:none}
+.unit {width:31%;min-width:0;--ball:#df5753}
+.yellow {--ball:#edc14f}.blue {--ball:#66b5df}
+.channel {height:clamp(24px,4.5vw,48px);width:32%;margin:auto;position:relative;border:1px solid #bcd9e8aa;border-radius:6px 6px 2px 2px;background:linear-gradient(90deg,#e3f7ff38,#102d4144 25%,#eafaff20 60%,#b9d6e990);box-shadow:inset 0 0 5px #f8ffff22;display:grid;place-items:center}
+.neck {width:82%;height: auto;aspect-ratio:1;display:grid;place-items:center;margin:0;border:0;border-radius:50%;background:transparent;box-shadow:none}
+.neck:not(:empty){background:radial-gradient(circle at 32% 25%,#fffa,transparent 36%),var(--ball);border:1px solid #fff5;box-shadow:inset -2px -3px 5px #0004,0 1px 3px #0007;color:#14232d;font:700 clamp(9px,1.3vw,16px)/1 monospace}
+.glass {border:clamp(2px,.4vw,4px) solid #c1dce7b0;border-radius:50%;background:radial-gradient(ellipse at 24% 16%,#f0fbff50,transparent 22%),radial-gradient(ellipse at 68% 82%,#25465855,#a5c8df25 64%,#d8ecf663 93%);box-shadow:inset 0 0 0 2px #ecfaff30,inset 0 -9px 12px #080f1a7d,0 4px 10px #0007}
+.glass::after {content:"";position:absolute;pointer-events:none;z-index:2;inset:5%;border-radius:50%;border-top:2px solid #f4fdffb3;border-left:2px solid #b6deef45;transform:rotate(-24deg)}
+.ball {background:radial-gradient(circle at 29% 23%,#fff9 0%,#fff2 25%,transparent 44%),var(--ball);box-shadow:inset -2px -3px 5px #10233366,0 2px 3px #0008;font-size:clamp(7px,1vw,14px)}
+.base {width:78%;height:clamp(12px,2.2vw,23px);margin:-2px auto 0;transform:none;border:1px solid #9badb8;background:linear-gradient(#d1dce4,#718796 25%,#394d5a 78%,#859ba8);border-radius:4px;box-shadow:0 3px 5px #0006}
+.unit span {color:#eef3f7;letter-spacing:.06em;font-size:clamp(.66rem,1vw,.82rem);margin:7px 0 2px}
+.unit span small {color:#a6c0d3;font:500 .67rem monospace}
+.housing-console {display:flex;align-items:center;gap:8px;padding:10px 5px 5px;color:#344752}
+.housing-console i {width:7px;height:7px;flex:none;border-radius:50%;background:#427a67;box-shadow:0 0 0 2px #617b7a40}
+.housing-console small {font-size:clamp(.5rem,.9vw,.7rem);white-space:nowrap}
+.vent {flex:1;height:10px;border-radius:2px;background:repeating-linear-gradient(90deg,#334b59 0 2px,transparent 2px 5px);opacity:.65}
+.housing-foot {height:7px;border-radius:0 0 3px 3px;background:linear-gradient(#667a87,#334651);margin:2px -4px -12px}
+.studio-plinth {position:absolute;z-index:0;left:0;right:0;bottom:12px;height:28px;border-radius:50%;background:radial-gradient(ellipse,#07121bbb 20%,#7894a633 65%,transparent 74%);transform:scaleY(.8)}
+.machine-foot {color:#c4d5e3;border-color:#abc6dd36;font-size:.8rem}
+.control {min-width:0}
+@media(max-width:700px){.desk{grid-template-columns:1fr;gap:12px}.studio{padding:28px 0 20px}.machine-housing{width:min(100%,460px)}.machine-foot{font-size:.75rem}.housing-foot{margin-bottom:-8px}}
