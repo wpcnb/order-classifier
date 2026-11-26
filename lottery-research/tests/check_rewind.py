@@ -120,6 +120,25 @@ def check(base):
         reopened.get_by_text("本机存档备份",exact=True).click()
         assert reopened.locator("#history li").count()==10
         assert reopened.locator("#archive-list").count()==0
+        # Responsive placement: analysis stays inside the right control pane.
+        assert reopened.locator(".control .recent-frequency").count()==1
+        assert reopened.locator(".desk-history #history").count()==1
+        for width in (390, 1024, 1440):
+            reopened.set_viewport_size({"width":width,"height":900})
+            reopened.wait_for_function("document.documentElement.scrollWidth <= innerWidth")
+            machine=reopened.locator(".desk > .machine").bounding_box()
+            control=reopened.locator(".desk > .control").bounding_box()
+            frequency=reopened.locator(".recent-frequency").bounding_box()
+            result_title=reopened.locator("#result-title").bounding_box()
+            log=reopened.locator(".desk-history").bounding_box()
+            assert frequency["y"] < result_title["y"]
+            if width > 700:
+                assert control["x"] >= machine["x"]+machine["width"]-1
+                assert log["x"] < control["x"]
+                assert log["y"] >= machine["y"]+machine["height"]-1
+            else:
+                assert control["y"] >= machine["y"]+machine["height"]-1
+                assert log["y"] >= control["y"]+control["height"]-1
         reopened.close()
         print(f"PASS mobile rewind, pause, half speed, two separate 007 draws and archive {issue} {expected}")
         browser.close()

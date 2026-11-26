@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-recent-frequency">
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-compact-desk">
   <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-recent-ten-only"></script>
   <script type="module" src="./lottery-research/history-view.mjs?v=20261126-recent-ten-only"></script>
 <style>
@@ -69,6 +69,32 @@
       <div class="machine-foot"><span>TOPAZE</span><small>实机风格 · 非测绘模型</small></div>
     </section>
     <section class="control" aria-labelledby="result-title">
+      <section class="recent-frequency" aria-labelledby="recent-frequency-title">
+        <h3 id="recent-frequency-title">最近10次模拟 · 最高频统计</h3>
+        <p id="recent-frequency-sample" role="status">暂无样本（0/10次）</p>
+        <div class="frequency-cards">
+          <div class="frequency-card">
+            <h4>各位最高频组合</h4>
+            <output id="recent-position-mode">—</output>
+            <small id="recent-position-detail">百位、十位、个位分别统计</small>
+          </div>
+          <div class="frequency-card">
+            <h4>最高频和值</h4>
+            <output id="recent-sum-mode">—</output>
+            <small id="recent-sum-detail">统计和值出现次数</small>
+          </div>
+          <div class="frequency-card">
+            <h4>整体最高频单个数字</h4>
+            <output id="recent-digit-mode">—</output>
+            <small id="recent-digit-detail">合并三位数字，满10次共30个</small>
+          </div>
+        </div>
+        <p class="frequency-note">仅统计最近已完成的本机模拟；并列最高频全部展示。历史回放不计入，统计频数不代表未来开奖优势或投注建议。</p>
+        <details><summary>查看数字与和值频数明细</summary>
+          <div class="frequency-table-wrap"><table class="frequency-table"><caption>各位置及合计频数</caption><thead><tr><th scope="col">数字</th><th scope="col">百位</th><th scope="col">十位</th><th scope="col">个位</th><th scope="col">合计</th></tr></thead><tbody id="recent-digit-table"></tbody></table></div>
+          <p id="recent-sum-table">暂无和值</p>
+        </details>
+      </section>
       <h2 id="result-title">本次模拟号码</h2>
       <div class="output" aria-hidden="true">
         <div><small>百位</small><b>–</b></div><div><small>十位</small><b>–</b></div><div><small>个位</small><b>–</b></div>
@@ -90,42 +116,16 @@
       </fieldset>
       <noscript>请启用 JavaScript 后开始摇奖。</noscript>
     </section>
-  </div>
-  <section class="history" aria-labelledby="history-title">
+    <section class="history desk-history" aria-labelledby="history-title">
     <h2 id="history-title">最近10次模拟记录</h2>
     <p id="empty-history">暂无已完成的模拟记录。历史回放不计入。</p>
     <p id="archive-status" role="status"></p><ol id="history"></ol>
-    <section class="recent-frequency" aria-labelledby="recent-frequency-title">
-      <h3 id="recent-frequency-title">最近10次模拟 · 最高频统计</h3>
-      <p id="recent-frequency-sample" role="status">暂无样本（0/10次）</p>
-      <div class="frequency-cards">
-        <div class="frequency-card">
-          <h4>各位最高频组合</h4>
-          <output id="recent-position-mode">—</output>
-          <small id="recent-position-detail">百位、十位、个位分别统计</small>
-        </div>
-        <div class="frequency-card">
-          <h4>最高频和值</h4>
-          <output id="recent-sum-mode">—</output>
-          <small id="recent-sum-detail">统计和值出现次数</small>
-        </div>
-        <div class="frequency-card">
-          <h4>整体最高频单个数字</h4>
-          <output id="recent-digit-mode">—</output>
-          <small id="recent-digit-detail">合并三位数字，满10次共30个</small>
-        </div>
-      </div>
-      <p class="frequency-note">仅统计最近已完成的本机模拟；并列最高频全部展示。历史回放不计入，统计频数不代表未来开奖优势或投注建议。</p>
-      <details><summary>查看数字与和值频数明细</summary>
-        <div class="frequency-table-wrap"><table class="frequency-table"><caption>各位置及合计频数</caption><thead><tr><th scope="col">数字</th><th scope="col">百位</th><th scope="col">十位</th><th scope="col">个位</th><th scope="col">合计</th></tr></thead><tbody id="recent-digit-table"></tbody></table></div>
-        <p id="recent-sum-table">暂无和值</p>
-      </details>
-    </section>
     <details><summary>本机存档备份</summary>
       <p>页面仅显示最近10次，较早记录不展示但保留在当前浏览器（最多1000条），可导出完整备份。清除站点数据或换设备不会自动恢复。</p>
       <button id="archive-export" type="button" disabled>导出完整存档（JSON）</button>
     </details>
-  </section>
+    </section>
+  </div>
   <section class="history" aria-labelledby="physics-title">
     <h2 id="physics-title">刚体碰撞实验室</h2>
     <p>独立的透明实验箱，无编号球体。观察重力、碰撞、反弹与旋转，不产生开奖号码或写入模拟存档。</p>
