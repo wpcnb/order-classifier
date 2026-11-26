@@ -1,6 +1,10 @@
 import {drawNumber} from "./draw-machine.mjs";
+import {playFrames} from "./playback.mjs";
 
 const button = document.querySelector("#draw");
+const pauseButton = document.querySelector("#pause");
+const speed = document.querySelector("#playback-speed");
+let playback = null;
 const status = document.querySelector(".status");
 const indicator = document.querySelector("#machine-state");
 const outputs = [...document.querySelectorAll(".output b")];
@@ -32,6 +36,9 @@ function resetBalls() {
 }
 function setBusy(busy) {
   button.disabled = busy;
+  speed.disabled = busy;
+  pauseButton.disabled = !busy;
+  pauseButton.textContent = "暂停动画";
   document.querySelector("#replay").disabled = busy;
   document.querySelector("#replay-issue").disabled = busy;
 }
@@ -46,7 +53,10 @@ function finish(number, issue) {
   indicator.textContent = issue ? "回放完成" : "已出球";
   status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" : "本次模拟号码为 " + number + "。";
   button.firstChild.textContent = issue ? "开始摇奖 " : "再摇一次 ";
+  const focusOnPause = document.activeElement === pauseButton;
+  playback = null;
   setBusy(false);
+  if (focusOnPause) (issue ? document.querySelector("#replay") : button).focus({preventScroll:true});
 }
 export function replayDraw(row) {
   if (!button.disabled) animate(row.number,row.issue);
@@ -63,7 +73,10 @@ function startDraw() {
   animate(number,null);
 }
 function animate(number,issue) {
+  const trigger = issue ? document.querySelector("#replay") : button;
+  const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
   setBusy(true);
+  if (moveFocus) pauseButton.focus({preventScroll:true});
   document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : "本次模拟号码";
   resetBalls();
   for (const outlet of outlets) outlet.textContent = "";
@@ -71,9 +84,7 @@ function animate(number,issue) {
   indicator.textContent = "混球中";
   status.textContent = issue ? "正在回放已公布的号码。" : "正在混球，准备依次出球。";
   let shown = 0;
-  const start = performance.now();
-  function frame(now) {
-    const elapsed = now - start;
+  playback = playFrames(Number(speed.value), elapsed => {
     const next = reducedMotion.matches ? 3 : Math.min(3, Math.max(0, 1 + Math.floor((elapsed-1100)/600)));
     while (shown < next) {
       outputs[shown].textContent = number[shown];
@@ -84,7 +95,7 @@ function animate(number,issue) {
       indicator.textContent = places[shown] + "出球";
       shown++;
     }
-    if (shown === 3) { finish(number,issue); return; }
+    if (shown === 3) { finish(number,issue); return true; }
     for (let g=shown; g<groups.length; g++) {
       groups[g].forEach((ball,i) => {
         const angle = i * 2.4 + g + elapsed * (.0035 + i * .00012);
@@ -96,10 +107,27 @@ function animate(number,issue) {
         position(ball,x + (50-x)*lift,y + (5-y)*lift);
       });
     }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+    return false;
+  });
 }
+pauseButton.addEventListener("click", () => {
+  if (!playback) return;
+  if (playback.paused) {
+    playback.resume();
+    pauseButton.textContent = "暂停动画";
+    indicator.textContent = "混球中";
+    status.textContent = "已从暂停处继续出球。";
+  } else {
+    playback.pause();
+    pauseButton.textContent = "继续动画";
+    indicator.textContent = "已暂停";
+    const revealed = outputs.filter(slot => slot.textContent !== "–").map(slot => slot.textContent);
+    status.textContent = revealed.length ? "动画已暂停，已出 " + revealed.join("、") + "。" : "动画已暂停，尚未出球。";
+  }
+});
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches && playback?.paused) playback.resume();
+});
 button.addEventListener("click", startDraw);
 button.disabled = false;
 status.textContent = "准备就绪。";

@@ -59,3 +59,8 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .replay-controls { display:flex; flex-wrap:wrap; gap:8px; margin:5px 0 }
 .replay-controls select { max-width:100%; min-height:42px; flex:1; color:#152f29; background:#fffef9; border:1px solid #acb9aa; border-radius:6px; font:inherit }
 #replay { background:#e7eddb; border-color:#cad5bd; padding:8px 14px }
+.playback-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:0 0 10px; font-size:.9rem }
+.playback-controls label { color:#526159 }
+.playback-controls select,#pause { min-height:44px; border:1px solid #acb9aa; border-radius:6px; padding:6px 12px; background:#fffef9; color:#203b30; font:inherit }
+#pause { margin-left:auto }
+@media (prefers-reduced-motion:reduce) { .playback-controls { display:none } }
