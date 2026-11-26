@@ -1,7 +1,7 @@
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
 import {drawSum} from "./draw-sum.mjs";
-import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs";
+import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=all-saved";
 import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs";
 
 const button = document.querySelector("#draw");
@@ -29,7 +29,7 @@ function renderArchive(message) {
     return li;
   }
   history.replaceChildren(...records.slice(0,10).map(item));
-  renderRecentFrequency(document,recentFrequency(records.slice(0,10).map(row=>row.number)));
+  renderRecentFrequency(document,recentFrequency(records.map(row=>row.number)));
   document.querySelector("#empty-history").hidden = records.length !== 0;
   exportButton.disabled = !records.length;
   archiveStatus.textContent = message + " 显示最近 " + Math.min(records.length,10) + " 条，时间为北京时间。";

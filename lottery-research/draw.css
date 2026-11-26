@@ -217,3 +217,7 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
   .desk{grid-template-columns:minmax(0,1fr);grid-template-areas:"machine" "control" "history";grid-template-rows:auto auto auto;gap:10px}
   .desk-history #history{grid-template-columns:1fr}
 }
+
+/* Numeric-only compact archive summary. */
+.desk .frequency-card{padding:7px 9px;min-height:34px}
+.desk .frequency-note{margin:5px 0 0}
