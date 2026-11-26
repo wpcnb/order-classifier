@@ -1,4 +1,5 @@
-import {createMachineScene} from "./view3d-scene.mjs";
+import {createMachineScene} from "./view3d-scene.mjs?v=physics1";
+import {loadRapier} from "./rapier-loader.mjs";
 
 // Fixed release, loaded only when a person chooses the optional view.
 const ENGINE_URL="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js";
@@ -10,10 +11,20 @@ const status=document.querySelector("#view3d-status");
 const cameras=[...document.querySelectorAll("[data-camera]")];
 let controller=null;
 let loading=false;
+const physicsButton=document.querySelector("#view3d-physics");
+const physicsStatus=document.querySelector("#view3d-physics-status");
+let physicsLoading=false,physicsEnabled=false;
+function resetPhysicsButton(message){
+  physicsEnabled=false;
+  physicsButton.setAttribute("aria-pressed","false");
+  physicsButton.textContent="启用三仓碰撞演示";
+  physicsStatus.textContent=message;
+}
 
 function fallback(message) {
   controller?.dispose();
   controller=null;
+  resetPhysicsButton("默认几何动画；可启用独立刚体演示。");
   stage.hidden=true;
   source.hidden=false;
   toggle.setAttribute("aria-pressed","false");
@@ -58,5 +69,38 @@ toggle.addEventListener("click",async()=>{
     clearTimeout(timer);
     loading=false;
     toggle.disabled=false;
+  }
+});
+
+physicsButton.addEventListener("click",async()=>{
+  if(!controller||physicsLoading)return;
+  if(physicsEnabled){
+    controller.setPhysics(null,null);
+    resetPhysicsButton("碰撞演示已关闭；仍使用几何动画。");
+    return;
+  }
+  const target=controller;
+  physicsLoading=true;
+  physicsButton.disabled=true;
+  physicsStatus.textContent="正在加载碰撞演示…";
+  let timer;
+  try{
+    const R=await Promise.race([loadRapier(),new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(Error("Physics load timeout")),15000);
+    })]);
+    if(controller!==target)return;
+    target.setPhysics(R,()=>{
+      if(controller===target)resetPhysicsButton("刚体演示中断，已恢复几何动画。");
+    });
+    physicsEnabled=true;
+    physicsButton.setAttribute("aria-pressed","true");
+    physicsButton.textContent="关闭三仓碰撞演示";
+    physicsStatus.textContent="已启用 · 碰撞与约束仅用于混球展示，不决定号码。";
+  }catch{
+    if(controller===target)resetPhysicsButton("碰撞引擎不可用，原三维动画不受影响。");
+  }finally{
+    clearTimeout(timer);
+    physicsLoading=false;
+    physicsButton.disabled=false;
   }
 });

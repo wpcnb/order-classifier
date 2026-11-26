@@ -28,3 +28,27 @@ for(const bounce of [.2,.55,.8]){
 }
 assert.throws(()=>createExperiment(R,1.1),RangeError);
 console.log("PASS: three restitution settings, 1440 real WASM steps, bounds, finite poses, lifecycle");
+
+import {createChamberPhysics} from "../chamber-physics.mjs";
+import {CHAMBER_CENTERS,CHAMBER_Y,CHAMBER_RADIUS,BALL_RADIUS} from "../view3d-state.mjs";
+const chambers=createChamberPhysics(R);
+const first=chambers.snapshot();
+assert.equal(first.length,3);
+for(let frame=0;frame<=140;frame++){
+  chambers.advance(frame*1000/60+0.001);
+  const state=chambers.snapshot();
+  for(let i=0;i<3;i++){
+    assert.equal(state[i].length,10);
+    for(const pose of state[i]){
+      assert.ok([...pose.p,...pose.q].every(Number.isFinite));
+      assert.ok(Math.hypot(pose.p[0]-CHAMBER_CENTERS[i],pose.p[1]-CHAMBER_Y,pose.p[2])<=CHAMBER_RADIUS-BALL_RADIUS+1e-5);
+    }
+  }
+}
+assert.notDeepEqual(chambers.snapshot(),first);
+assert.equal(chambers.steps,140);
+chambers.advance(20000);
+assert.equal(chambers.steps,140);
+chambers.dispose();chambers.dispose();
+assert.throws(()=>chambers.snapshot());
+console.log("PASS: 30 chamber bodies, fixed steps, confinement, lifecycle");

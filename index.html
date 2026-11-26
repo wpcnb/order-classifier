@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
   <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-physics1">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-archive-reload"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-archive-reload"></script>
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-chamber-physics"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-chamber-physics"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -25,7 +25,7 @@
 <main class="container">
   <h1>福彩 <span>3D</span> 模拟摇奖机</h1>
   <p class="intro">按百位、十位、个位依次出球，模拟一次完整摇奖。</p>
-  <script type="module" src="./lottery-research/view3d-ui.mjs"></script>
+  <script type="module" src="./lottery-research/view3d-ui.mjs?v=20261126-chamber-physics"></script>
   <div class="desk">
     <section class="machine" aria-label="三色球气动搅拌示意">
       <div class="machine-head"><strong>气动摇奖台</strong><span class="indicator" id="machine-state">待机</span></div>
@@ -41,7 +41,9 @@
           <button type="button" data-camera="right" aria-pressed="false">右侧</button>
           <button type="button" data-camera="top" aria-pressed="false">斜上方</button>
         </div>
-        <small>三维展示与平面动画同步，不参与随机抽样；结构、球路为示意。</small>
+        <div class="view3d-cameras"><button id="view3d-physics" type="button" aria-pressed="false">启用三仓碰撞演示</button></div>
+        <small id="view3d-physics-status" role="status">默认几何动画；可启用独立刚体演示。</small>
+        <small>三维展示与原摇奖同步，碰撞和球路仅供演示，不决定出球号码。</small>
       </div>
       <div class="studio" aria-hidden="true">
         <div class="studio-backdrop"><i></i><i></i><i></i></div><div class="studio-sign"><b>3D</b><span>气动摇奖设备演示</span></div>

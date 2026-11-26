@@ -1,7 +1,7 @@
 import {createExperiment,DT,MAX_STEPS} from "./physics-world.mjs";
 import {createExperimentRenderer} from "./physics-render.mjs";
+import {loadRapier} from "./rapier-loader.mjs";
 const THREE="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js";
-const RAPIER="https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/rapier.mjs";
 const $=id=>document.getElementById(id);
 const open=$("physics-open"),panel=$("physics-panel"),mount=$("physics-canvas");
 const status=$("physics-status"),readout=$("physics-readout"),start=$("physics-start");
@@ -64,11 +64,7 @@ open.addEventListener("click",async()=>{
   loading=true;open.disabled=true;status.textContent="正在加载独立物理引擎…";
   let timer;
   try{
-    const deps=Promise.all([import(THREE),import(RAPIER)]).then(async([T,R])=>{
-      const library=R.default??R;
-      await library.init();
-      return [T,library];
-    });
+    const deps=Promise.all([import(THREE),loadRapier()]);
     const [T,R]=await Promise.race([deps,new Promise((_,reject)=>{
       timer=setTimeout(()=>reject(new Error("Dependency timeout")),15000);
     })]);

@@ -1,4 +1,5 @@
 import {CHAMBER_CENTERS, CHAMBER_Y, CHAMBER_RADIUS, BALL_RADIUS, mapBall, outletDigit} from "./view3d-state.mjs";
+import {createChamberPhysics} from "./chamber-physics.mjs";
 
 // Everything in this file is a read-only representation of the existing UI.
 export function createMachineScene(T, mount, source, onFailure) {
@@ -11,6 +12,8 @@ export function createMachineScene(T, mount, source, onFailure) {
   let closed = false;
   let pending = 0;
   let observer, resizeObserver;
+  let physicsEngine=null, physical=null, physicalRun=null, physicsFailure=null;
+  const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)");
   const track = value => (resources.add(value),value);
   const material = options => track(new T.MeshStandardMaterial(options));
   const mesh = (geometry, mat, parent, x=0,y=0,z=0) => {
@@ -155,16 +158,55 @@ export function createMachineScene(T, mount, source, onFailure) {
     light(0xffdb9a,.8,2,5,8);
   }
 
+  function releasePhysics(){
+    physical?.dispose();physical=null;physicalRun=null;
+    mount.dataset.physicsSteps="0";
+  }
+  function setPhysics(engine,onError){
+    releasePhysics();
+    physicsEngine=engine;
+    physicsFailure=onError;
+    mount.dataset.physicsEnabled=String(!!engine);
+    schedule();
+  }
+  function physicalState(){
+    const phase=source.dataset.visualPhase;
+    if(!physicsEngine||reduceMotion.matches||!["mixing","paused"].includes(phase)){
+      if(physical)releasePhysics();
+      return null;
+    }
+    try{
+      const run=source.dataset.visualRun;
+      if(!physical||physicalRun!==run){
+        releasePhysics();
+        physical=createChamberPhysics(physicsEngine);
+        physicalRun=run;
+      }
+      if(phase==="mixing")physical.advance(Number(source.dataset.visualElapsed));
+      mount.dataset.physicsSteps=String(physical.steps);
+      return physical.snapshot();
+    }catch(error){
+      const callback=physicsFailure;
+      setPhysics(null,null);
+      callback?.(error);
+      return null;
+    }
+  }
   function sync() {
+    const poses=physicalState();
     const chambers=source.querySelectorAll(".glass");
     const necks=source.querySelectorAll(".neck");
     for(let index=0;index<3;index++){
       const nodes=chambers[index].querySelectorAll(".ball");
+      const revealed=outletDigit(necks[index].textContent);
       for(let digit=0;digit<10;digit++){
         const node=nodes[digit];
         const ball=balls[index][digit];
         ball.visible=node.style.visibility!=="hidden";
-        ball.position.set(...mapBall(index,digit,node.style.left,node.style.top));
+        const pose=revealed===null?poses?.[index]?.[digit]:null;
+        ball.position.set(...(pose?pose.p:mapBall(index,digit,node.style.left,node.style.top)));
+        if(pose)ball.children[0].quaternion.set(...pose.q);
+        else ball.children[0].quaternion.identity();
         if(ball.visible)updateLabels(ball);
       }
       const digit=outletDigit(necks[index].textContent);
@@ -216,6 +258,9 @@ export function createMachineScene(T, mount, source, onFailure) {
     closed=true;
     if(pending)cancelAnimationFrame(pending);
     observer?.disconnect();
+    releasePhysics();
+    physicsEngine=null;
+    mount.dataset.physicsEnabled="false";
     resizeObserver?.disconnect();
     window.removeEventListener("resize",resize);
     canvas.removeEventListener("webglcontextlost",lost);
@@ -238,13 +283,13 @@ export function createMachineScene(T, mount, source, onFailure) {
     sync();
     renderer.render(scene,camera);
     observer=new MutationObserver(schedule);
-    observer.observe(source,{subtree:true,attributes:true,attributeFilter:["style"],childList:true,characterData:true});
+    observer.observe(source,{subtree:true,attributes:true,attributeFilter:["style","data-visual-phase","data-visual-run","data-visual-elapsed"],childList:true,characterData:true});
     if(typeof ResizeObserver==="function"){
       resizeObserver=new ResizeObserver(resize);
       resizeObserver.observe(mount);
     }else window.addEventListener("resize",resize);
     canvas.addEventListener("webglcontextlost",lost);
-    return {setView,dispose};
+    return {setView,setPhysics,dispose};
   }catch(error){
     dispose();
     throw error;
