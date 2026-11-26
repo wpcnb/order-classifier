@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
   <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-recent-frequency">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-recent-frequency"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-recent-frequency"></script>
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-recent-ten-only"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-recent-ten-only"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -92,7 +92,7 @@
     </section>
   </div>
   <section class="history" aria-labelledby="history-title">
-    <h2 id="history-title">最近模拟记录</h2>
+    <h2 id="history-title">最近10次模拟记录</h2>
     <p id="empty-history">暂无已完成的模拟记录。历史回放不计入。</p>
     <p id="archive-status" role="status"></p><ol id="history"></ol>
     <section class="recent-frequency" aria-labelledby="recent-frequency-title">
@@ -121,10 +121,9 @@
         <p id="recent-sum-table">暂无和值</p>
       </details>
     </section>
-    <details><summary>本机模拟存档（最多1000条）</summary>
-      <p>仅保存在当前浏览器；清除站点数据或换设备不会自动恢复。旧版未保存的记录无法补回。</p>
-      <ol id="archive-list" style="max-height:24rem;overflow:auto;overflow-wrap:anywhere"></ol>
-      <button id="archive-export" type="button" disabled>导出存档（JSON）</button>
+    <details><summary>本机存档备份</summary>
+      <p>页面仅显示最近10次，较早记录不展示但保留在当前浏览器（最多1000条），可导出完整备份。清除站点数据或换设备不会自动恢复。</p>
+      <button id="archive-export" type="button" disabled>导出完整存档（JSON）</button>
     </details>
   </section>
   <section class="history" aria-labelledby="physics-title">

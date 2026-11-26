@@ -18,7 +18,6 @@ const outlets = [...document.querySelectorAll(".neck")];
 const history = document.querySelector("#history");
 const sumDisplay = document.querySelector("#draw-sum");
 const archiveStatus = document.querySelector("#archive-status");
-const archiveList = document.querySelector("#archive-list");
 const exportButton = document.querySelector("#archive-export");
 const formatTime = new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
 let records = [];
@@ -31,10 +30,9 @@ function renderArchive(message) {
   }
   history.replaceChildren(...records.slice(0,10).map(item));
   renderRecentFrequency(document,recentFrequency(records.slice(0,10).map(row=>row.number)));
-  archiveList.replaceChildren(...records.map(item));
   document.querySelector("#empty-history").hidden = records.length !== 0;
   exportButton.disabled = !records.length;
-  archiveStatus.textContent = message + " 当前 " + records.length + " 条，时间为北京时间。";
+  archiveStatus.textContent = message + " 显示最近 " + Math.min(records.length,10) + " 条，时间为北京时间。";
 }
 function restoreArchive() {
   try {

@@ -87,7 +87,8 @@ def check(base):
         page.wait_for_function("document.querySelectorAll('#history li').length === 2")
         assert history.all_text_contents() == saved
         assert result() == "007" and page.locator("#draw-sum").inner_text() == "本次和值：7"
-        assert page.locator("#archive-list li").count() == 2
+        assert page.locator("#archive-list").count() == 0
+        assert page.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records.length") == 2
         assert page.locator("#recent-position-mode").inner_text() == "007"
         assert page.locator("#recent-sum-mode").inner_text() == "7"
         assert page.locator("#recent-digit-mode").inner_text() == "0"
@@ -112,6 +113,13 @@ def check(base):
         assert reopened.locator("#recent-digit-mode").inner_text()=="0"
         assert "12 / 30" in reopened.locator("#recent-digit-detail").inner_text()
         assert reopened.locator("#recent-digit-table tr").count()==10
+        assert reopened.locator("#history li").count()==10
+        assert reopened.locator("#archive-list").count()==0
+        assert not any(x.startswith("999 ·") for x in reopened.locator("#history li").all_text_contents())
+        assert reopened.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records.length")==11
+        reopened.get_by_text("本机存档备份",exact=True).click()
+        assert reopened.locator("#history li").count()==10
+        assert reopened.locator("#archive-list").count()==0
         reopened.close()
         print(f"PASS mobile rewind, pause, half speed, two separate 007 draws and archive {issue} {expected}")
         browser.close()
