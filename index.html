@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-studio2">
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-3d1">
   <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-archive-reload"></script>
   <script type="module" src="./lottery-research/history-view.mjs?v=20261126-archive-reload"></script>
 <style>
@@ -25,9 +25,24 @@
 <main class="container">
   <h1>福彩 <span>3D</span> 模拟摇奖机</h1>
   <p class="intro">按百位、十位、个位依次出球，模拟一次完整摇奖。</p>
+  <script type="module" src="./lottery-research/view3d-ui.mjs"></script>
   <div class="desk">
     <section class="machine" aria-label="三色球气动搅拌示意">
       <div class="machine-head"><strong>气动摇奖台</strong><span class="indicator" id="machine-state">待机</span></div>
+      <div class="view-toolbar">
+        <button id="view3d-toggle" type="button" aria-pressed="false" aria-controls="view3d-stage">切换三维观察</button>
+        <span id="view3d-status" role="status">平面演示 · 可选三维观察</span>
+      </div>
+      <div id="view3d-stage" hidden>
+        <div id="view3d-canvas" role="img" aria-label="三仓气动摇奖机三维示意"></div>
+        <div class="view3d-cameras" role="group" aria-label="观察角度">
+          <button type="button" data-camera="front" aria-pressed="true">正面</button>
+          <button type="button" data-camera="left" aria-pressed="false">左侧</button>
+          <button type="button" data-camera="right" aria-pressed="false">右侧</button>
+          <button type="button" data-camera="top" aria-pressed="false">斜上方</button>
+        </div>
+        <small>三维展示与平面动画同步，不参与随机抽样；结构、球路为示意。</small>
+      </div>
       <div class="studio" aria-hidden="true">
         <div class="studio-backdrop"><i></i><i></i><i></i></div><div class="studio-sign"><b>3D</b><span>气动摇奖设备演示</span></div>
         <div class="machine-housing">

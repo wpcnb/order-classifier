@@ -26,6 +26,12 @@ jobs:
           python3 -m http.server 8124 --bind 127.0.0.1 >/tmp/archive-http.log 2>&1 &
           curl --retry 5 --retry-all-errors --fail --silent http://127.0.0.1:8124/ >/dev/null
           python3 lottery-research/tests/check_rewind.py http://127.0.0.1:8124
+      - name: Optional 3D scene and fallback regression
+        run: |
+          npm install --prefix /tmp/fc3d-three-test --no-save --ignore-scripts --no-audit --no-fund three@0.186.1
+          python3 -m http.server 8125 --bind 127.0.0.1 >/tmp/view3d-http.log 2>&1 &
+          curl --retry 5 --retry-all-errors --fail --silent http://127.0.0.1:8125/ >/dev/null
+          python3 lottery-research/tests/check_3d.py http://127.0.0.1:8125 /tmp/fc3d-three-test/node_modules/three/build
       - name: Verify the simulator loads through all public bookmarks
         shell: bash
         run: |
