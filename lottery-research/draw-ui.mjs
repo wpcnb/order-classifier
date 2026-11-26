@@ -3,8 +3,11 @@ import {playFrames} from "./playback.mjs";
 
 const button = document.querySelector("#draw");
 const pauseButton = document.querySelector("#pause");
+const restartButton = document.querySelector("#restart");
+const archiveButton = document.querySelector("#replay");
 const speed = document.querySelector("#playback-speed");
 let playback = null;
+let currentDraw = null;
 const status = document.querySelector(".status");
 const indicator = document.querySelector("#machine-state");
 const outputs = [...document.querySelectorAll(".output b")];
@@ -39,14 +42,16 @@ function setBusy(busy) {
   speed.disabled = busy;
   pauseButton.disabled = !busy;
   pauseButton.textContent = "暂停动画";
-  document.querySelector("#replay").disabled = busy;
+  archiveButton.disabled = busy;
   document.querySelector("#replay-issue").disabled = busy;
 }
-function finish(number, issue) {
-  if (!issue) {
+function finish(draw, trigger) {
+  const {number, issue} = draw;
+  if (!issue && !draw.recorded) {
     const item = document.createElement("li");
     item.textContent = number;
     history.prepend(item);
+    draw.recorded = true;
     if (history.children.length > 10) history.lastElementChild.remove();
     document.querySelector("#empty-history").hidden = true;
   }
@@ -56,10 +61,10 @@ function finish(number, issue) {
   const focusOnPause = document.activeElement === pauseButton;
   playback = null;
   setBusy(false);
-  if (focusOnPause) (issue ? document.querySelector("#replay") : button).focus({preventScroll:true});
+  if (focusOnPause) trigger.focus({preventScroll:true});
 }
 export function replayDraw(row) {
-  if (!button.disabled) animate(row.number,row.issue);
+  if (!button.disabled) animate({number:row.number, issue:row.issue}, archiveButton);
 }
 function startDraw() {
   if (button.disabled) return;
@@ -70,14 +75,18 @@ function startDraw() {
     status.textContent = "浏览器随机数服务不可用，请刷新后重试。";
     return;
   }
-  animate(number,null);
+  animate({number, issue:null, recorded:false}, button);
 }
-function animate(number,issue) {
-  const trigger = issue ? document.querySelector("#replay") : button;
+function animate(draw, trigger) {
+  playback?.pause();
+  currentDraw = draw;
+  restartButton.disabled = false;
+  const {number, issue} = draw;
   const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
   setBusy(true);
   if (moveFocus) pauseButton.focus({preventScroll:true});
-  document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : "本次模拟号码";
+  const simulationTitle = trigger === restartButton ? "重播本次模拟" : "本次模拟号码";
+  document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : simulationTitle;
   resetBalls();
   for (const outlet of outlets) outlet.textContent = "";
   for (const slot of outputs) slot.textContent = "–";
@@ -95,7 +104,7 @@ function animate(number,issue) {
       indicator.textContent = places[shown] + "出球";
       shown++;
     }
-    if (shown === 3) { finish(number,issue); return true; }
+    if (shown === 3) { finish(draw,trigger); return true; }
     for (let g=shown; g<groups.length; g++) {
       groups[g].forEach((ball,i) => {
         const angle = i * 2.4 + g + elapsed * (.0035 + i * .00012);
@@ -110,6 +119,9 @@ function animate(number,issue) {
     return false;
   });
 }
+restartButton.addEventListener("click", () => {
+  if (currentDraw) animate(currentDraw, restartButton);
+});
 pauseButton.addEventListener("click", () => {
   if (!playback) return;
   if (playback.paused) {
