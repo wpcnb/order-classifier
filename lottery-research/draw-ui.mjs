@@ -66,6 +66,11 @@ exportButton.addEventListener("click",()=>{
 window.addEventListener("storage",event=>{if(event.key===ARCHIVE_KEY||event.key===null)restoreArchive();});
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const places = ["百位", "十位", "个位"];
+const visualSource = document.querySelector(".machine .studio");
+let visualRun = 0;
+visualSource.dataset.visualPhase = "idle";
+visualSource.dataset.visualRun = "0";
+visualSource.dataset.visualElapsed = "0";
 // Coordinates in each viewing window, ordered from the lowest row upwards.
 const resting = [[30,82],[45,85],[60,84],[73,78],[21,70],[36,68],[51,70],[65,65],[43,55],[57,54]];
 const groups = [...document.querySelectorAll(".glass")].map(glass =>
@@ -97,6 +102,7 @@ function setBusy(busy) {
   document.querySelector("#replay-issue").disabled = busy;
 }
 function finish(draw, trigger) {
+  visualSource.dataset.visualPhase = "idle";
   const {number, issue} = draw;
   const sum = drawSum(number);
   sumDisplay.textContent = "本次和值：" + sum;
@@ -130,6 +136,9 @@ function startDraw() {
 function animate(draw, trigger) {
   playback?.pause();
   currentDraw = draw;
+  visualSource.dataset.visualRun = String(++visualRun);
+  visualSource.dataset.visualElapsed = "0";
+  visualSource.dataset.visualPhase = "mixing";
   restartButton.disabled = false;
   const {number, issue} = draw;
   const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
@@ -145,6 +154,8 @@ function animate(draw, trigger) {
   status.textContent = issue ? "正在回放已公布的号码。" : "正在混球，准备依次出球。";
   let shown = 0;
   playback = playFrames(Number(speed.value), elapsed => {
+    visualSource.dataset.visualElapsed = String(Math.max(0,Math.min(elapsed,2300)));
+    if (reducedMotion.matches) visualSource.dataset.visualPhase = "idle";
     const next = reducedMotion.matches ? 3 : Math.min(3, Math.max(0, 1 + Math.floor((elapsed-1100)/600)));
     while (shown < next) {
       outputs[shown].textContent = number[shown];
@@ -177,11 +188,13 @@ pauseButton.addEventListener("click", () => {
   if (!playback) return;
   if (playback.paused) {
     playback.resume();
+    visualSource.dataset.visualPhase = "mixing";
     pauseButton.textContent = "暂停动画";
     indicator.textContent = "混球中";
     status.textContent = "已从暂停处继续出球。";
   } else {
     playback.pause();
+    visualSource.dataset.visualPhase = "paused";
     pauseButton.textContent = "继续动画";
     indicator.textContent = "已暂停";
     const revealed = outputs.filter(slot => slot.textContent !== "–").map(slot => slot.textContent);

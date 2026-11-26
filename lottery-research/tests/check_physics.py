@@ -48,6 +48,35 @@ def check(base,root):
         page.wait_for_function("document.querySelectorAll('#history li').length===1")
         assert page.locator("#history li").all_text_contents()==saved
         print("PASS: physics dependency failure, WASM/WebGL, single-step, reset, unchanged archive")
+        # Enable the optional collision presentation on the actual three-chamber scene.
+        page.emulate_media(reduced_motion="no-preference")
+        page.locator("#view3d-toggle").click()
+        page.wait_for_function("document.querySelector('#view3d-toggle').getAttribute('aria-pressed')==='true'",timeout=25000)
+        page.locator("#view3d-physics").click()
+        page.wait_for_function("document.querySelector('#view3d-physics').getAttribute('aria-pressed')==='true'",timeout=25000)
+        assert page.locator("#history li").all_text_contents()==saved
+        page.evaluate("""Object.defineProperty(crypto,'getRandomValues',{value(bytes){
+          bytes.set([0,0,7]); return bytes;
+        }});""")
+        page.select_option("#playback-speed","0.5")
+        page.locator("#draw").click()
+        page.wait_for_function("Number(document.querySelector('#view3d-canvas').dataset.physicsSteps)>0",timeout=15000)
+        page.locator("#pause").click()
+        page.wait_for_function("document.querySelector('.machine .studio').dataset.visualPhase==='paused'")
+        page.wait_for_timeout(100)
+        steps=page.locator("#view3d-canvas").get_attribute("data-physics-steps")
+        page.wait_for_timeout(150)
+        assert page.locator("#view3d-canvas").get_attribute("data-physics-steps")==steps
+        page.locator("#pause").click()
+        page.wait_for_function("document.querySelectorAll('#history li').length===2",timeout=15000)
+        assert "".join(page.locator(".output b").all_text_contents())=="007"
+        assert page.locator("#history li").first.inner_text().startswith("007 · 和值 7 ·")
+        page.locator("#view3d-physics").click()
+        assert page.locator("#view3d-physics").get_attribute("aria-pressed")=="false"
+        page.reload()
+        page.wait_for_function("document.querySelectorAll('#history li').length===2")
+        assert "".join(page.locator(".output b").all_text_contents())=="007"
+        print("PASS: integrated chamber physics, pause, exact sampled outcome, archive reload")
         browser.close()
 
 if __name__=="__main__":
