@@ -42,6 +42,19 @@ def check(base, library):
         page.locator('[data-camera="left"]').click()
         assert page.locator('[data-camera="left"]').get_attribute("aria-pressed")=="true"
         assert page.locator("#history li").all_text_contents()==saved
+        assert page.locator("#view3d-canvas").get_attribute("data-environment")=="generated"
+        assert page.locator("#view3d-canvas").get_attribute("data-material-quality")=="balanced"
+        page.select_option("#view3d-quality","high")
+        assert page.locator("#view3d-canvas").get_attribute("data-material-quality")=="high"
+        page.select_option("#view3d-lighting","evening")
+        assert page.locator("#view3d-canvas").get_attribute("data-studio-lighting")=="evening"
+        page.locator('[data-camera="right"]').click()
+        page.wait_for_timeout(250)
+        assert page.locator("#view3d-canvas canvas").count()==1
+        page.select_option("#view3d-quality","balanced")
+        page.select_option("#view3d-lighting","neutral")
+        assert page.locator("#view3d-canvas").get_attribute("data-studio-lighting")=="neutral"
+        assert page.locator("#history li").all_text_contents()==saved
         page.locator("#draw").click()
         page.wait_for_function("document.querySelectorAll('#history li').length === 2")
         assert page.locator("#view3d-canvas canvas").count()==1

@@ -1,4 +1,4 @@
-import {createMachineScene} from "./view3d-scene.mjs?v=physics1";
+import {createMachineScene} from "./view3d-scene.mjs?v=materials1";
 import {loadRapier} from "./rapier-loader.mjs";
 
 // Fixed release, loaded only when a person chooses the optional view.
@@ -13,6 +13,9 @@ let controller=null;
 let loading=false;
 const physicsButton=document.querySelector("#view3d-physics");
 const physicsStatus=document.querySelector("#view3d-physics-status");
+const qualitySelect=document.querySelector("#view3d-quality");
+const lightingSelect=document.querySelector("#view3d-lighting");
+const materialStatus=document.querySelector("#view3d-material-status");
 let physicsLoading=false,physicsEnabled=false;
 function resetPhysicsButton(message){
   physicsEnabled=false;
@@ -62,6 +65,9 @@ toggle.addEventListener("click",async()=>{
     toggle.setAttribute("aria-pressed","true");
     toggle.textContent="返回平面演示";
     selectView(cameras[0]);
+    qualitySelect.value="balanced";
+    lightingSelect.value="studio";
+    materialStatus.textContent=mount.dataset.environment==="generated"?"程序生成环境反射 · 无外部纹理下载":"环境反射不可用 · 保留直接照明";
     status.textContent="三维观察已启用 · 不影响抽样与存档";
   }catch{
     fallback("三维引擎或 WebGL 不可用，平面摇奖仍可正常使用。");
@@ -103,4 +109,19 @@ physicsButton.addEventListener("click",async()=>{
     physicsLoading=false;
     physicsButton.disabled=false;
   }
+});
+
+qualitySelect.addEventListener("change",()=>{
+  if(!controller)return;
+  try{
+    controller.setQuality(qualitySelect.value);
+    materialStatus.textContent=qualitySelect.value==="high"?"光学透射模式 · 更高渲染负载":"均衡模式 · 优先保证数字可读";
+  }catch{
+    qualitySelect.value="balanced";
+    controller.setQuality("balanced");
+    materialStatus.textContent="精细材质不可用，已回退均衡模式";
+  }
+});
+lightingSelect.addEventListener("change",()=>{
+  if(controller)controller.setLighting(lightingSelect.value);
 });

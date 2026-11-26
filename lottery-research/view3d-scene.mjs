@@ -1,5 +1,6 @@
 import {CHAMBER_CENTERS, CHAMBER_Y, CHAMBER_RADIUS, BALL_RADIUS, mapBall, outletDigit} from "./view3d-state.mjs";
 import {createChamberPhysics} from "./chamber-physics.mjs";
+import {createStudioEnvironment,createBrushedTexture,studioPalette} from "./studio-materials.mjs";
 
 // Everything in this file is a read-only representation of the existing UI.
 export function createMachineScene(T, mount, source, onFailure) {
@@ -35,6 +36,8 @@ export function createMachineScene(T, mount, source, onFailure) {
     top:[5.5,8.5,12]
   };
   const colors = [0xef464b,0xf3bf34,0x399de7];
+  const glassParts=[];
+  let studioLights,environmentTarget,quality="balanced";
   const balls = [];
   const outlets = [];
   const model = new T.Group();
@@ -64,7 +67,7 @@ export function createMachineScene(T, mount, source, onFailure) {
   function digitSprite(digit) {
     const mat=track(new T.SpriteMaterial({
       map:labelTexture(String(digit),"#102133","#f8faf5"),
-      depthTest:true
+      depthTest:true,transparent:false
     }));
     const sprite=new T.Sprite(mat);
     sprite.scale.set(.17,.085,1);
@@ -86,17 +89,32 @@ export function createMachineScene(T, mount, source, onFailure) {
     group.children[1].position.copy(direction.multiplyScalar(BALL_RADIUS+.012));
   }
 
-  const steel=material({color:0xa9bccb,metalness:.58,roughness:.34});
-  const dark=material({color:0x243849,metalness:.30,roughness:.42});
-  const trim=material({color:0xc7d9e3,metalness:.35,roughness:.26});
+  const brushed=track(createBrushedTexture(T));
+  const steel=material({color:0xb5c5d0,metalness:.83,roughness:.56,roughnessMap:brushed,envMapIntensity:1.1});
+  const dark=material({color:0x243849,metalness:.48,roughness:.43});
+  const trim=material({color:0xd3e1e9,metalness:.88,roughness:.22,envMapIntensity:1.2});
   const rubber=material({color:0x101b25,roughness:.83});
-  const glass=material({color:0x9bd6f2,transparent:true,opacity:.13,
-    roughness:.18,metalness:.08,depthWrite:false,side:T.FrontSide});
+  const glass=track(new T.MeshPhysicalMaterial({color:0xb7e8ff,transparent:true,opacity:.17,
+    roughness:.16,metalness:0,clearcoat:.65,clearcoatRoughness:.1,depthWrite:false,side:T.FrontSide}));
+  const opticalGlass=track(new T.MeshPhysicalMaterial({color:0xe6f5ff,transmission:.96,
+    opacity:1,transparent:false,roughness:.085,metalness:0,ior:1.45,thickness:.025,
+    envMapIntensity:.95,side:T.FrontSide}));
+  function setQuality(mode){
+    if(!["balanced","high"].includes(mode))throw RangeError("Invalid material quality");
+    quality=mode;
+    for(const part of glassParts)part.material=mode==="high"?opticalGlass:glass;
+    mount.dataset.materialQuality=mode;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mode==="high"?1.25:1.5));
+    schedule();
+  }
   const ballGeometry=track(new T.SphereGeometry(BALL_RADIUS,24,16));
 
   function setupStage() {
     const floor=box(19,.15,15,material({color:0x1d3550,roughness:.65}),scene,0,-.32,0);
     floor.receiveShadow=false;
+    const stripe=material({color:0x2d6685,metalness:.45,roughness:.28});
+    box(8.9,.045,4.0,stripe,scene,0,-.20,0);
+    box(8.5,.06,3.8,dark,scene,0,-.16,0);
     box(8.15,.30,3.6,dark,model,0,-.05,0);
     box(7.9,.14,3.3,trim,model,0,.13,0);
     box(7.5,.94,2.25,steel,model,0,.67,0);
@@ -128,13 +146,16 @@ export function createMachineScene(T, mount, source, onFailure) {
     cylinder(.43,.54,.22,dark,model,x,1.17,0);
     const shell=mesh(track(new T.SphereGeometry(CHAMBER_RADIUS,40,24)),glass,model,x,CHAMBER_Y,0);
     shell.renderOrder=5;
+    glassParts.push(shell);
     ring(.97,.035,trim,model,x,CHAMBER_Y,0);
     const sideRing=ring(.97,.025,steel,model,x,CHAMBER_Y,0);
     sideRing.rotation.y=Math.PI/2;
-    cylinder(.23,.23,.62,glass,model,x,3.34,0).renderOrder=5;
+    const channel=cylinder(.23,.23,.62,glass,model,x,3.34,0);
+    channel.renderOrder=5;
+    glassParts.push(channel);
     cylinder(.28,.28,.08,steel,model,x,3.04,0);
     cylinder(.28,.28,.08,trim,model,x,3.66,0);
-    const ballMat=material({color:colors[index],roughness:.34,metalness:.02});
+    const ballMat=track(new T.MeshPhysicalMaterial({color:colors[index],roughness:.30,metalness:0,clearcoat:.50,clearcoatRoughness:.18}));
     const chamber=[];
     for(let digit=0;digit<10;digit++)chamber.push(makeBall(ballMat,digit));
     balls.push(chamber);
@@ -146,16 +167,33 @@ export function createMachineScene(T, mount, source, onFailure) {
   }
 
   function setupLights() {
-    scene.add(new T.HemisphereLight(0xe2f4ff,0x3e395b,2.2));
-    const light=(color,intensity,x,y,z)=>{
-      const lamp=new T.DirectionalLight(color,intensity);
-      lamp.position.set(x,y,z);
-      scene.add(lamp);
+    const ambient=new T.HemisphereLight(0xe2f4ff,0x3e395b,1.6);
+    scene.add(ambient);
+    const light=(intensity,x,y,z)=>{
+      const lamp=new T.DirectionalLight(0xffffff,intensity);
+      lamp.position.set(x,y,z);scene.add(lamp);return lamp;
     };
-    light(0xffffff,3.0,-4,7,6);
-    light(0x6bdcf8,2.0,-6,3,-4);
-    light(0xc09aff,1.9,6,4,-3);
-    light(0xffdb9a,.8,2,5,8);
+    studioLights={ambient,key:light(2.5,-4,7,6),fill:light(1.7,-6,3,-4),
+      rim:light(1.5,6,4,-3),warm:light(.75,2,5,8)};
+    setLighting("studio");
+    // Failed optional PMREM generation does not disable the base 3D view.
+    try{
+      environmentTarget=createStudioEnvironment(T,renderer);
+      scene.environment=environmentTarget.texture;
+      mount.dataset.environment="generated";
+    }catch{
+      mount.dataset.environment="direct-only";
+    }
+  }
+  function setLighting(name){
+    const p=studioPalette(name);
+    scene.background.set(p.background);
+    studioLights.ambient.color.set(p.ambient);
+    studioLights.ambient.groundColor.set(p.ground);
+    for(const key of ["key","fill","rim","warm"])studioLights[key].color.set(p[key]);
+    renderer.toneMappingExposure=p.exposure;
+    mount.dataset.studioLighting=name;
+    schedule();
   }
 
   function releasePhysics(){
@@ -235,7 +273,7 @@ export function createMachineScene(T, mount, source, onFailure) {
     if(closed)return;
     const w=mount.clientWidth,h=mount.clientHeight;
     if(!w||!h)return;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==="high"?1.25:1.5));
     renderer.setSize(w,h,false);
     camera.aspect=w/h;
     // Preserve all three chambers in a portrait/narrow viewport.
@@ -264,6 +302,8 @@ export function createMachineScene(T, mount, source, onFailure) {
     resizeObserver?.disconnect();
     window.removeEventListener("resize",resize);
     canvas.removeEventListener("webglcontextlost",lost);
+    scene.environment=null;
+    environmentTarget?.dispose();
     for(const item of resources)item.dispose();
     renderer.dispose();
     canvas.remove();
@@ -276,6 +316,7 @@ export function createMachineScene(T, mount, source, onFailure) {
     setupStage();
     for(let index=0;index<3;index++)setupChamber(index);
     setupLights();
+    setQuality("balanced");
     mount.replaceChildren(canvas);
     setView("front");
     resize();
@@ -289,7 +330,7 @@ export function createMachineScene(T, mount, source, onFailure) {
       resizeObserver.observe(mount);
     }else window.addEventListener("resize",resize);
     canvas.addEventListener("webglcontextlost",lost);
-    return {setView,setPhysics,dispose};
+    return {setView,setPhysics,setQuality,setLighting,dispose};
   }catch(error){
     dispose();
     throw error;
