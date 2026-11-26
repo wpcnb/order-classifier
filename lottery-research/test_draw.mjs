@@ -111,3 +111,31 @@ test("3D adapter keeps every projected ball within its display chamber",()=>{
   for(let i=0;i<10;i++)assert.equal(outletDigit(String(i)),i);
   for(const v of ["","10","–",null,0])assert.equal(outletDigit(v),null);
 });
+
+import {recentFrequency,positionModeLabel} from "./recent-frequency.mjs";
+test("recent frequency uses exactly the latest ten and counts all thirty digits",()=>{
+  const numbers=["007","007","007","007","007","007","123","123","456","789","999","999","999"];
+  const s=recentFrequency(numbers);
+  assert.equal(s.sampleSize,10);
+  assert.equal(s.digitCount,30);
+  assert.equal(positionModeLabel(s.positionModes),"007");
+  assert.deepEqual(s.sumMode,{values:[7],count:6});
+  assert.deepEqual(s.digitMode,{values:[0],count:12});
+  assert.equal(s.overall.reduce((a,b)=>a+b),30);
+  assert.equal(s.sums.reduce((a,b)=>a+b),10);
+  assert.equal(s.overall[9],1);
+  for(const p of s.positions)assert.equal(p.reduce((a,b)=>a+b),10);
+  assert.equal(numbers.length,13);
+});
+test("recent frequency preserves ties, zeros, partial and empty samples",()=>{
+  const s=recentFrequency(["000","111"]);
+  assert.equal(positionModeLabel(s.positionModes),"[0/1][0/1][0/1]");
+  assert.deepEqual(s.sumMode,{values:[0,3],count:1});
+  assert.deepEqual(s.digitMode,{values:[0,1],count:3});
+  const e=recentFrequency([]);
+  assert.equal(positionModeLabel(e.positionModes),"—");
+  assert.deepEqual(e.sumMode,{values:[],count:0});
+  assert.deepEqual(e.digitMode,{values:[],count:0});
+  assert.throws(()=>recentFrequency(["7"]),TypeError);
+  assert.throws(()=>recentFrequency([7]),TypeError);
+});

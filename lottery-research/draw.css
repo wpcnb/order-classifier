@@ -165,3 +165,19 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .material-controls{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 0;color:#d9eaf6;font-size:.78rem}
 .material-controls select{min-width:0;max-width:100%;min-height:40px;padding:5px 8px;border:1px solid #8ba7bd;border-radius:6px;background:#263f55;color:#e8f5fb;font:inherit}
 #view3d-material-status,#view3d-physics-status{display:block;margin:4px 0}
+
+/* Rolling completed simulation frequency summary. */
+.recent-frequency{margin:18px 0 10px;padding:16px;border:1px solid #c3d5e1;border-radius:10px;background:#f6f9fa;min-width:0}
+.recent-frequency h3{margin:0 0 6px;font-size:1.05rem;color:#203a4c}
+.frequency-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.frequency-card{min-width:0;border:1px solid #d2e0e7;border-top:3px solid #7295b0;border-radius:7px;background:#fff;padding:10px}
+.frequency-card h4{margin:0;font-size:.82rem;color:#40576a}
+.frequency-card output{display:block;margin:9px 0 5px;color:#243f56;font:650 clamp(1.2rem,2.2vw,1.8rem)/1.3 monospace;overflow-wrap:anywhere}
+.frequency-card small{display:block;color:#536876;overflow-wrap:anywhere}
+.frequency-note{color:#536876;font-size:.78rem!important}
+.frequency-table-wrap{overflow:auto}
+.frequency-table{border-collapse:collapse;width:100%;font-size:.83rem;margin-top:8px}
+.frequency-table caption{text-align:left;color:#536876}
+.frequency-table td,.frequency-table th{padding:4px 8px;text-align:right;border-bottom:1px solid #d9e4eb}
+.recent-frequency details{padding:12px 0 0;border-bottom:0}
+@media(max-width:600px){.frequency-cards{grid-template-columns:1fr}.recent-frequency{padding:12px}}
