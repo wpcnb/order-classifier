@@ -6,7 +6,7 @@ from shutil import which
 from playwright.sync_api import sync_playwright
 
 THREE = "https://cdn.jsdelivr.net/npm/three@0.186.1/build/"
-RAPIER = "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/"
+RAPIER = "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/"
 
 def check(base,root):
     with sync_playwright() as pw:
@@ -28,7 +28,7 @@ def check(base,root):
             if not path.is_file(): return route.abort()
             return route.fulfill(path=str(path),content_type="text/javascript",headers={"Access-Control-Allow-Origin":"*"})
         page.route(THREE+"**",lambda route:local(route,root/"three"/"build"))
-        page.route(RAPIER+"**",lambda route:local(route,root/"@dimforge"/"rapier3d-compat"))
+        page.route(RAPIER+"**",lambda route:local(route,root/"@dimforge"/"rapier3d-compat"/"dist"))
         page.reload()
         page.locator("#physics-open").click()
         page.wait_for_function("document.querySelector('#physics-open').getAttribute('aria-expanded')==='true'",timeout=30000)
