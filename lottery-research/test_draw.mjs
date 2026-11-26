@@ -98,3 +98,16 @@ test("archive persists, merges, deduplicates, limits and protects corrupt data",
  assert.throws(()=>saveArchive(storage,[row]));
  assert.equal(storage.value,"{broken");
 });
+
+import {mapBall,outletDigit,CHAMBER_CENTERS,CHAMBER_Y,CHAMBER_RADIUS,BALL_RADIUS} from "./view3d-state.mjs";
+test("3D adapter keeps every projected ball within its display chamber",()=>{
+  for(let i=0;i<3;i++)for(let d=0;d<10;d++)for(let x=-10;x<=110;x+=10)for(let y=-10;y<=110;y+=10){
+    const p=mapBall(i,d,x+"%",y+"%");
+    assert.ok(p.every(Number.isFinite));
+    assert.ok(Math.hypot(p[0]-CHAMBER_CENTERS[i],p[1]-CHAMBER_Y,p[2]) <= CHAMBER_RADIUS-BALL_RADIUS+1e-10);
+  }
+  assert.deepEqual(mapBall(1,0,"bad",null),mapBall(1,0,"50%","50%"));
+  assert.throws(()=>mapBall(3,0,"50%","50%"),RangeError);
+  for(let i=0;i<10;i++)assert.equal(outletDigit(String(i)),i);
+  for(const v of ["","10","–",null,0])assert.equal(outletDigit(v),null);
+});

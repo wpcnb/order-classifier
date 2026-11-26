@@ -138,3 +138,17 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .output div:nth-child(1){border-top:3px solid #d34b4b;background:#fff3f1}.output div:nth-child(2){border-top:3px solid #c99a24;background:#fff9e8}.output div:nth-child(3){border-top:3px solid #388bc5;background:#eef7ff}
 #draw-sum {padding:8px 12px;background:#eaf1f5;border:1px solid #c3d5e1;border-radius:7px;font-weight:700;color:#203a4c;margin:0 0 12px}
 @media(max-width:700px){.studio{padding:44px 0 34px}.studio-sign{top:4px}.machine-housing{width:100%}.service-deck{gap:3px;padding:3px}.service-panel,.service-display{padding:3px 1px}.stage-platform{height:20px}}
+
+/* Optional WebGL inspection, preserving the existing simulator and archive. */
+.view-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}
+.view-toolbar button,.view3d-cameras button{min-height:40px;font-size:.78rem;padding:7px 10px;border-radius:6px;color:#e8f5fb;background:#263f55;border:1px solid #8ba7bd}
+.view-toolbar button:hover:enabled,.view3d-cameras button:hover:enabled{background:#36576f}
+.view-toolbar button[aria-pressed=true],.view3d-cameras button[aria-pressed=true]{background:#d4eaf3;color:#182e40;border-color:#d4eaf3}
+#view3d-status{font-size:.72rem;color:#d6e6ef;overflow-wrap:anywhere}
+#view3d-stage[hidden],.studio[hidden]{display:none!important}
+#view3d-stage{margin:10px 0 14px;min-width:0}
+#view3d-canvas{width:100%;aspect-ratio:1.48;min-height:190px;overflow:hidden;border:1px solid #7895af;border-radius:9px;background:#152a43}
+#view3d-canvas canvas{display:block;width:100%;height:100%}
+.view3d-cameras{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 5px}
+#view3d-stage small{font-size:.72rem;color:#d7e4ed}
+@media(max-width:700px){#view3d-canvas{aspect-ratio:1.2}.view-toolbar{gap:6px}}
