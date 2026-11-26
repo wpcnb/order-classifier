@@ -1,7 +1,7 @@
 import {createExperiment,DT,MAX_STEPS} from "./physics-world.mjs";
 import {createExperimentRenderer} from "./physics-render.mjs";
 const THREE="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js";
-const RAPIER="https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/rapier.mjs";
+const RAPIER="https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/rapier.mjs";
 const $=id=>document.getElementById(id);
 const open=$("physics-open"),panel=$("physics-panel"),mount=$("physics-canvas");
 const status=$("physics-status"),readout=$("physics-readout"),start=$("physics-start");
