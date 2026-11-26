@@ -20,6 +20,12 @@ jobs:
         run: |
           python3 -m unittest discover -s lottery-research -p 'test_*.py'
           node --test lottery-research/test_draw.mjs
+      - name: Browser reload and archive persistence regression
+        run: |
+          python3 -m pip install playwright
+          python3 -m http.server 8124 --bind 127.0.0.1 >/tmp/archive-http.log 2>&1 &
+          curl --retry 5 --retry-all-errors --fail --silent http://127.0.0.1:8124/ >/dev/null
+          python3 lottery-research/tests/check_rewind.py http://127.0.0.1:8124
       - name: Verify the simulator loads through all public bookmarks
         shell: bash
         run: |
