@@ -1,4 +1,4 @@
-import {replayDraw} from "./draw-ui.mjs?v=20261126-recent-frequency";
+import {replayDraw} from "./draw-ui.mjs?v=20261126-recent-ten-only";
 
 const meta = document.querySelector("#official-meta");
 const cacheKey = "fc3d-verified-draws-v1";
