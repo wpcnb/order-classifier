@@ -1,5 +1,6 @@
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
+import {drawSum} from "./draw-sum.mjs";
 
 const button = document.querySelector("#draw");
 const pauseButton = document.querySelector("#pause");
@@ -13,6 +14,7 @@ const indicator = document.querySelector("#machine-state");
 const outputs = [...document.querySelectorAll(".output b")];
 const outlets = [...document.querySelectorAll(".neck")];
 const history = document.querySelector("#history");
+const sumDisplay = document.querySelector("#draw-sum");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const places = ["百位", "十位", "个位"];
 // Coordinates in each viewing window, ordered from the lowest row upwards.
@@ -47,9 +49,11 @@ function setBusy(busy) {
 }
 function finish(draw, trigger) {
   const {number, issue} = draw;
+  const sum = drawSum(number);
+  sumDisplay.textContent = "本次和值：" + sum;
   if (!issue && !draw.recorded) {
     const item = document.createElement("li");
-    item.textContent = number;
+    item.textContent = number + " · 和值 " + sum;
     history.prepend(item);
     draw.recorded = true;
     if (history.children.length > 10) history.lastElementChild.remove();
@@ -57,6 +61,7 @@ function finish(draw, trigger) {
   }
   indicator.textContent = issue ? "回放完成" : "已出球";
   status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" : "本次模拟号码为 " + number + "。";
+  status.textContent += "和值 " + sum + "。";
   button.firstChild.textContent = issue ? "开始摇奖 " : "再摇一次 ";
   const focusOnPause = document.activeElement === pauseButton;
   playback = null;
@@ -87,6 +92,7 @@ function animate(draw, trigger) {
   if (moveFocus) pauseButton.focus({preventScroll:true});
   const simulationTitle = trigger === restartButton ? "重播本次模拟" : "本次模拟号码";
   document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : simulationTitle;
+  sumDisplay.textContent = "本次和值：–";
   resetBalls();
   for (const outlet of outlets) outlet.textContent = "";
   for (const slot of outputs) slot.textContent = "–";
