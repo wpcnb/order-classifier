@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-compact-desk">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-recent-ten-only"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-recent-ten-only"></script>
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-all-saved-modes">
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-all-saved-modes"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-all-saved-modes"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -70,30 +70,13 @@
     </section>
     <section class="control" aria-labelledby="result-title">
       <section class="recent-frequency" aria-labelledby="recent-frequency-title">
-        <h3 id="recent-frequency-title">最近10次模拟 · 最高频统计</h3>
-        <p id="recent-frequency-sample" role="status">暂无样本（0/10次）</p>
+        <h3 id="recent-frequency-title">全部本机模拟 · 最高频统计</h3>
         <div class="frequency-cards">
-          <div class="frequency-card">
-            <h4>各位最高频组合</h4>
-            <output id="recent-position-mode">—</output>
-            <small id="recent-position-detail">百位、十位、个位分别统计</small>
-          </div>
-          <div class="frequency-card">
-            <h4>最高频和值</h4>
-            <output id="recent-sum-mode">—</output>
-            <small id="recent-sum-detail">统计和值出现次数</small>
-          </div>
-          <div class="frequency-card">
-            <h4>整体最高频单个数字</h4>
-            <output id="recent-digit-mode">—</output>
-            <small id="recent-digit-detail">合并三位数字，满10次共30个</small>
-          </div>
+          <div class="frequency-card"><h4>各位最高频组合</h4><output id="recent-position-mode">—</output></div>
+          <div class="frequency-card"><h4>最高频和值</h4><output id="recent-sum-mode">—</output></div>
+          <div class="frequency-card"><h4>整体最高频数字</h4><output id="recent-digit-mode">—</output></div>
         </div>
-        <p class="frequency-note">仅统计最近已完成的本机模拟；并列最高频全部展示。历史回放不计入，统计频数不代表未来开奖优势或投注建议。</p>
-        <details><summary>查看数字与和值频数明细</summary>
-          <div class="frequency-table-wrap"><table class="frequency-table"><caption>各位置及合计频数</caption><thead><tr><th scope="col">数字</th><th scope="col">百位</th><th scope="col">十位</th><th scope="col">个位</th><th scope="col">合计</th></tr></thead><tbody id="recent-digit-table"></tbody></table></div>
-          <p id="recent-sum-table">暂无和值</p>
-        </details>
+        <p class="frequency-note">基于全部现存本机存档；并列以 / 分隔。仅为样本统计，不代表未来开奖优势。</p>
       </section>
       <h2 id="result-title">本次模拟号码</h2>
       <div class="output" aria-hidden="true">
