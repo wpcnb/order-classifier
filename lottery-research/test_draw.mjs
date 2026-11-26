@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
+import {drawSum} from "./draw-sum.mjs";
 
 test("every ordered triplet including 000 and 007 is reachable", () => {
   for (let i=0; i<1000; i++) {
@@ -61,4 +62,20 @@ test("half-speed playback freezes exactly at the last shown frame and completes 
   assert(!controls.paused);
   assert.equal(pending.size, 0);
   assert.deepEqual(samples, [1100,1700,2300]);
+});
+
+
+test("draw sum handles all 1000 triplets, including leading zeros and repeats", () => {
+  const counts = Array(28).fill(0);
+  for (let i=0; i<1000; i++) {
+    const sum = drawSum(String(i).padStart(3,"0"));
+    assert.equal(sum, Math.floor(i/100) + Math.floor(i/10)%10 + i%10);
+    counts[sum]++;
+  }
+  assert.deepEqual(counts, [...counts].reverse());
+  assert.equal(counts[0],1);
+  assert.equal(counts[27],1);
+  assert.equal(counts[13],75);
+  assert.equal(counts[14],75);
+  for (const invalid of ["","12","1234","12a",123,null,"１２３"]) assert.throws(() => drawSum(invalid),TypeError);
 });
