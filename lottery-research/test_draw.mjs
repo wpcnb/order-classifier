@@ -79,3 +79,22 @@ test("draw sum handles all 1000 triplets, including leading zeros and repeats", 
   assert.equal(counts[14],75);
   for (const invalid of ["","12","1234","12a",123,null,"１２３"]) assert.throws(() => drawSum(invalid),TypeError);
 });
+
+import {readArchive,saveArchive} from "./simulation-archive.mjs";
+test("archive persists, merges, deduplicates, limits and protects corrupt data",()=>{
+ const storage={value:null,getItem(){return this.value},setItem(key,value){this.value=value}};
+ const row={id:"a".repeat(32),at:"2026-11-26T03:00:00.000Z",number:"007",sum:99};
+ assert.deepEqual(readArchive(storage),[]);
+ assert.equal(saveArchive(storage,[row])[0].sum,7);
+ assert.equal(readArchive(storage)[0].number,"007");
+ assert.equal(saveArchive(storage,[row]).length,1);
+ const other={...row,id:"b".repeat(32),number:"000",at:"2026-11-26T03:01:00.000Z"};
+ assert.equal(saveArchive(storage,[other])[0].number,"000");
+ assert.equal(readArchive(storage).length,2);
+ const bulk=Array.from({length:1002},(_,i)=>({id:i.toString(16).padStart(32,"0"),at:new Date(1800000000000+i*1000).toISOString(),number:"999"}));
+ assert.equal(saveArchive(storage,bulk).length,1000);
+ assert.equal(readArchive(storage)[0].sum,27);
+ storage.value="{broken";
+ assert.throws(()=>saveArchive(storage,[row]));
+ assert.equal(storage.value,"{broken");
+});

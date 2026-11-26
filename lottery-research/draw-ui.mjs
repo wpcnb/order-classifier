@@ -1,6 +1,7 @@
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
 import {drawSum} from "./draw-sum.mjs";
+import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs";
 
 const button = document.querySelector("#draw");
 const pauseButton = document.querySelector("#pause");
@@ -15,6 +16,54 @@ const outputs = [...document.querySelectorAll(".output b")];
 const outlets = [...document.querySelectorAll(".neck")];
 const history = document.querySelector("#history");
 const sumDisplay = document.querySelector("#draw-sum");
+const archiveStatus = document.querySelector("#archive-status");
+const archiveList = document.querySelector("#archive-list");
+const exportButton = document.querySelector("#archive-export");
+const formatTime = new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
+let records = [];
+let unsaved = [];
+function renderArchive(message) {
+  function item(row) {
+    const li = document.createElement("li");
+    li.textContent = row.number + " · 和值 " + row.sum + " · " + formatTime.format(new Date(row.at));
+    return li;
+  }
+  history.replaceChildren(...records.slice(0,10).map(item));
+  archiveList.replaceChildren(...records.map(item));
+  document.querySelector("#empty-history").hidden = records.length !== 0;
+  exportButton.disabled = !records.length;
+  archiveStatus.textContent = message + " 当前 " + records.length + " 条，时间为北京时间。";
+}
+function restoreArchive() {
+  try {
+    records = normalizeArchive([...readArchive(localStorage),...unsaved]);
+    renderArchive(unsaved.length ? "部分记录尚未写入本机，请导出备份。" : "本机存档已读取。");
+  } catch {
+    renderArchive("本机存档读取失败，已有存档未覆盖；请导出本页记录。");
+  }
+}
+function recordSimulation(number) {
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");
+  const row = {id,at:new Date().toISOString(),number,sum:drawSum(number)};
+  unsaved = normalizeArchive([...unsaved,row]);
+  records = normalizeArchive([...records,row]);
+  try {
+    records = saveArchive(localStorage,unsaved);
+    unsaved = [];
+    renderArchive("已自动保存至本机。");
+  } catch {
+    renderArchive("本机写入失败，新增记录仅在本页保留，请导出备份。");
+  }
+}
+exportButton.addEventListener("click",()=>{
+  const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,records},null,2)],{type:"application/json"}));
+  const link=document.createElement("a");
+  link.href=url;
+  link.download="fc3d-simulation-archive.json";
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+window.addEventListener("storage",event=>{if(event.key===ARCHIVE_KEY||event.key===null)restoreArchive();});
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const places = ["百位", "十位", "个位"];
 // Coordinates in each viewing window, ordered from the lowest row upwards.
@@ -52,12 +101,8 @@ function finish(draw, trigger) {
   const sum = drawSum(number);
   sumDisplay.textContent = "本次和值：" + sum;
   if (!issue && !draw.recorded) {
-    const item = document.createElement("li");
-    item.textContent = number + " · 和值 " + sum;
-    history.prepend(item);
+    recordSimulation(number);
     draw.recorded = true;
-    if (history.children.length > 10) history.lastElementChild.remove();
-    document.querySelector("#empty-history").hidden = true;
   }
   indicator.textContent = issue ? "回放完成" : "已出球";
   status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" : "本次模拟号码为 " + number + "。";
@@ -146,6 +191,7 @@ pauseButton.addEventListener("click", () => {
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches && playback?.paused) playback.resume();
 });
+restoreArchive();
 button.addEventListener("click", startDraw);
 button.disabled = false;
 status.textContent = "准备就绪。";
