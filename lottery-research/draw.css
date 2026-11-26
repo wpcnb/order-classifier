@@ -101,3 +101,40 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .machine-foot {color:#c4d5e3;border-color:#abc6dd36;font-size:.8rem}
 .control {min-width:0}
 @media(max-width:700px){.desk{grid-template-columns:1fr;gap:12px}.studio{padding:28px 0 20px}.machine-housing{width:min(100%,460px)}.machine-foot{font-size:.75rem}.housing-foot{margin-bottom:-8px}}
+
+/* Richer studio v2: illustrative hardware, not a factory engineering drawing. */
+.machine {background:radial-gradient(ellipse at 48% 30%,#466d92 0%,#243c62 40%,#131c36 72%,#102632);border-color:#4c657f}
+.studio {padding-top:clamp(48px,6vw,74px);padding-bottom:40px}
+.studio-backdrop {inset:0 -9% 0;background:radial-gradient(ellipse at 15% 32%,#00bfd339,transparent 45%),radial-gradient(ellipse at 87% 30%,#a064ed45,transparent 47%),linear-gradient(165deg,transparent 55%,#101b33 56%,#29415b 70%,#101d32 90%);}
+.studio-backdrop i {height:92%;width:clamp(3px,.7vw,8px);border-radius:4px;background:linear-gradient(transparent,#41def8a8 24%,#98e8f4 50%,#319cdd88 78%,transparent);box-shadow:0 0 18px #49dcf47a}
+.studio-backdrop i:nth-child(3){background:linear-gradient(transparent,#b380ffa8 24%,#d1b9ff 50%,#5b89db88 78%,transparent);box-shadow:0 0 18px #a285f47a}
+.studio-sign {position:absolute;top:3px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;color:#d6f4ff;white-space:nowrap;font-size:clamp(.65rem,1vw,.82rem);letter-spacing:.11em}
+.studio-sign b {font:italic 800 clamp(1.3rem,2.7vw,2.2rem)/1 monospace;color:#ffe4a0;text-shadow:0 0 13px #d3a74d70}
+.machine-housing {width:min(98%,620px);padding:clamp(7px,1.35vw,15px);border:2px solid #afc0cf;border-radius:14px 14px 9px 9px;background:linear-gradient(98deg,#394e66,#c8d8e5 5%,#f2f7fa 9%,#8c9daf 13%,#c4d4df 23%,#dfe7ee 48%,#a1b3c3 80%,#576c82 96%,#b7c7d4);box-shadow:inset 0 1px 2px #fff,0 22px 22px #0007,0 2px 3px #000a}
+.housing-top {padding:3px 4px 7px}
+.crossbar {display:flex;justify-content:space-between;align-items:center;height:9px;margin:0 0 3px;padding:0 5px;border:1px solid #738ca1;border-radius:3px;background:linear-gradient(#e6f0f6,#536e85 49%,#233d51 52%,#7b94a7)}
+.crossbar i {width:4px;height:4px;border-radius:50%;background:#293c4c;border:1px solid #d6e7ed}
+.stages {position:relative;gap:3%;padding:clamp(6px,1vw,13px);border:2px solid #6c869f;background:repeating-linear-gradient(90deg,#d4f4ff05 0 1px,transparent 1px 14px),linear-gradient(160deg,#33546b,#15283f 48%,#22445b);box-shadow:inset 0 4px 12px #040915c0}
+.unit {--ball:#f0524e;--glow:#fb777d;position:relative}
+.yellow {--ball:#f3c338;--glow:#ffdf66}.blue {--ball:#3ca8f0;--glow:#70cfff}
+.outlet-cap {width:42%;height:clamp(5px,.85vw,10px);margin:0 auto -1px;border-radius:4px 4px 1px 1px;background:linear-gradient(#e9f3fc,#7d99ae 40%,#2d465c 70%,#9fb7c8);border:1px solid #b0c8da}
+.channel {height:clamp(30px,5vw,55px);width:35%;border-width:2px;box-shadow:inset 2px 0 #e5fcff36,inset -2px 0 #aedbf347,0 0 10px #8db8d826;background:linear-gradient(90deg,#c4e8ff70,#182e4644 25%,#e8f8ff16 54%,#a9d3ed80)}
+.chamber-frame {position:relative;padding:clamp(2px,.45vw,5px);border:1px solid #aec6d9;border-radius:50%;background:conic-gradient(from 25deg,#7895af,#e7f0f5,#71889e,#c6d6e2,#294456,#d6e7f0,#7895af);box-shadow:0 4px 5px #040b15a0}
+.glass {border:2px solid #c4e2f4ba;background:radial-gradient(ellipse at 23% 15%,#effaff50,transparent 22%),radial-gradient(ellipse at 66% 78%,#253a6540,#c4e0f41a 70%,#c9f0fc55 95%);box-shadow:inset 0 0 0 2px #e4f5ff30,inset 0 -7px 10px #0b1729a0}
+.ball {background:radial-gradient(circle at 28% 23%,#fff9 0%,#fff2 24%,transparent 46%),radial-gradient(circle at 76% 78%,#12213955,transparent 55%),var(--ball);box-shadow:inset -2px -3px 4px #162a4966,0 2px 3px #030b15a0}
+.base {margin-top:-3px;width:80%;height:clamp(13px,2vw,23px);background:linear-gradient(#ecf5fa,#97aabb 26%,#31485d 49%,#647e97 80%,#b3c8d8);border-color:#c1d4e1}
+.air-assembly {width:66%;height:clamp(13px,2vw,23px);margin:0 auto;display:flex;align-items:stretch;justify-content:space-around;border:1px solid #53738b;border-radius:0 0 4px 4px;background:linear-gradient(#162b40,#4f677a)}
+.air-assembly i {width:14%;border-left:1px solid #c9dfe955;border-right:1px solid #122e45;background:linear-gradient(90deg,#627f94,#c9dfeb,#29475f)}
+.unit span {border-top:2px solid var(--glow);padding-top:2px;margin:4px 0 0;text-shadow:0 1px #000}
+.service-deck {display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin:7px 0 0;padding:5px;border:1px solid #637d93;border-radius:5px;background:linear-gradient(#687d8e,#344d62);box-shadow:inset 0 1px 2px #d0e5f45e}
+.service-panel,.service-display {min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#162b3a;border:1px solid #9fb4c4;border-radius:3px;padding:4px 2px;color:#d4e4ee}
+.service-grille {width:78%;height:clamp(13px,2.2vw,24px);background:repeating-linear-gradient(0deg,#0d2030 0 2px,#819caf 2px 3px,#263e52 3px 5px)}
+.service-panel small,.service-display small {font:500 clamp(.36rem,.68vw,.58rem)/1.35 monospace;letter-spacing:.03em}
+.service-display {background:#092a32}
+.service-display b {font:700 clamp(.8rem,1.9vw,1.5rem)/1.1 monospace;color:#9ce6d9;text-shadow:0 0 6px #9ce6d988}
+.pilot-lights {display:flex;gap:4px;margin-top:3px}.pilot-lights i {width:4px;height:4px;border-radius:50%;background:#77d6b2}.pilot-lights i:nth-child(2){background:#e8b65b}.pilot-lights i:nth-child(3){background:#92a1b9}
+.housing-console {padding-top:5px}
+.stage-platform {position:absolute;bottom:8px;width:95%;height:26px;z-index:-1;border-radius:50%;background:linear-gradient(#a2b8c944,#14283f 55%,#318a9e70 60%,#101c2f);box-shadow:0 10px 13px #050d1f9c}
+.output div:nth-child(1){border-top:3px solid #d34b4b;background:#fff3f1}.output div:nth-child(2){border-top:3px solid #c99a24;background:#fff9e8}.output div:nth-child(3){border-top:3px solid #388bc5;background:#eef7ff}
+#draw-sum {padding:8px 12px;background:#eaf1f5;border:1px solid #c3d5e1;border-radius:7px;font-weight:700;color:#203a4c;margin:0 0 12px}
+@media(max-width:700px){.studio{padding:44px 0 34px}.studio-sign{top:4px}.machine-housing{width:100%}.service-deck{gap:3px;padding:3px}.service-panel,.service-display{padding:3px 1px}.stage-platform{height:20px}}
