@@ -1,4 +1,4 @@
-import {replayDraw} from "./draw-ui.mjs?v=20261126-all-saved-modes";
+import {replayDraw} from "./draw-ui.mjs?v=20261126-simulation-count";
 
 const meta = document.querySelector("#official-meta");
 const cacheKey = "fc3d-verified-draws-v1";

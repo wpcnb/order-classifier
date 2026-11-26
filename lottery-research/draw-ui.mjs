@@ -1,7 +1,7 @@
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
 import {drawSum} from "./draw-sum.mjs";
-import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=all-saved";
+import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=simulation-count";
 import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs";
 
 const button = document.querySelector("#draw");
