@@ -1,5 +1,6 @@
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
+import {mixingOrbit} from "./circular-motion.mjs";
 import {drawSum} from "./draw-sum.mjs";
 import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=simulation-count";
 import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs";
@@ -169,10 +170,7 @@ function animate(draw, trigger) {
     if (shown === 3) { finish(draw,trigger); return true; }
     for (let g=shown; g<groups.length; g++) {
       groups[g].forEach((ball,i) => {
-        const angle = i * 2.4 + g + elapsed * (.0035 + i * .00012);
-        const radius = 19 + 18 * Math.sin(i * 1.7 + elapsed * .0015);
-        const x = 50 + radius * Math.cos(angle);
-        const y = 50 + radius * Math.sin(angle);
+        const [x,y] = mixingOrbit(g,i,Math.max(0,elapsed));
         // In the final quarter-second the selected ball travels to the top outlet.
         const lift = i === Number(number[g]) ? Math.max(0,(elapsed - (850 + g*600))/250) : 0;
         position(ball,x + (50-x)*lift,y + (5-y)*lift);

@@ -1,5 +1,5 @@
 import {CHAMBER_CENTERS, CHAMBER_Y, CHAMBER_RADIUS, BALL_RADIUS, mapBall, outletDigit} from "./view3d-state.mjs";
-import {createChamberPhysics} from "./chamber-physics.mjs";
+import {createChamberPhysics} from "./chamber-physics.mjs?v=pi-motion";
 import {createStudioEnvironment,createBrushedTexture,studioPalette} from "./studio-materials.mjs";
 
 // Everything in this file is a read-only representation of the existing UI.
