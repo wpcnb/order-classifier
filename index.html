@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-physics1">
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-materials1">
   <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-chamber-physics"></script>
   <script type="module" src="./lottery-research/history-view.mjs?v=20261126-chamber-physics"></script>
 <style>
@@ -25,7 +25,7 @@
 <main class="container">
   <h1>福彩 <span>3D</span> 模拟摇奖机</h1>
   <p class="intro">按百位、十位、个位依次出球，模拟一次完整摇奖。</p>
-  <script type="module" src="./lottery-research/view3d-ui.mjs?v=20261126-chamber-physics"></script>
+  <script type="module" src="./lottery-research/view3d-ui.mjs?v=20261126-materials1"></script>
   <div class="desk">
     <section class="machine" aria-label="三色球气动搅拌示意">
       <div class="machine-head"><strong>气动摇奖台</strong><span class="indicator" id="machine-state">待机</span></div>
@@ -42,6 +42,13 @@
           <button type="button" data-camera="top" aria-pressed="false">斜上方</button>
         </div>
         <div class="view3d-cameras"><button id="view3d-physics" type="button" aria-pressed="false">启用三仓碰撞演示</button></div>
+        <div class="material-controls">
+          <label for="view3d-quality">材质质量</label>
+          <select id="view3d-quality"><option value="balanced">均衡 · 清晰透明</option><option value="high">精细 · 光学透射</option></select>
+          <label for="view3d-lighting">演播室灯光</label>
+          <select id="view3d-lighting"><option value="studio">冷暖演播室</option><option value="neutral">中性检测光</option><option value="evening">紫蓝氛围光</option></select>
+        </div>
+        <small id="view3d-material-status" role="status">程序生成环境反射 · 无外部纹理下载</small>
         <small id="view3d-physics-status" role="status">默认几何动画；可启用独立刚体演示。</small>
         <small>三维展示与原摇奖同步，碰撞和球路仅供演示，不决定出球号码。</small>
       </div>

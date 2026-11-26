@@ -161,3 +161,7 @@ footer { padding:20px 0 28px; font-size:.8rem; color:#526159 }
 .physics-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0}
 .physics-controls select,.physics-controls button{min-height:44px;font:inherit;border:1px solid #a2b3bf;border-radius:6px;padding:6px 10px;background:#eef5f8;color:#1c3546}
 #physics-readout{font-variant-numeric:tabular-nums;font-weight:600}
+
+.material-controls{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 0;color:#d9eaf6;font-size:.78rem}
+.material-controls select{min-width:0;max-width:100%;min-height:40px;padding:5px 8px;border:1px solid #8ba7bd;border-radius:6px;background:#263f55;color:#e8f5fb;font:inherit}
+#view3d-material-status,#view3d-physics-status{display:block;margin:4px 0}
