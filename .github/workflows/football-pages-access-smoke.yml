@@ -35,7 +35,7 @@ jobs:
       - name: Isolated Rapier collision experiment regression
         run: |
           npm install --prefix /tmp/fc3d-physics-test --no-save --ignore-scripts --no-audit --no-fund three@0.186.1 @dimforge/rapier3d-compat@0.21.0
-          node lottery-research/tests/check_physics.mjs /tmp/fc3d-physics-test/node_modules/@dimforge/rapier3d-compat/rapier.mjs
+          node lottery-research/tests/check_physics.mjs /tmp/fc3d-physics-test/node_modules/@dimforge/rapier3d-compat/dist/rapier.mjs
           python3 -m http.server 8126 --bind 127.0.0.1 >/tmp/physics-http.log 2>&1 &
           curl --retry 5 --retry-all-errors --fail --silent http://127.0.0.1:8126/ >/dev/null
           python3 lottery-research/tests/check_physics.py http://127.0.0.1:8126 /tmp/fc3d-physics-test/node_modules
