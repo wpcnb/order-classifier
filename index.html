@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-all-saved-modes">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-all-saved-modes"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-all-saved-modes"></script>
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-simulation-count">
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261126-simulation-count"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=20261126-simulation-count"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -70,7 +70,7 @@
     </section>
     <section class="control" aria-labelledby="result-title">
       <section class="recent-frequency" aria-labelledby="recent-frequency-title">
-        <h3 id="recent-frequency-title">全部本机模拟 · 最高频统计</h3>
+        <div class="frequency-heading"><h3 id="recent-frequency-title">全部本机模拟 · 最高频统计</h3><span id="simulation-count" role="status">已模拟 0 次</span></div>
         <div class="frequency-cards">
           <div class="frequency-card"><h4>各位最高频组合</h4><output id="recent-position-mode">—</output></div>
           <div class="frequency-card"><h4>最高频和值</h4><output id="recent-sum-mode">—</output></div>
