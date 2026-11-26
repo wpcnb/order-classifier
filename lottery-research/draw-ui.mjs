@@ -1,6 +1,7 @@
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
 import {drawSum} from "./draw-sum.mjs";
+import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs";
 import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs";
 
 const button = document.querySelector("#draw");
@@ -29,6 +30,7 @@ function renderArchive(message) {
     return li;
   }
   history.replaceChildren(...records.slice(0,10).map(item));
+  renderRecentFrequency(document,recentFrequency(records.slice(0,10).map(row=>row.number)));
   archiveList.replaceChildren(...records.map(item));
   document.querySelector("#empty-history").hidden = records.length !== 0;
   exportButton.disabled = !records.length;
