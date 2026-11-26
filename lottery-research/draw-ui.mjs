@@ -43,7 +43,7 @@ function restoreArchive() {
   }
 }
 function recordSimulation(number) {
-  const id = Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");
+  const id = typeof crypto.randomUUID === "function" ? crypto.randomUUID().replace(/-/g,"") : Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");
   const row = {id,at:new Date().toISOString(),number,sum:drawSum(number)};
   unsaved = normalizeArchive([...unsaved,row]);
   records = normalizeArchive([...records,row]);
@@ -192,6 +192,20 @@ reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches && playback?.paused) playback.resume();
 });
 restoreArchive();
+// Restore the last completed simulation without starting a new draw or changing the archive.
+if (records.length) {
+  const {number,sum} = records[0];
+  for (let i=0;i<outputs.length;i++) {
+    outputs[i].textContent = number[i];
+    outlets[i].textContent = number[i];
+    groups[i][Number(number[i])].style.visibility = "hidden";
+  }
+  sumDisplay.textContent = "本次和值：" + sum;
+  document.querySelector("#result-title").textContent = "最近一次模拟号码";
+  indicator.textContent = "已恢复存档";
+  status.textContent = "准备就绪。已恢复最近一次模拟及本机记录。";
+} else {
+  status.textContent = "准备就绪。";
+}
 button.addEventListener("click", startDraw);
 button.disabled = false;
-status.textContent = "准备就绪。";

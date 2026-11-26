@@ -46,7 +46,7 @@ def check(base):
         restart.press("Enter")
         check_reset()
         page.clock.run_for(2350)
-        assert result() == "007" and history.all_text_contents() == ["007"]
+        assert result() == "007" and history.count() == 1 and history.first.inner_text().startswith("007 · 和值 7 ·")
 
         page.select_option("#playback-speed", "0.5")
         restart.press("Enter")
@@ -54,13 +54,13 @@ def check(base):
         assert result() == "–––"
         page.clock.run_for(3500)
         assert result() == "007" and page.locator("#result-title").inner_text() == "重播本次模拟"
-        assert history.all_text_contents() == ["007"] and page.evaluate("window.drawCalls") == 1
+        assert history.count() == 1 and history.first.inner_text().startswith("007 · 和值 7 ·") and page.evaluate("window.drawCalls") == 1
 
         # A genuine second draw can coincidentally have the same number.
         page.select_option("#playback-speed", "1")
         page.locator("#draw").press("Enter")
         page.clock.run_for(2350)
-        assert history.all_text_contents() == ["007", "007"] and page.evaluate("window.drawCalls") == 2
+        assert history.count() == 2 and all(x.startswith("007 · 和值 7 ·") for x in history.all_text_contents()) and page.evaluate("window.drawCalls") == 2
 
         # Changing the selection after playback must not retarget a rewind.
         options = page.locator("#replay-issue option")
@@ -74,6 +74,22 @@ def check(base):
         assert result() == expected and issue in page.locator("#result-title").inner_text()
         assert history.count() == 2 and page.evaluate("window.drawCalls") == 2
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        # Reload and reopen within the same browser context: archive and last result must restore.
+        saved = history.all_text_contents()
+        assert len(saved) == 2
+        assert page.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records.length") == 2
+        page.reload()
+        page.wait_for_function("document.querySelectorAll('#history li').length === 2")
+        assert history.all_text_contents() == saved
+        assert result() == "007" and page.locator("#draw-sum").inner_text() == "本次和值：7"
+        assert page.locator("#archive-list li").count() == 2
+        assert page.evaluate("window.drawCalls") == 0
+        context = page.context
+        reopened = context.new_page()
+        reopened.goto(base.rstrip("/") + "/")
+        reopened.wait_for_function("document.querySelectorAll('#history li').length === 2")
+        assert reopened.locator("#history li").all_text_contents() == saved
+        reopened.close()
         print(f"PASS mobile rewind, pause, half speed, two separate 007 draws and archive {issue} {expected}")
         browser.close()
 
