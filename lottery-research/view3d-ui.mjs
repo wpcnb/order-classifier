@@ -1,4 +1,4 @@
-import {createMachineScene} from "./view3d-scene.mjs?v=materials1";
+import {createMachineScene} from "./view3d-scene.mjs?v=pi-motion";
 import {loadRapier} from "./rapier-loader.mjs";
 
 // Fixed release, loaded only when a person chooses the optional view.

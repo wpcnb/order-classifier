@@ -1,4 +1,5 @@
 import {CHAMBER_CENTERS,CHAMBER_Y,CHAMBER_RADIUS,BALL_RADIUS} from "./view3d-state.mjs";
+import {radians,stirringField} from "./circular-motion.mjs";
 
 // The engine is only a visual teaching aid. It never reads or chooses a draw
 // number. Units, gravity and impulses are illustrative, not calibrated.
@@ -20,7 +21,7 @@ export function createChamberPhysics(R){
       const group=[];
       for(let i=0;i<10;i++){
         const upper=i>=5;
-        const a=2*Math.PI*(i%5)/5+(upper?.5:0);
+        const a=radians((i%5)/5+(upper?.1:0));
         const x=.46*Math.cos(a),z=.46*Math.sin(a);
         const body=world.createRigidBody(R.RigidBodyDesc.dynamic()
           .setTranslation(center+x,CHAMBER_Y+(upper?.24:-.29),z)
@@ -54,12 +55,11 @@ export function createChamberPhysics(R){
     // Prescribed illustrative agitation, not a CFD calculation or ball selector.
     bodies.forEach((group,ci)=>group.forEach((body,i)=>{
       const v=body.linvel();
-      const phase=steps*STEP*3.4+i*2.1+ci;
       const p=body.translation();
-      const lift=p.y<CHAMBER_Y?7.7:2.4;
-      const vx=v.x+STEP*2.0*Math.sin(phase);
-      const vy=v.y+STEP*lift;
-      const vz=v.z+STEP*2.0*Math.cos(phase);
+      const [ax,ay,az]=stirringField(p.x-CHAMBER_CENTERS[ci],p.y-CHAMBER_Y,p.z,steps*STEP,ci,i);
+      const vx=v.x+STEP*ax;
+      const vy=v.y+STEP*ay;
+      const vz=v.z+STEP*az;
       const scale=Math.min(1,3.8/Math.max(.001,Math.hypot(vx,vy,vz)));
       body.setLinvel({x:vx*scale,y:vy*scale,z:vz*scale},true);
     }));

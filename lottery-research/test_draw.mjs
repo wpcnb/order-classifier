@@ -138,3 +138,22 @@ test("recent frequency preserves ties, zeros, partial and empty samples",()=>{
   assert.throws(()=>recentFrequency(["7"]),TypeError);
   assert.throws(()=>recentFrequency([7]),TypeError);
 });
+
+import {PI_DISPLAY,TAU,radians,mixingOrbit,stirringField} from "./circular-motion.mjs";
+test("pi-based visual orbit is periodic and bounded",()=>{
+  assert.equal(PI_DISPLAY,"3.1415926");
+  assert.equal(TAU,2*Math.PI);
+  assert.equal(radians(.5),Math.PI);
+  assert.ok(Math.abs(radians(100.25)-Math.PI/2)<1e-10);
+  for(let g=0;g<3;g++)for(let i=0;i<10;i++)for(let t=0;t<=2300;t+=20){
+    const [x,y]=mixingOrbit(g,i,t);
+    assert.ok(Number.isFinite(x)&&Number.isFinite(y));
+    assert.ok(Math.hypot(x-50,y-50)<=37+1e-9);
+    const [ax,ay,az]=stirringField((x-50)/50,(y-50)/50,.2,t/1000,g,i);
+    assert.ok([ax,ay,az].every(Number.isFinite));
+    assert.ok(Math.hypot(ax,az)<=2.55+1e-9&&ay>=1.7-1e-9&&ay<=8.4+1e-9);
+  }
+  assert.notDeepEqual(mixingOrbit(0,0,0),mixingOrbit(0,0,100));
+  assert.throws(()=>mixingOrbit(0,10,0),RangeError);
+  assert.throws(()=>radians(Infinity),RangeError);
+});
