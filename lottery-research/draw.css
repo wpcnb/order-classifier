@@ -199,6 +199,8 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .desk-history details{padding:9px 0 0;border-bottom:0;font-size:.85rem}
 .archive-search{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
 .archive-search input{box-sizing:border-box;width:8rem;max-width:100%;min-height:44px;padding:6px 10px;border:1px solid #acb9aa;border-radius:6px;font:inherit}
+.archive-sum-filter{display:inline-flex;align-items:center;gap:8px}
+.archive-sum-filter select{min-height:44px;padding:6px 10px;border:1px solid #acb9aa;border-radius:6px;background:#fff;color:inherit;font:inherit}
 .archive-search button,.archive-pagination button{min-height:44px;padding:6px 10px;align-items:center}
 .archive-pagination:not([hidden]){display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .archive-backup-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}

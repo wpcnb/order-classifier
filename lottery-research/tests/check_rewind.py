@@ -121,7 +121,7 @@ def check(base):
         assert reopened.locator("#playback-speed").input_value() == "4"
         # Controlled storage fixture: older records count in statistics, not visible list.
         reopened.evaluate("""() => {
-          const numbers=['007','007','007','007','007','007','123','123','456','789',...Array(11).fill('999')];
+          const numbers=['007','007','007','007','007','007','123','123','456','000',...Array(11).fill('999')];
           localStorage.setItem('fc3d-simulation-archive-v1',JSON.stringify({version:1,records:numbers.map((number,i)=>({
             id:i.toString(16).padStart(32,'0'),number,at:new Date(1800000000000-i*1000).toISOString()
           }))}));
@@ -151,10 +151,17 @@ def check(base):
         prev_page.click()
         assert "第 11–20 条" in reopened.locator("#archive-search-status").inner_text()
         archive_search = reopened.get_by_label("按号码查找", exact=True)
+        sum_filter = reopened.get_by_label("筛选和值", exact=True)
         archive_search.fill("00")
+        assert reopened.locator("#history li").count() == 7
+        sum_filter.select_option("7")
         assert reopened.locator("#history li").count() == 6
         assert all(x.startswith("007 ·") for x in reopened.locator("#history li").all_text_contents())
         assert not next_page.is_visible()
+        sum_filter.select_option("0")
+        assert reopened.locator("#history li").count() == 1
+        assert reopened.locator("#history li").inner_text().startswith("000 · 和值 0")
+        sum_filter.select_option("")
         archive_search.fill("008")
         assert reopened.locator("#history li").count() == 0
         assert "没有匹配 008" in reopened.locator("#archive-search-status").inner_text()
@@ -168,8 +175,11 @@ def check(base):
         reopened.locator("#skip-animation").press("Enter")
         assert "".join(reopened.locator(".output b").all_text_contents()) == "999"
         assert reopened.evaluate("localStorage.getItem('fc3d-simulation-archive-v1')") == original_archive
+        sum_filter.select_option("27")
+        assert "第 1 / 2 页" in reopened.locator("#archive-search-status").inner_text()
         reopened.get_by_role("button", name="清除", exact=True).click()
         assert archive_search.input_value() == ""
+        assert sum_filter.input_value() == ""
         assert reopened.locator("#history li").count() == 10
         assert reopened.get_by_role("button", name="回放模拟号码 999", exact=True).count() == 0
         reopened.get_by_text("本机存档备份",exact=True).click()
