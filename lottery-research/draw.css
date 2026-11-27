@@ -253,6 +253,8 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .batch-detail{padding:8px 0 0;margin-top:9px;border-top:1px solid #dce6e7;border-bottom:0}
 .batch-detail summary{font-size:.84rem;color:#2d5b69}
 .batch-table-scroll{max-width:100%;overflow-x:auto}
+.batch-sum-scroll{max-height:18rem;overflow:auto}
+.batch-sum-scroll thead th{position:sticky;top:0;background:#f1f6f7}
 .batch-detail table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.8rem;text-align:right;font-variant-numeric:tabular-nums}
 .batch-detail caption{text-align:left;color:#526570;margin-bottom:5px}
 .batch-detail th,.batch-detail td{padding:5px 8px;border-bottom:1px solid #e4eaec}

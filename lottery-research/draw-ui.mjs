@@ -31,6 +31,10 @@ const batchReport = document.querySelector("#batch-report");
 const formatTime = new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
 let records = [];
 let unsaved = [];
+const theoreticalSumCounts = Array(28).fill(0);
+for (let number = 0; number < 1000; number++) {
+  theoreticalSumCounts[drawSum(String(number).padStart(3, "0"))]++;
+}
 function renderArchive(message) {
   function item(row) {
     const li = document.createElement("li");
@@ -69,6 +73,20 @@ function recordSimulations(numbers) {
     return false;
   }
 }
+function renderBatchSums(report) {
+  const rows = report.sums.map((count, sum) => {
+    const row = document.createElement("tr");
+    const label = document.createElement("th");
+    label.scope = "row";
+    label.textContent = String(sum);
+    row.append(label);
+    row.insertCell().textContent = String(count);
+    row.insertCell().textContent = (100 * count / report.count).toFixed(1) + "%";
+    row.insertCell().textContent = (theoreticalSumCounts[sum] / 10).toFixed(1) + "%";
+    return row;
+  });
+  document.querySelector("#batch-sums").replaceChildren(...rows);
+}
 function renderBatchReport(report, saveMessage = "") {
   validateBatchReport(report);
   const $=id=>document.querySelector("#"+id);
@@ -100,6 +118,7 @@ function renderBatchReport(report, saveMessage = "") {
     return tr;
   });
   $("batch-frequency").replaceChildren(...rows);
+  renderBatchSums(report);
   batchReport.hidden=false;
 }
 function restoreBatchReport() {

@@ -47,6 +47,12 @@ def check(base):
         assert [row["number"] for row in archived()] == [f"{i:03d}" for i in range(9, -1, -1)]
         assert page.locator("#batch-unique").inner_text() == "10"
         assert page.locator("#batch-repeats").inner_text() == "0"
+        page.get_by_text("查看和值分布", exact=True).click()
+        sum_rows = page.locator("#batch-sums tr")
+        assert sum_rows.count() == 28
+        assert sum_rows.first.locator("th, td").all_text_contents() == ["0", "1", "10.0%", "0.1%"]
+        assert sum_rows.nth(13).locator("th, td").all_text_contents() == ["13", "0", "0.0%", "7.5%"]
+        assert sum_rows.last.locator("th, td").all_text_contents() == ["27", "0", "0.0%", "0.1%"]
         # The animation controls are intentionally hidden with reduced motion enabled.
         page.emulate_media(reduced_motion="no-preference")
         page.select_option("#playback-speed", "4")
@@ -74,6 +80,9 @@ def check(base):
         assert page.evaluate("window.sampleCalls") == 1110
         assert result() == "109" and len(archived()) == 1000
         assert page.locator("#batch-count").inner_text() == "1000 次"
+        # This deterministic batch contains every ordered triplet exactly once.
+        assert sum_rows.nth(13).locator("th, td").all_text_contents() == ["13", "75", "7.5%", "7.5%"]
+        sum_rows_before_reload = sum_rows.all_text_contents()
         assert page.locator("#batch-unique").inner_text() == "1000"
         assert page.locator("#batch-repeats").inner_text() == "0"
         assert page.locator("#simulation-count").inner_text() == "本机留存 1000 次"
@@ -96,6 +105,8 @@ def check(base):
         assert instant.is_checked()
         assert page.evaluate("window.sampleCalls") == 0
         assert len(archived()) == 1000
+        page.get_by_text("查看和值分布", exact=True).click()
+        assert sum_rows.all_text_contents() == sum_rows_before_reload
         for width in (320, 390, 1024, 1440):
             page.set_viewport_size({"width": width, "height": 900})
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
