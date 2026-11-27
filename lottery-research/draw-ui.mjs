@@ -12,6 +12,7 @@ const restartButton = document.querySelector("#restart");
 const skipButton = document.querySelector("#skip-animation");
 const archiveButton = document.querySelector("#replay");
 const speed = document.querySelector("#playback-speed");
+const PLAYBACK_SPEED_KEY = "fc3d-playback-speed-v1";
 let playback = null;
 let revealFinalFrame = null;
 let currentDraw = null;
@@ -225,6 +226,16 @@ function finish(draw, trigger) {
   setBusy(false);
   if (focusOnPlayback) trigger.focus({preventScroll:true});
 }
+function restorePlaybackSpeed() {
+  let savedSpeed;
+  try {
+    savedSpeed = localStorage.getItem(PLAYBACK_SPEED_KEY);
+  } catch {
+    // Playback remains available even when storage is blocked.
+  }
+  const supported = Array.from(speed.options).some(option => option.value === savedSpeed);
+  speed.value = supported ? savedSpeed : "1";
+}
 export function replayDraw(row) {
   if (!button.disabled) animate({number:row.number, issue:row.issue}, archiveButton);
 }
@@ -344,6 +355,14 @@ reducedMotion.addEventListener("change", () => {
 });
 restoreArchive();
 restoreBatchReport();
+restorePlaybackSpeed();
+speed.addEventListener("change", () => {
+  try {
+    localStorage.setItem(PLAYBACK_SPEED_KEY, speed.value);
+  } catch {
+    // The selected speed still applies in this tab.
+  }
+});
 // Restore the last completed simulation without starting a new draw or changing the archive.
 if (records.length) {
   const {number,sum} = records[0];
