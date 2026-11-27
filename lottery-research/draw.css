@@ -252,6 +252,7 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .batch-report #batch-save-status{color:#875f15}
 .batch-detail{padding:8px 0 0;margin-top:9px;border-top:1px solid #dce6e7;border-bottom:0}
 .batch-detail summary{font-size:.84rem;color:#2d5b69}
+#batch-sum-export{min-height:44px;margin:6px 0 2px;padding:8px 12px;font-size:.84rem}
 .batch-table-scroll{max-width:100%;overflow-x:auto}
 .batch-sum-scroll{max-height:18rem;overflow:auto}
 .batch-sum-scroll thead th{position:sticky;top:0;background:#f1f6f7}

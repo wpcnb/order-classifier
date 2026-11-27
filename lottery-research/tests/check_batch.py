@@ -1,5 +1,8 @@
 """Browser regression for batch draws, ordering, persistence and failure handling."""
 from argparse import ArgumentParser
+from csv import reader
+from json import loads
+from pathlib import Path
 from shutil import which
 from playwright.sync_api import sync_playwright
 
@@ -107,9 +110,29 @@ def check(base):
         assert len(archived()) == 1000
         page.get_by_text("查看和值分布", exact=True).click()
         assert sum_rows.all_text_contents() == sum_rows_before_reload
+        with page.expect_download() as pending:
+            page.get_by_role("button", name="下载和值分布（CSV）").click()
+        export = pending.value
+        assert export.suggested_filename.startswith("fc3d-batch-sums-")
+        assert export.suggested_filename.endswith(".csv")
+        raw_csv = Path(export.path()).read_bytes()
+        assert raw_csv.startswith(bytes.fromhex("efbbbf"))
+        header, *rows = reader(raw_csv.decode("utf-8-sig").splitlines())
+        assert header == ["批次时间(UTC)", "批次抽取次数", "和值", "出现次数", "样本占比(%)", "理论占比(%)"]
+        assert len(rows) == 28 and [int(row[2]) for row in rows] == list(range(28))
+        assert sum(int(row[3]) for row in rows) == 1000
+        assert all(row[1] == "1000" for row in rows)
+        assert rows[13][2:] == ["13", "75", "7.5", "7.5"]
+        assert page.evaluate("window.sampleCalls") == 0 and len(archived()) == 1000
         for width in (320, 390, 1024, 1440):
             page.set_viewport_size({"width": width, "height": 900})
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.get_by_text("本机存档备份", exact=True).click()
+        with page.expect_download() as backup_pending:
+            page.locator("#archive-export").click()
+        backup = backup_pending.value
+        assert backup.suggested_filename == "fc3d-simulation-archive.json"
+        assert loads(Path(backup.path()).read_text(encoding="utf-8")) == {"version": 1, "records": archived()}
         context.close()
 
         # A failed random service cannot leave a half-completed batch in the archive.
