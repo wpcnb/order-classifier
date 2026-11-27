@@ -3,6 +3,7 @@ import test from "node:test";
 import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
 import {drawSum} from "./draw-sum.mjs";
+import {sampleBatch,createBatchReport,validateBatchReport} from "./batch-draw.mjs";
 
 test("every ordered triplet including 000 and 007 is reachable", () => {
   for (let i=0; i<1000; i++) {
@@ -64,6 +65,16 @@ test("half-speed playback freezes exactly at the last shown frame and completes 
   assert.deepEqual(samples, [1100,1700,2300]);
 });
 
+test("four-times speed completes a 2300ms animation in 575ms", () => {
+ let now=0, callback;
+ const clock={performance:{now:()=>now},requestAnimationFrame(fn){callback=fn;return 1;},cancelAnimationFrame(){}};
+ const frames=[];
+ playFrames(4,elapsed=>{frames.push(elapsed);return elapsed>=2300;},clock);
+ now=575;
+ callback(now);
+ assert.deepEqual(frames,[2300]);
+});
+
 
 test("draw sum handles all 1000 triplets, including leading zeros and repeats", () => {
   const counts = Array(28).fill(0);
@@ -97,6 +108,57 @@ test("archive persists, merges, deduplicates, limits and protects corrupt data",
  storage.value="{broken";
  assert.throws(()=>saveArchive(storage,[row]));
  assert.equal(storage.value,"{broken");
+});
+
+test("multi-draw samples exactly the requested independent results and preserves leading zeros",()=>{
+ for(const size of [10,100,1000]){
+  let calls=0;
+  const numbers=sampleBatch(size,()=>String(calls++ % 1000).padStart(3,"0"));
+  assert.equal(calls,size);
+  assert.equal(numbers.length,size);
+  assert.equal(numbers[0],"000");
+  assert.equal(numbers[size-1],String(size-1).padStart(3,"0"));
+ }
+ assert.throws(()=>sampleBatch(1),RangeError);
+ let calls=0;
+ assert.throws(()=>sampleBatch(10,()=>{if(++calls===5)throw Error("random unavailable");return "007";}));
+ assert.equal(calls,5);
+ assert.throws(()=>sampleBatch(10,()=>"7"),TypeError);
+});
+
+test("batch report has correct distinct counts, forms, sums and position frequencies",()=>{
+ const numbers=["000","000","111","112","121","123","456","789","007","987"];
+ const report=createBatchReport(numbers,"2026-11-27T00:00:00.000Z");
+ assert.equal(report.count,10);
+ assert.equal(report.unique,9);
+ assert.equal(report.lastNumber,"987");
+ assert.deepEqual(report.forms,[3,3,4]);
+ assert.equal(report.sums[0],2);
+ assert.equal(report.sums[4],2);
+ assert.equal(report.sums[24],2);
+ assert.equal(report.positions[0][0],3);
+ assert.equal(report.positions[1][2],2);
+ assert.equal(report.positions[2][7],2);
+ assert.equal(report.sums.reduce((a,b)=>a+b),10);
+ for(const position of report.positions)assert.equal(position.reduce((a,b)=>a+b),10);
+ assert.deepEqual(validateBatchReport(JSON.parse(JSON.stringify(report))),report);
+ assert.throws(()=>validateBatchReport({...report,unique:11}),TypeError);
+ assert.throws(()=>validateBatchReport({...report,forms:[0,0,0]}),TypeError);
+ assert.throws(()=>validateBatchReport({...report,lastNumber:"7"}),TypeError);
+});
+
+test("batch records in the same millisecond restore in their real draw order",()=>{
+ const storage={value:null,getItem(){return this.value},setItem(key,value){this.value=value}};
+ const rows=Array.from({length:1000},(_,i)=>({
+  id:(999-i).toString(16).padStart(32,"0"),at:"2026-11-27T00:00:00.000Z",
+  number:String(i).padStart(3,"0"),sequence:i+1
+ }));
+ const saved=saveArchive(storage,rows);
+ assert.equal(saved.length,1000);
+ assert.equal(saved[0].number,"999");
+ assert.equal(readArchive(storage)[999].number,"000");
+ assert.equal(readArchive(storage)[0].sequence,1000);
+ assert.throws(()=>saveArchive(storage,[{...rows[0],sequence:-1}]),TypeError);
 });
 
 import {mapBall,outletDigit,CHAMBER_CENTERS,CHAMBER_Y,CHAMBER_RADIUS,BALL_RADIUS} from "./view3d-state.mjs";

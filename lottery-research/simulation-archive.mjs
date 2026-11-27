@@ -7,9 +7,14 @@ export function normalizeArchive(rows){
     if(!row || typeof row.id!=="string" || !/^[a-f0-9]{32}$/.test(row.id) ||
        typeof row.at!=="string" || !Number.isFinite(Date.parse(row.at)) ||
        typeof row.number!=="string" || !/^[0-9]{3}$/.test(row.number)) throw new TypeError("Invalid record");
-    unique.set(row.id,{id:row.id,at:new Date(row.at).toISOString(),number:row.number,sum:drawSum(row.number)});
+    if(row.sequence!==undefined && (!Number.isSafeInteger(row.sequence) || row.sequence<1)) throw new TypeError("Invalid record sequence");
+    const normalized={id:row.id,at:new Date(row.at).toISOString(),number:row.number,sum:drawSum(row.number)};
+    if(row.sequence!==undefined)normalized.sequence=row.sequence;
+    unique.set(row.id,normalized);
   }
-  return [...unique.values()].sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id)).slice(0,ARCHIVE_LIMIT);
+  // Several completed samples may share a millisecond. Keep their actual draw order
+  // rather than sorting equal timestamps by random identifier.
+  return [...unique.values()].sort((a,b)=>b.at.localeCompare(a.at)||(b.sequence||0)-(a.sequence||0)||b.id.localeCompare(a.id)).slice(0,ARCHIVE_LIMIT);
 }
 
 export function readArchive(storage){

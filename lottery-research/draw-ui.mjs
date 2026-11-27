@@ -2,8 +2,9 @@ import {drawNumber} from "./draw-machine.mjs";
 import {playFrames} from "./playback.mjs";
 import {mixingOrbit} from "./circular-motion.mjs";
 import {drawSum} from "./draw-sum.mjs";
-import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=simulation-count";
-import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs";
+import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=20261127-multi-draw";
+import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs?v=20261127-multi-draw";
+import {BATCH_REPORT_KEY, sampleBatch, createBatchReport, validateBatchReport} from "./batch-draw.mjs";
 
 const button = document.querySelector("#draw");
 const pauseButton = document.querySelector("#pause");
@@ -20,6 +21,8 @@ const history = document.querySelector("#history");
 const sumDisplay = document.querySelector("#draw-sum");
 const archiveStatus = document.querySelector("#archive-status");
 const exportButton = document.querySelector("#archive-export");
+const batchButtons = [...document.querySelectorAll("[data-batch]")];
+const batchReport = document.querySelector("#batch-report");
 const formatTime = new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
 let records = [];
 let unsaved = [];
@@ -43,18 +46,63 @@ function restoreArchive() {
     renderArchive("本机存档读取失败，已有存档未覆盖；请导出本页记录。");
   }
 }
-function recordSimulation(number) {
-  const id = typeof crypto.randomUUID === "function" ? crypto.randomUUID().replace(/-/g,"") : Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");
-  const row = {id,at:new Date().toISOString(),number,sum:drawSum(number)};
-  unsaved = normalizeArchive([...unsaved,row]);
-  records = normalizeArchive([...records,row]);
+function recordSimulations(numbers) {
+  const prefix = (typeof crypto.randomUUID === "function" ? crypto.randomUUID().replace(/-/g,"") : Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("")).slice(0,28);
+  const at = new Date().toISOString();
+  const firstSequence = records.reduce((max,row)=>Math.max(max,row.sequence||0),0)+1;
+  if (!Number.isSafeInteger(firstSequence+numbers.length-1)) throw new RangeError("Archive sequence exhausted");
+  const rows = numbers.map((number,i)=>({id:prefix+i.toString(16).padStart(4,"0"),at,number,sum:drawSum(number),sequence:firstSequence+i}));
+  unsaved = normalizeArchive([...unsaved,...rows]);
+  records = normalizeArchive([...records,...rows]);
   try {
     records = saveArchive(localStorage,unsaved);
     unsaved = [];
     renderArchive("已自动保存至本机。");
+    return true;
   } catch {
     renderArchive("本机写入失败，新增记录仅在本页保留，请导出备份。");
+    return false;
   }
+}
+function renderBatchReport(report, saveMessage = "") {
+  validateBatchReport(report);
+  const $=id=>document.querySelector("#"+id);
+  const modes=counts=>{
+    const maximum=Math.max(...counts);
+    return counts.flatMap((n,i)=>n===maximum?[i]:[]).join(" / ");
+  };
+  $("batch-time").textContent=formatTime.format(new Date(report.at))+" · 北京时间";
+  $("batch-count").textContent=report.count+" 次";
+  $("batch-unique").textContent=String(report.unique);
+  $("batch-repeats").textContent=String(report.count-report.unique);
+  const total=report.sums.reduce((sum,count,value)=>sum+count*value,0);
+  $("batch-mean-sum").textContent=(total/report.count).toFixed(2);
+  $("batch-forms").textContent="豹子 "+report.forms[0]+" · 组三 "+report.forms[1]+" · 组六 "+report.forms[2];
+  $("batch-modes").textContent="本次最高频和值："+modes(report.sums);
+  $("batch-last").textContent="最后一组："+report.lastNumber+" · 和值 "+drawSum(report.lastNumber);
+  $("batch-save-status").textContent=saveMessage;
+  const rows=Array.from({length:10},(_,digit)=>{
+    const tr=document.createElement("tr");
+    const label=document.createElement("th");
+    label.scope="row";
+    label.textContent=String(digit);
+    tr.append(label);
+    for (const position of report.positions) {
+      const cell=document.createElement("td");
+      cell.textContent=String(position[digit]);
+      tr.append(cell);
+    }
+    return tr;
+  });
+  $("batch-frequency").replaceChildren(...rows);
+  batchReport.hidden=false;
+}
+function restoreBatchReport() {
+  try {
+    const raw=localStorage.getItem(BATCH_REPORT_KEY);
+    if (raw===null) { batchReport.hidden=true; return; }
+    renderBatchReport(validateBatchReport(JSON.parse(raw)));
+  } catch { batchReport.hidden=true; }
 }
 exportButton.addEventListener("click",()=>{
   const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,records},null,2)],{type:"application/json"}));
@@ -64,7 +112,10 @@ exportButton.addEventListener("click",()=>{
   link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-window.addEventListener("storage",event=>{if(event.key===ARCHIVE_KEY||event.key===null)restoreArchive();});
+window.addEventListener("storage",event=>{
+  if(event.key===ARCHIVE_KEY||event.key===null)restoreArchive();
+  if(event.key===BATCH_REPORT_KEY||event.key===null)restoreBatchReport();
+});
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const places = ["百位", "十位", "个位"];
 const visualSource = document.querySelector(".machine .studio");
@@ -96,6 +147,7 @@ function resetBalls() {
 }
 function setBusy(busy) {
   button.disabled = busy;
+  batchButtons.forEach(batchButton=>{batchButton.disabled=busy;});
   speed.disabled = busy;
   pauseButton.disabled = !busy;
   pauseButton.textContent = "暂停动画";
@@ -108,11 +160,12 @@ function finish(draw, trigger) {
   const sum = drawSum(number);
   sumDisplay.textContent = "本次和值：" + sum;
   if (!issue && !draw.recorded) {
-    recordSimulation(number);
+    recordSimulations([number]);
     draw.recorded = true;
   }
   indicator.textContent = issue ? "回放完成" : "已出球";
-  status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" : "本次模拟号码为 " + number + "。";
+  status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" :
+    draw.batchCount ? draw.batchCount + " 连抽完成，最后一组为 " + number + "。" : "本次模拟号码为 " + number + "。";
   status.textContent += "和值 " + sum + "。";
   button.firstChild.textContent = issue ? "开始摇奖 " : "再摇一次 ";
   const focusOnPause = document.activeElement === pauseButton;
@@ -134,6 +187,29 @@ function startDraw() {
   }
   animate({number, issue:null, recorded:false}, button);
 }
+function startBatch(trigger) {
+  if (button.disabled) return;
+  const count=Number(trigger.dataset.batch);
+  let numbers, report, saved;
+  try {
+    numbers=sampleBatch(count);
+    report=createBatchReport(numbers);
+    saved=recordSimulations(numbers);
+  } catch {
+    status.textContent="连抽未完成，请检查浏览器随机数服务后重试。";
+    return;
+  }
+  let saveMessage="";
+  if (saved) {
+    try { localStorage.setItem(BATCH_REPORT_KEY,JSON.stringify(report)); }
+    catch { saveMessage="报告仅在本页保留；号码已保存至本机。"; }
+  } else {
+    saveMessage="本次号码和报告仅在本页保留，请导出存档备份。";
+  }
+  renderBatchReport(report,saveMessage);
+  // The entire batch is already recorded once; only its last number is animated.
+  animate({number:report.lastNumber,issue:null,recorded:true,batchCount:count},trigger);
+}
 function animate(draw, trigger) {
   playback?.pause();
   currentDraw = draw;
@@ -145,7 +221,7 @@ function animate(draw, trigger) {
   const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
   setBusy(true);
   if (moveFocus) pauseButton.focus({preventScroll:true});
-  const simulationTitle = trigger === restartButton ? "重播本次模拟" : "本次模拟号码";
+  const simulationTitle = trigger === restartButton ? "重播本次模拟" : draw.batchCount ? "连抽 · 最后一组" : "本次模拟号码";
   document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : simulationTitle;
   sumDisplay.textContent = "本次和值：–";
   resetBalls();
@@ -203,6 +279,7 @@ reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches && playback?.paused) playback.resume();
 });
 restoreArchive();
+restoreBatchReport();
 // Restore the last completed simulation without starting a new draw or changing the archive.
 if (records.length) {
   const {number,sum} = records[0];
@@ -220,3 +297,7 @@ if (records.length) {
 }
 button.addEventListener("click", startDraw);
 button.disabled = false;
+batchButtons.forEach(batchButton=>{
+  batchButton.addEventListener("click",()=>startBatch(batchButton));
+  batchButton.disabled=false;
+});

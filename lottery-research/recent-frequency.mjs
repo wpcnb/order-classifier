@@ -34,7 +34,7 @@ export function positionModeLabel(modes){
 
 export function renderRecentFrequency(root,stats){
   const $=id=>root.querySelector("#"+id);
-  $("simulation-count").textContent="已模拟 "+stats.sampleSize+" 次";
+  $("simulation-count").textContent="本机留存 "+stats.sampleSize+" 次";
   $("recent-position-mode").textContent=positionModeLabel(stats.positionModes);
   $("recent-sum-mode").textContent=stats.sumMode.values.join(" / ")||"—";
   $("recent-digit-mode").textContent=stats.digitMode.values.join(" / ")||"—";
