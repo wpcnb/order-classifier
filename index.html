@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261126-simulation-count">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261127-pi-motion"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=20261127-pi-motion"></script>
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261127-multi-draw">
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261127-multi-draw"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=20261127-multi-draw"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -24,7 +24,7 @@
 <header><div class="container mast"><span class="wordmark"><i aria-hidden="true"></i> 概率研究室</span><a href="#specs">设备参数 ↘</a></div></header>
 <main class="container">
   <h1>福彩 <span>3D</span> 模拟摇奖机</h1>
-  <p class="intro">按百位、十位、个位依次出球，模拟一次完整摇奖。</p>
+  <p class="intro">单次观看完整出球，也可以快速连续模拟并查看统计。</p>
   <script type="module" src="./lottery-research/view3d-ui.mjs?v=20261127-pi-motion"></script>
   <div class="desk">
     <section class="machine" aria-label="三色球气动搅拌示意">
@@ -70,7 +70,7 @@
     </section>
     <section class="control" aria-labelledby="result-title">
       <section class="recent-frequency" aria-labelledby="recent-frequency-title">
-        <div class="frequency-heading"><h3 id="recent-frequency-title">全部本机模拟 · 最高频统计</h3><span id="simulation-count" role="status">已模拟 0 次</span></div>
+        <div class="frequency-heading"><h3 id="recent-frequency-title">全部本机模拟 · 最高频统计</h3><span id="simulation-count" role="status">本机留存 0 次</span></div>
         <div class="frequency-cards">
           <div class="frequency-card"><h4>各位最高频组合</h4><output id="recent-position-mode">—</output></div>
           <div class="frequency-card"><h4>最高频和值</h4><output id="recent-sum-mode">—</output></div>
@@ -85,12 +85,41 @@
       <p id="draw-sum">本次和值：–</p>
       <div class="playback-controls">
         <label for="playback-speed">动画速度</label>
-        <select id="playback-speed"><option value="1">正常</option><option value="0.5">半速</option></select>
+        <select id="playback-speed"><option value="1">正常</option><option value="0.5">半速</option><option value="2">2 倍速</option><option value="4">4 倍速</option></select>
         <button id="pause" type="button" disabled>暂停动画</button>
         <button id="restart" type="button" disabled>从头播放</button>
       </div>
       <button id="draw" type="button" disabled>开始摇奖 <span aria-hidden="true">→</span></button>
       <p class="status" role="status" aria-live="polite">正在准备摇奖机…</p>
+      <section class="batch-draw" aria-labelledby="batch-title">
+        <div class="batch-heading"><h3 id="batch-title">快速连抽</h3><span>独立随机</span></div>
+        <div class="batch-buttons" role="group" aria-label="选择连抽次数">
+          <button type="button" data-batch="10" disabled><strong>10</strong><span>连抽</span></button>
+          <button type="button" data-batch="100" disabled><strong>100</strong><span>连抽</span></button>
+          <button type="button" data-batch="1000" disabled><strong>1000</strong><span>连抽</span></button>
+        </div>
+        <p class="batch-note">一次生成全部号码，摇奖机播放最后一组。存档最多保留最近 1000 条；1000 连抽会挤掉此前记录。</p>
+      </section>
+      <section id="batch-report" class="batch-report" aria-labelledby="batch-report-title" hidden>
+        <div class="batch-heading"><h3 id="batch-report-title">最近一次连抽报告</h3><span id="batch-time"></span></div>
+        <div class="batch-summary">
+          <div><small>本次连抽</small><strong id="batch-count">—</strong></div>
+          <div><small>不同号码</small><strong id="batch-unique">—</strong></div>
+          <div><small>重复次数</small><strong id="batch-repeats">—</strong></div>
+          <div><small>平均和值</small><strong id="batch-mean-sum">—</strong></div>
+        </div>
+        <p id="batch-forms"></p>
+        <p id="batch-modes"></p>
+        <p id="batch-last"></p>
+        <p id="batch-save-status" role="status"></p>
+        <details class="batch-detail"><summary>查看各位数字频数</summary>
+          <div class="batch-table-scroll"><table><caption>本次连抽中各位置数字出现次数</caption>
+            <thead><tr><th scope="col">数字</th><th scope="col">百位</th><th scope="col">十位</th><th scope="col">个位</th></tr></thead>
+            <tbody id="batch-frequency"></tbody>
+          </table></div>
+        </details>
+        <p class="batch-report-note">仅统计本次连抽，重复次数为总次数减去不同号码数；历史频数不能预测未来号码。</p>
+      </section>
       <fieldset id="replay-options" disabled>
         <legend>历史回放</legend>
         <label for="replay-issue">选择已开奖期号</label>

@@ -223,3 +223,33 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .desk .frequency-note{margin:5px 0 0}
 
 .frequency-heading{display:flex;align-items:baseline;justify-content:space-between;gap:5px 10px;flex-wrap:wrap}.frequency-heading #simulation-count{font-size:.79rem;font-weight:650;color:#40576a;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* One-click multi-draw controls and a separate report for the latest batch. */
+.batch-draw{margin:16px 0 4px;padding:15px;border:1px solid #bfd4df;border-radius:10px;background:linear-gradient(135deg,#eff8fa,#f5f1fb)}
+.batch-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:5px 12px}
+.batch-heading h3{margin:0;color:#203a4c;font-size:1rem}
+.batch-heading span{color:#526677;font-size:.76rem}
+.batch-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.batch-buttons button{min-width:0;min-height:62px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;padding:8px 3px;border:1px solid #547c91;border-radius:8px;background:#edf6f9;color:#183b50}
+.batch-buttons button:hover:enabled{background:#d7eef4}
+.batch-buttons button:nth-child(2){background:#e9f3ec;border-color:#86ad98;color:#254c3c}
+.batch-buttons button:nth-child(3){background:#f5effb;border-color:#ad96bf;color:#48305d}
+.batch-buttons button strong{font-size:1.25rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.batch-buttons button span{font-size:.8rem}
+.batch-note,.batch-report-note{color:#536773;font-size:.79rem;line-height:1.5;margin:9px 0 0}
+.batch-report[hidden]{display:none}
+.batch-report{margin:10px 0 3px;padding:15px;border:1px solid #d2dce3;border-radius:10px;background:#fff}
+.batch-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}
+.batch-summary div{min-width:0;padding:8px 5px;border-radius:6px;background:#f1f6f7;text-align:center}
+.batch-summary small{display:block;color:#526570;font-size:.72rem}
+.batch-summary strong{display:block;margin-top:3px;color:#1c4050;font-size:1rem;font-variant-numeric:tabular-nums}
+.batch-report>p:not(.batch-report-note){margin:6px 0;color:#304b5a;font-size:.84rem;overflow-wrap:anywhere}
+.batch-report #batch-save-status{color:#875f15}
+.batch-detail{padding:8px 0 0;margin-top:9px;border-top:1px solid #dce6e7;border-bottom:0}
+.batch-detail summary{font-size:.84rem;color:#2d5b69}
+.batch-table-scroll{max-width:100%;overflow-x:auto}
+.batch-detail table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.8rem;text-align:right;font-variant-numeric:tabular-nums}
+.batch-detail caption{text-align:left;color:#526570;margin-bottom:5px}
+.batch-detail th,.batch-detail td{padding:5px 8px;border-bottom:1px solid #e4eaec}
+.batch-detail th:first-child{text-align:left}
+@media(max-width:360px){.batch-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
