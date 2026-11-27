@@ -148,11 +148,12 @@
     <div class="archive-search">
       <label for="archive-number">按号码查找</label>
       <input id="archive-number" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="例如 007" aria-describedby="archive-search-status" disabled>
-      <label class="archive-sum-filter">筛选和值
+      <div class="archive-sum-filter">
+        <label for="archive-sum-filter">筛选和值</label>
         <select id="archive-sum-filter" aria-describedby="archive-search-status" disabled>
           <option value="">不限</option>
         </select>
-      </label>
+      </div>
       <button id="archive-search-clear" type="button" disabled>清除</button>
     </div>
     <p id="archive-search-status" role="status"></p>
