@@ -28,6 +28,7 @@ const batchButtons = [...document.querySelectorAll("[data-batch]")];
 const batchInstant = document.querySelector("#batch-instant");
 const BATCH_INSTANT_KEY = "fc3d-batch-instant-v1";
 const batchReport = document.querySelector("#batch-report");
+let displayedBatchReport = null;
 const formatTime = new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
 let records = [];
 let unsaved = [];
@@ -73,16 +74,21 @@ function recordSimulations(numbers) {
     return false;
   }
 }
+function batchSumRows(report) {
+  return report.sums.map((count, sum) => [
+    sum, count, (100 * count / report.count).toFixed(1), (theoreticalSumCounts[sum] / 10).toFixed(1)
+  ]);
+}
 function renderBatchSums(report) {
-  const rows = report.sums.map((count, sum) => {
+  const rows = batchSumRows(report).map(([sum, count, observed, theoretical]) => {
     const row = document.createElement("tr");
     const label = document.createElement("th");
     label.scope = "row";
     label.textContent = String(sum);
     row.append(label);
     row.insertCell().textContent = String(count);
-    row.insertCell().textContent = (100 * count / report.count).toFixed(1) + "%";
-    row.insertCell().textContent = (theoreticalSumCounts[sum] / 10).toFixed(1) + "%";
+    row.insertCell().textContent = observed + "%";
+    row.insertCell().textContent = theoretical + "%";
     return row;
   });
   document.querySelector("#batch-sums").replaceChildren(...rows);
@@ -119,22 +125,42 @@ function renderBatchReport(report, saveMessage = "") {
   });
   $("batch-frequency").replaceChildren(...rows);
   renderBatchSums(report);
+  displayedBatchReport = report;
   batchReport.hidden=false;
 }
 function restoreBatchReport() {
   try {
     const raw=localStorage.getItem(BATCH_REPORT_KEY);
-    if (raw===null) { batchReport.hidden=true; return; }
-    renderBatchReport(validateBatchReport(JSON.parse(raw)));
-  } catch { batchReport.hidden=true; }
+    if (raw !== null) {
+      renderBatchReport(JSON.parse(raw));
+      return;
+    }
+  } catch {
+    // An invalid saved report cannot be shown or downloaded.
+  }
+  displayedBatchReport = null;
+  batchReport.hidden = true;
 }
-exportButton.addEventListener("click",()=>{
-  const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,records},null,2)],{type:"application/json"}));
+function downloadFile(contents, type, filename) {
+  const url = URL.createObjectURL(new Blob([contents], {type}));
   const link=document.createElement("a");
   link.href=url;
-  link.download="fc3d-simulation-archive.json";
+  link.download=filename;
   link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+exportButton.addEventListener("click", () => {
+  downloadFile(JSON.stringify({version:1,records},null,2), "application/json", "fc3d-simulation-archive.json");
+});
+document.querySelector("#batch-sum-export").addEventListener("click", () => {
+  const report = displayedBatchReport;
+  if (!report) return;
+  const timestamp = new Date(report.at).toISOString();
+  const rows = batchSumRows(report).map(row => [timestamp, report.count, ...row].join(","));
+  const header = "批次时间(UTC),批次抽取次数,和值,出现次数,样本占比(%),理论占比(%)";
+  const csv = "\uFEFF" + [header, ...rows].join("\r\n") + "\r\n";
+  const filename = "fc3d-batch-sums-" + timestamp.replace(/[:.]/g, "-") + ".csv";
+  downloadFile(csv, "text/csv;charset=utf-8", filename);
 });
 window.addEventListener("storage",event=>{
   if(event.key===ARCHIVE_KEY||event.key===null)restoreArchive();
