@@ -23,6 +23,7 @@ def check(base):
         restart = page.locator("#restart")
         pause = page.locator("#pause")
         skip = page.locator("#skip-animation")
+        playback_speed = page.locator("#playback-speed")
         history = page.locator("#history li")
 
         def result():
@@ -37,6 +38,7 @@ def check(base):
 
         assert restart.is_disabled()
         assert skip.is_disabled()
+        assert playback_speed.input_value() == "1"
         page.locator("#draw").press("Enter")
         page.clock.run_for(1150)
         assert result() == "0––"
@@ -92,6 +94,7 @@ def check(base):
         assert page.locator("#recent-sum-mode").inner_text() == "7"
         assert page.locator("#recent-digit-mode").inner_text() == "0"
         assert page.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records.length") == 2
+        playback_speed.select_option("4")
         page.reload()
         page.wait_for_function("document.querySelectorAll('#history li').length === 2")
         assert history.all_text_contents() == saved
@@ -102,23 +105,33 @@ def check(base):
         assert page.locator("#recent-sum-mode").inner_text() == "7"
         assert page.locator("#recent-digit-mode").inner_text() == "0"
         assert page.evaluate("window.drawCalls") == 0
+        assert playback_speed.input_value() == "4"
+        page.wait_for_selector("#replay-issue option", state="attached")
+        page.select_option("#replay-issue", issue)
+        page.locator("#replay").press("Enter")
+        page.clock.run_for(650)
+        assert result() == expected and issue in page.locator("#result-title").inner_text()
+        assert history.all_text_contents() == saved and page.evaluate("window.drawCalls") == 0
         context = page.context
         reopened = context.new_page()
         reopened.goto(base.rstrip("/") + "/")
         reopened.wait_for_function("document.querySelectorAll('#history li').length === 2")
         assert reopened.locator("#history li").all_text_contents() == saved
         assert reopened.locator("#recent-position-mode").inner_text() == "007"
+        assert reopened.locator("#playback-speed").input_value() == "4"
         # Controlled storage fixture: older records count in statistics, not visible list.
         reopened.evaluate("""() => {
           const numbers=['007','007','007','007','007','007','123','123','456','789',...Array(11).fill('999')];
           localStorage.setItem('fc3d-simulation-archive-v1',JSON.stringify({version:1,records:numbers.map((number,i)=>({
             id:i.toString(16).padStart(32,'0'),number,at:new Date(1800000000000-i*1000).toISOString()
           }))}));
+          localStorage.setItem('fc3d-playback-speed-v1','0');
         }""")
         reopened.reload()
         reopened.wait_for_function("document.querySelector('#recent-position-mode').textContent==='999'")
         assert reopened.locator("#recent-sum-mode").inner_text()=="27"
         assert reopened.locator("#recent-digit-mode").inner_text()=="9"
+        assert reopened.locator("#playback-speed").input_value()=="1"
         assert reopened.locator("#recent-digit-detail").count()==0
         assert reopened.locator("#recent-digit-table").count()==0
         assert reopened.locator("#history li").count()==10
