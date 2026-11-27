@@ -18,6 +18,7 @@ let revealFinalFrame = null;
 let currentDraw = null;
 const FINAL_FRAME_MS = 2300;
 const status = document.querySelector(".status");
+const resultTitle = document.querySelector("#result-title");
 const indicator = document.querySelector("#machine-state");
 const outputs = [...document.querySelectorAll(".output b")];
 const outlets = [...document.querySelectorAll(".neck")];
@@ -40,7 +41,19 @@ for (let number = 0; number < 1000; number++) {
 function renderArchive(message) {
   function item(row) {
     const li = document.createElement("li");
-    li.textContent = row.number + " · 和值 " + row.sum + " · " + formatTime.format(new Date(row.at));
+    const summary = document.createElement("span");
+    summary.textContent = row.number + " · 和值 " + row.sum + " · " + formatTime.format(new Date(row.at));
+    const replay = document.createElement("button");
+    replay.type = "button";
+    replay.className = "saved-replay";
+    replay.textContent = "回放";
+    replay.setAttribute("aria-label", "回放模拟号码 " + row.number);
+    replay.disabled = button.disabled;
+    replay.addEventListener("click", () => {
+      if (button.disabled) return;
+      animate({number: row.number, saved: true}, replay);
+    });
+    li.append(summary, replay);
     return li;
   }
   history.replaceChildren(...records.slice(0,10).map(item));
@@ -204,22 +217,26 @@ function setBusy(busy) {
   pauseButton.textContent = "暂停动画";
   skipButton.disabled = !busy;
   archiveButton.disabled = busy;
+  for (const replay of history.querySelectorAll(".saved-replay")) replay.disabled = busy;
   document.querySelector("#replay-issue").disabled = busy;
 }
 function finish(draw, trigger) {
   visualSource.dataset.visualPhase = "idle";
-  const {number, issue} = draw;
+  const {number, issue, saved} = draw;
+  const isReplay = Boolean(issue || saved);
   const sum = drawSum(number);
   sumDisplay.textContent = "本次和值：" + sum;
-  if (!issue && !draw.recorded) {
+  if (!isReplay && !draw.recorded) {
     recordSimulations([number]);
     draw.recorded = true;
   }
-  indicator.textContent = issue ? "回放完成" : "已出球";
-  status.textContent = issue ? "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。" :
-    draw.batchCount ? draw.batchCount + " 连抽完成，最后一组为 " + number + "。" : "本次模拟号码为 " + number + "。";
+  indicator.textContent = isReplay ? "回放完成" : "已出球";
+  if (issue) status.textContent = "第 " + issue + " 期历史回放完成，公告号码为 " + number + "。";
+  else if (saved) status.textContent = "模拟记录回放完成，号码为 " + number + "。";
+  else if (draw.batchCount) status.textContent = draw.batchCount + " 连抽完成，最后一组为 " + number + "。";
+  else status.textContent = "本次模拟号码为 " + number + "。";
   status.textContent += "和值 " + sum + "。";
-  button.firstChild.textContent = issue ? "开始摇奖 " : "再摇一次 ";
+  button.firstChild.textContent = isReplay ? "开始摇奖 " : "再摇一次 ";
   const focusOnPlayback = [pauseButton, skipButton].includes(document.activeElement);
   playback = null;
   revealFinalFrame = null;
@@ -280,20 +297,22 @@ function animate(draw, trigger, {immediate = false} = {}) {
   visualSource.dataset.visualElapsed = "0";
   visualSource.dataset.visualPhase = "mixing";
   restartButton.disabled = false;
-  const {number, issue} = draw;
+  const {number, issue, saved} = draw;
+  const focusResult = saved && trigger !== restartButton;
   if (!immediate) {
-    const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
+    const moveFocus = !focusResult && document.activeElement === trigger && !reducedMotion.matches;
     setBusy(true);
     if (moveFocus) pauseButton.focus({preventScroll:true});
   }
   const simulationTitle = trigger === restartButton ? "重播本次模拟" : draw.batchCount ? "连抽 · 最后一组" : "本次模拟号码";
-  document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : simulationTitle;
+  resultTitle.textContent = issue ? "历史回放 · 第 " + issue + " 期" : saved ? "模拟记录回放" : simulationTitle;
+  if (focusResult) resultTitle.focus();
   sumDisplay.textContent = "本次和值：–";
   resetBalls();
   for (const outlet of outlets) outlet.textContent = "";
   for (const slot of outputs) slot.textContent = "–";
   indicator.textContent = "混球中";
-  status.textContent = issue ? "正在回放已公布的号码。" : "正在混球，准备依次出球。";
+  status.textContent = issue ? "正在回放已公布的号码。" : saved ? "正在回放本机模拟记录。" : "正在混球，准备依次出球。";
   let shown = 0;
   function paint(elapsed) {
     visualSource.dataset.visualElapsed = String(Math.max(0,Math.min(elapsed,FINAL_FRAME_MS)));
@@ -372,14 +391,13 @@ if (records.length) {
     groups[i][Number(number[i])].style.visibility = "hidden";
   }
   sumDisplay.textContent = "本次和值：" + sum;
-  document.querySelector("#result-title").textContent = "最近一次模拟号码";
+  resultTitle.textContent = "最近一次模拟号码";
   indicator.textContent = "已恢复存档";
   status.textContent = "准备就绪。已恢复最近一次模拟及本机记录。";
 } else {
   status.textContent = "准备就绪。";
 }
 button.addEventListener("click", startDraw);
-button.disabled = false;
 try {
   batchInstant.checked = localStorage.getItem(BATCH_INSTANT_KEY) === "1";
 } catch {
@@ -395,5 +413,5 @@ batchInstant.addEventListener("change", () => {
 batchInstant.disabled = false;
 batchButtons.forEach(batchButton=>{
   batchButton.addEventListener("click",()=>startBatch(batchButton));
-  batchButton.disabled=false;
 });
+setBusy(false);

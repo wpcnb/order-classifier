@@ -65,6 +65,14 @@ def check(base):
         assert result() == "009"
         assert len(archived()) == 10 and page.evaluate("window.sampleCalls") == 10
         page.emulate_media(reduced_motion="reduce")
+        saved_batch = archived()
+        page.get_by_role("button", name="回放模拟号码 007", exact=True).click()
+        page.wait_for_function("!document.querySelector('#draw').disabled")
+        assert result() == "007"
+        assert page.locator("#result-title").inner_text() == "模拟记录回放"
+        assert page.locator("#result-title").evaluate("heading => heading === document.activeElement")
+        assert page.locator("#draw-sum").inner_text() == "本次和值：7"
+        assert archived() == saved_batch and page.evaluate("window.sampleCalls") == 10
 
         page.emulate_media(reduced_motion="no-preference")
         page.select_option("#playback-speed", "0.5")
@@ -108,6 +116,7 @@ def check(base):
         assert instant.is_checked()
         assert page.evaluate("window.sampleCalls") == 0
         assert len(archived()) == 1000
+        assert page.get_by_role("button", name="回放模拟号码 100", exact=True).is_enabled()
         page.get_by_text("查看和值分布", exact=True).click()
         assert sum_rows.all_text_contents() == sum_rows_before_reload
         with page.expect_download() as pending:

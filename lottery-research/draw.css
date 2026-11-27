@@ -193,6 +193,9 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .desk-history{grid-area:history;min-width:0;padding:12px;border:1px solid #d4dacb;border-radius:10px;background:#fffef9}
 .desk-history #history{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
 .desk-history #history li{font-size:.78rem;letter-spacing:0;padding:5px 7px;overflow-wrap:anywhere}
+.desk-history #history li{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.desk-history #history li span{min-width:0}
+.saved-replay{flex:none;min-width:44px;min-height:44px;align-items:center;justify-content:center;padding:5px 8px;font:inherit}
 .desk-history details{padding:9px 0 0;border-bottom:0;font-size:.85rem}
 .desk .recent-frequency{margin:0 0 12px;padding:10px}
 .desk .recent-frequency h3{font-size:.98rem;margin:0}

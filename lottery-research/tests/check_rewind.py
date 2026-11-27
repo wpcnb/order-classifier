@@ -160,6 +160,11 @@ def check(base):
             else:
                 assert control["y"] >= machine["y"]+machine["height"]-1
                 assert log["y"] >= control["y"]+control["height"]-1
+        before_replay = reopened.evaluate("localStorage.getItem('fc3d-simulation-archive-v1')")
+        reopened.get_by_role("button", name="回放模拟号码 456", exact=True).press("Enter")
+        reopened.locator("#skip-animation").press("Enter")
+        assert "".join(reopened.locator(".output b").all_text_contents()) == "456"
+        assert reopened.evaluate("localStorage.getItem('fc3d-simulation-archive-v1')") == before_replay
         reopened.close()
         print(f"PASS mobile rewind, pause, half speed, two separate 007 draws and archive {issue} {expected}")
         browser.close()
