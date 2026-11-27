@@ -91,7 +91,7 @@ test("draw sum handles all 1000 triplets, including leading zeros and repeats", 
   for (const invalid of ["","12","1234","12a",123,null,"１２３"]) assert.throws(() => drawSum(invalid),TypeError);
 });
 
-import {readArchive,saveArchive} from "./simulation-archive.mjs";
+import {readArchive,saveArchive,parseArchiveBackup,mergeArchiveBackup} from "./simulation-archive.mjs";
 test("archive persists, merges, deduplicates, limits and protects corrupt data",()=>{
  const storage={value:null,getItem(){return this.value},setItem(key,value){this.value=value}};
  const row={id:"a".repeat(32),at:"2026-11-26T03:00:00.000Z",number:"007",sum:99};
@@ -108,6 +108,26 @@ test("archive persists, merges, deduplicates, limits and protects corrupt data",
  storage.value="{broken";
  assert.throws(()=>saveArchive(storage,[row]));
  assert.equal(storage.value,"{broken");
+});
+
+test("backup import keeps current records and rejects overflow without writing", () => {
+  const storage = {value: null, getItem() {return this.value;}, setItem(key, value) {this.value = value;}};
+  const existing = {id: "a".repeat(32), at: "2026-11-28T03:00:00Z", number: "007"};
+  const imported = {...existing, id: "b".repeat(32), number: "000", sum: 99};
+  saveArchive(storage, [existing]);
+  const backup = parseArchiveBackup(JSON.stringify({version: 1, records: [{...existing, number: "111"}, imported]}));
+  const merged = mergeArchiveBackup(storage, backup);
+  assert.equal(merged.added, 1);
+  assert.deepEqual(merged.records.map(({number, sum}) => [number, sum]), [["000", 0], ["007", 7]]);
+  assert.equal(mergeArchiveBackup(storage, backup).added, 0);
+  assert.throws(() => parseArchiveBackup(JSON.stringify({version: 1, records: [{...existing, number: 7}]})));
+  const before = storage.value;
+  const fullBackup = Array.from({length: 1000}, (_, index) => ({...imported, id: index.toString(16).padStart(32, "0")}));
+  assert.throws(() => mergeArchiveBackup(storage, fullBackup), RangeError);
+  assert.equal(storage.value, before);
+  storage.value = "{broken";
+  assert.throws(() => mergeArchiveBackup(storage, backup));
+  assert.equal(storage.value, "{broken");
 });
 
 test("multi-draw samples exactly the requested independent results and preserves leading zeros",()=>{
