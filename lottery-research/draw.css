@@ -197,6 +197,9 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .desk-history #history li span{min-width:0}
 .saved-replay{flex:none;min-width:44px;min-height:44px;align-items:center;justify-content:center;padding:5px 8px;font:inherit}
 .desk-history details{padding:9px 0 0;border-bottom:0;font-size:.85rem}
+.archive-search{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+.archive-search input{box-sizing:border-box;width:8rem;max-width:100%;min-height:44px;padding:6px 10px;border:1px solid #acb9aa;border-radius:6px;font:inherit}
+.archive-search button{min-height:44px;padding:6px 10px;align-items:center}
 .desk .recent-frequency{margin:0 0 12px;padding:10px}
 .desk .recent-frequency h3{font-size:.98rem;margin:0}
 #recent-frequency-sample{margin:3px 0;font-size:.74rem;color:#536876}

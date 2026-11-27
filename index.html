@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=1.6.0">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=1.6.0"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=1.6.0"></script>
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=1.7.0">
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=1.7.0"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=1.7.0"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -142,11 +142,18 @@
       <noscript>请启用 JavaScript 后开始摇奖。</noscript>
     </section>
     <section class="history desk-history" aria-labelledby="history-title">
-    <h2 id="history-title">最近10次模拟记录</h2>
+    <h2 id="history-title">本机模拟记录</h2>
     <p id="empty-history">暂无已完成的模拟记录。历史回放不计入。</p>
-    <p id="archive-status" role="status"></p><ol id="history"></ol>
+    <p id="archive-status" role="status"></p>
+    <div class="archive-search">
+      <label for="archive-number">按号码查找</label>
+      <input id="archive-number" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="例如 007" aria-describedby="archive-search-status" disabled>
+      <button id="archive-search-clear" type="button" disabled>清除</button>
+    </div>
+    <p id="archive-search-status" role="status"></p>
+    <ol id="history"></ol>
     <details><summary>本机存档备份</summary>
-      <p>页面仅显示最近10次，较早记录不展示但保留在当前浏览器（最多1000条），可导出完整备份。清除站点数据或换设备不会自动恢复。</p>
+      <p>当前浏览器最多保留 1000 条模拟记录，可按号码查找或导出完整备份。清除站点数据或换设备不会自动恢复。</p>
       <button id="archive-export" type="button" disabled>导出完整存档（JSON）</button>
     </details>
     </section>
@@ -190,5 +197,5 @@
     <p><a href="https://www.szlottery.org/fcw/fcxw/csdt/content/post_752635.html">福彩公开设备资料 ↗</a> · <a href="https://caipiao.people.com.cn/n1/2015/1231/c373276-27999921.html">球室结构与颜色 ↗</a> · <a href="https://www.swlc.net.cn/games/3d.html">福彩 3D 开奖规则 ↗</a></p>
   </details>
 </main>
-<footer class="container"><span>仅作随机模拟与概率研究 · v1.6.0</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
+<footer class="container"><span>仅作随机模拟与概率研究 · v1.7.0</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
 </body></html>
