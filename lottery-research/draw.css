@@ -238,6 +238,9 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .batch-buttons button:nth-child(3){background:#f5effb;border-color:#ad96bf;color:#48305d}
 .batch-buttons button strong{font-size:1.25rem;line-height:1.1;font-variant-numeric:tabular-nums}
 .batch-buttons button span{font-size:.8rem}
+.batch-animation-option{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:4px;cursor:pointer;font-size:.88rem}
+.batch-animation-option input{width:18px;height:18px;margin:0;accent-color:#17645d}
+.batch-draw .batch-note{margin-top:0}
 .batch-note,.batch-report-note{color:#536773;font-size:.79rem;line-height:1.5;margin:9px 0 0}
 .batch-report[hidden]{display:none}
 .batch-report{margin:10px 0 3px;padding:15px;border:1px solid #d2dce3;border-radius:10px;background:#fff}

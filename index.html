@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=1.1.0">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=1.1.0"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=1.1.0"></script>
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=1.2.0">
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=1.2.0"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=1.2.0"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -99,7 +99,8 @@
           <button type="button" data-batch="100" disabled><strong>100</strong><span>连抽</span></button>
           <button type="button" data-batch="1000" disabled><strong>1000</strong><span>连抽</span></button>
         </div>
-        <p class="batch-note">一次生成全部号码，摇奖机播放最后一组。存档最多保留最近 1000 条；1000 连抽会挤掉此前记录。</p>
+        <label class="batch-animation-option"><input id="batch-instant" type="checkbox" disabled> 连抽直接显示结果</label>
+        <p class="batch-note">存档最多保留最近 1000 条；1000 连抽会挤掉此前记录。</p>
       </section>
       <section id="batch-report" class="batch-report" aria-labelledby="batch-report-title" hidden>
         <div class="batch-heading"><h3 id="batch-report-title">最近一次连抽报告</h3><span id="batch-time"></span></div>
@@ -178,5 +179,5 @@
     <p><a href="https://www.szlottery.org/fcw/fcxw/csdt/content/post_752635.html">福彩公开设备资料 ↗</a> · <a href="https://caipiao.people.com.cn/n1/2015/1231/c373276-27999921.html">球室结构与颜色 ↗</a> · <a href="https://www.swlc.net.cn/games/3d.html">福彩 3D 开奖规则 ↗</a></p>
   </details>
 </main>
-<footer class="container"><span>仅作随机模拟与概率研究 · v1.1.0</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
+<footer class="container"><span>仅作随机模拟与概率研究 · v1.2.0</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
 </body></html>
