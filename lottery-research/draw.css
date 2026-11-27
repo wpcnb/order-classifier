@@ -201,6 +201,9 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .archive-search input{box-sizing:border-box;width:8rem;max-width:100%;min-height:44px;padding:6px 10px;border:1px solid #acb9aa;border-radius:6px;font:inherit}
 .archive-search button,.archive-pagination button{min-height:44px;padding:6px 10px;align-items:center}
 .archive-pagination:not([hidden]){display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.archive-backup-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.archive-backup-actions button{min-height:44px;align-items:center;padding:6px 10px}
+#archive-import-status:empty{margin:0}
 .desk .recent-frequency{margin:0 0 12px;padding:10px}
 .desk .recent-frequency h3{font-size:.98rem;margin:0}
 #recent-frequency-sample{margin:3px 0;font-size:.74rem;color:#536876}

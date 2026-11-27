@@ -141,8 +141,26 @@ def check(base):
             page.locator("#archive-export").click()
         backup = backup_pending.value
         assert backup.suggested_filename == "fc3d-simulation-archive.json"
-        assert loads(Path(backup.path()).read_text(encoding="utf-8")) == {"version": 1, "records": archived()}
+        backup_bytes = Path(backup.path()).read_bytes()
+        assert loads(backup_bytes) == {"version": 1, "records": archived()}
         context.close()
+
+        restored_context = browser.new_context(reduced_motion="reduce")
+        restored = restored_context.new_page()
+        restored.goto(base.rstrip("/")+"/")
+        restored.get_by_text("本机存档备份", exact=True).click()
+        payload = {"name": "backup.json", "mimeType": "application/json", "buffer": backup_bytes}
+        with restored.expect_file_chooser() as chooser:
+            restored.get_by_role("button", name="导入存档（JSON）").click()
+        chooser.value.set_files(payload)
+        restored.get_by_text("已导入 1000 条。", exact=True).wait_for()
+        restored.locator("#archive-import-file").set_input_files(payload)
+        restored.get_by_text("备份中没有可新增的记录。", exact=True).wait_for()
+        restored.reload()
+        restored.get_by_label("按号码查找", exact=True).fill("007")
+        assert restored.get_by_role("button", name="回放模拟号码 007", exact=True).is_enabled()
+        assert restored.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1'))") == loads(backup_bytes)
+        restored_context.close()
 
         # A failed random service cannot leave a half-completed batch in the archive.
         failed = browser.new_context(reduced_motion="reduce").new_page()

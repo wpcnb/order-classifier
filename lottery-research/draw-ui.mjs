@@ -3,7 +3,7 @@ import {playFrames} from "./playback.mjs";
 import {mixingOrbit} from "./circular-motion.mjs";
 import {drawSum} from "./draw-sum.mjs";
 import {recentFrequency,renderRecentFrequency} from "./recent-frequency.mjs?v=20261127-multi-draw";
-import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive} from "./simulation-archive.mjs?v=20261127-multi-draw";
+import {ARCHIVE_KEY, normalizeArchive, readArchive, saveArchive, parseArchiveBackup, mergeArchiveBackup} from "./simulation-archive.mjs?v=1.9.0";
 import {BATCH_REPORT_KEY, sampleBatch, createBatchReport, validateBatchReport} from "./batch-draw.mjs";
 
 const button = document.querySelector("#draw");
@@ -34,6 +34,9 @@ const archiveNext = document.querySelector("#archive-next");
 const ARCHIVE_PAGE_SIZE = 10;
 let archivePage = 1;
 const exportButton = document.querySelector("#archive-export");
+const importButton = document.querySelector("#archive-import");
+const importFile = document.querySelector("#archive-import-file");
+const importStatus = document.querySelector("#archive-import-status");
 const batchButtons = [...document.querySelectorAll("[data-batch]")];
 const batchInstant = document.querySelector("#batch-instant");
 const BATCH_INSTANT_KEY = "fc3d-batch-instant-v1";
@@ -205,6 +208,48 @@ function downloadFile(contents, type, filename) {
 exportButton.addEventListener("click", () => {
   downloadFile(JSON.stringify({version:1,records},null,2), "application/json", "fc3d-simulation-archive.json");
 });
+async function importBackup(file) {
+  if (file.size > 512 * 1024) {
+    importStatus.textContent = "备份文件超过 512 KB。请选择从摇奖机导出的 JSON 存档。";
+    return;
+  }
+  let backup;
+  try {
+    backup = parseArchiveBackup(await file.text());
+  } catch {
+    importStatus.textContent = "无法读取备份。请选择有效的摇奖机 JSON 存档。";
+    return;
+  }
+  let merged;
+  try {
+    merged = mergeArchiveBackup(localStorage, backup, unsaved);
+  } catch (error) {
+    importStatus.textContent = error instanceof RangeError
+      ? "合并后会超过 1000 条。本次没有导入。"
+      : "无法保存导入结果。本机存档可能无法读取或写入。";
+    return;
+  }
+  records = merged.records;
+  unsaved = [];
+  archivePage = 1;
+  renderArchive("本机存档已读取。");
+  importStatus.textContent = merged.added ? "已导入 " + merged.added + " 条。"
+    : "备份中没有可新增的记录。";
+}
+importButton.addEventListener("click", () => importFile.click());
+importFile.addEventListener("change", async () => {
+  const file = importFile.files[0];
+  if (!file) return;
+  importButton.disabled = true;
+  importStatus.textContent = "正在检查备份…";
+  try {
+    await importBackup(file);
+  } finally {
+    importFile.value = "";
+    importButton.disabled = false;
+  }
+});
+importButton.disabled = false;
 document.querySelector("#batch-sum-export").addEventListener("click", () => {
   const report = displayedBatchReport;
   if (!report) return;
