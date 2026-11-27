@@ -138,16 +138,31 @@ def check(base):
         assert reopened.locator("#archive-list").count()==0
         assert not any(x.startswith("999 ·") for x in reopened.locator("#history li").all_text_contents())
         assert reopened.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records.length")==21
+        prev_page = reopened.get_by_role("button", name="上一页", exact=True)
+        next_page = reopened.get_by_role("button", name="下一页", exact=True)
+        assert prev_page.is_disabled() and next_page.is_enabled()
+        next_page.click()
+        assert reopened.locator("#history li").count() == 10
+        assert all(x.startswith("999 ·") for x in reopened.locator("#history li").all_text_contents())
+        assert "第 11–20 条" in reopened.locator("#archive-search-status").inner_text()
+        next_page.click()
+        assert reopened.locator("#history li").count() == 1 and next_page.is_disabled()
+        assert "第 21 条" in reopened.locator("#archive-search-status").inner_text()
+        prev_page.click()
+        assert "第 11–20 条" in reopened.locator("#archive-search-status").inner_text()
         archive_search = reopened.get_by_label("按号码查找", exact=True)
         archive_search.fill("00")
         assert reopened.locator("#history li").count() == 6
         assert all(x.startswith("007 ·") for x in reopened.locator("#history li").all_text_contents())
+        assert not next_page.is_visible()
         archive_search.fill("008")
         assert reopened.locator("#history li").count() == 0
         assert "没有匹配 008" in reopened.locator("#archive-search-status").inner_text()
         archive_search.fill("999")
         assert reopened.locator("#history li").count() == 10
         assert "找到 11 条" in reopened.locator("#archive-search-status").inner_text()
+        next_page.click()
+        assert reopened.locator("#history li").count() == 1 and next_page.is_disabled()
         original_archive = reopened.evaluate("localStorage.getItem('fc3d-simulation-archive-v1')")
         reopened.get_by_role("button", name="回放模拟号码 999", exact=True).first.press("Enter")
         reopened.locator("#skip-animation").press("Enter")

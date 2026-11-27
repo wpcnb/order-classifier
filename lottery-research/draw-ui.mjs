@@ -28,6 +28,11 @@ const archiveStatus = document.querySelector("#archive-status");
 const archiveNumber = document.querySelector("#archive-number");
 const archiveSearchStatus = document.querySelector("#archive-search-status");
 const archiveSearchClear = document.querySelector("#archive-search-clear");
+const archivePagination = document.querySelector("#archive-pagination");
+const archivePrev = document.querySelector("#archive-prev");
+const archiveNext = document.querySelector("#archive-next");
+const ARCHIVE_PAGE_SIZE = 10;
+let archivePage = 1;
 const exportButton = document.querySelector("#archive-export");
 const batchButtons = [...document.querySelectorAll("[data-batch]")];
 const batchInstant = document.querySelector("#batch-instant");
@@ -62,14 +67,32 @@ function renderHistory() {
   const query = archiveNumber.value.trim();
   const valid = /^[0-9]{0,3}$/.test(query);
   const matches = !valid ? [] : query ? records.filter(row => row.number.startsWith(query)) : records;
-  const visible = matches.slice(0, 10);
+  const totalPages = Math.max(1, Math.ceil(matches.length / ARCHIVE_PAGE_SIZE));
+  archivePage = Math.min(Math.max(archivePage, 1), totalPages);
+  const offset = (archivePage - 1) * ARCHIVE_PAGE_SIZE;
+  const visible = matches.slice(offset, offset + ARCHIVE_PAGE_SIZE);
+  const focused = document.activeElement;
+  archivePrev.disabled = archivePage === 1;
+  archiveNext.disabled = archivePage === totalPages;
+  archivePagination.hidden = totalPages === 1;
+  history.start = offset + 1;
+  if (focused === archivePrev && archivePrev.disabled) {
+    (archiveNext.disabled ? archiveNumber : archiveNext).focus({preventScroll:true});
+  } else if (focused === archiveNext && archiveNext.disabled) {
+    (archivePrev.disabled ? archiveNumber : archivePrev).focus({preventScroll:true});
+  }
   archiveNumber.setAttribute("aria-invalid", String(!valid));
   archiveSearchClear.disabled = !archiveNumber.value;
   history.replaceChildren(...visible.map(item));
   if (!valid) archiveSearchStatus.textContent = "请输入 1–3 位数字。";
-  else if (!query) archiveSearchStatus.textContent = records.length ? "显示最近 " + visible.length + " 条。" : "";
-  else if (!matches.length) archiveSearchStatus.textContent = "存档中没有匹配 " + query + " 的号码。";
-  else archiveSearchStatus.textContent = "找到 " + matches.length + " 条，显示最近 " + visible.length + " 条。";
+  else if (!matches.length) archiveSearchStatus.textContent = query ? "存档中没有匹配 " + query + " 的号码。" : "";
+  else {
+    const total = (query ? "找到 " : "共 ") + matches.length + " 条";
+    const first = offset + 1;
+    const last = offset + visible.length;
+    const range = first === last ? "第 " + first + " 条" : "第 " + first + "–" + last + " 条";
+    archiveSearchStatus.textContent = total + " · 第 " + archivePage + " / " + totalPages + " 页 · " + range;
+  }
 }
 function renderArchive(message) {
   renderHistory();
@@ -390,11 +413,23 @@ reducedMotion.addEventListener("change", () => {
 });
 restoreArchive();
 archiveNumber.disabled = false;
-archiveNumber.addEventListener("input", renderHistory);
+function resetArchivePage() {
+  archivePage = 1;
+  renderHistory();
+}
+archiveNumber.addEventListener("input", resetArchivePage);
 archiveSearchClear.addEventListener("click", () => {
   archiveNumber.value = "";
-  renderHistory();
+  resetArchivePage();
   archiveNumber.focus();
+});
+archivePrev.addEventListener("click", () => {
+  archivePage--;
+  renderHistory();
+});
+archiveNext.addEventListener("click", () => {
+  archivePage++;
+  renderHistory();
 });
 restoreBatchReport();
 restorePlaybackSpeed();
