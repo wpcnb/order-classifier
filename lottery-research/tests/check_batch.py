@@ -18,6 +18,8 @@ def check(base):
           }});""")
         page.goto(base.rstrip("/")+"/")
         page.wait_for_function("!document.querySelector('[data-batch=\"10\"]').disabled")
+        instant = page.get_by_label("连抽直接显示结果")
+        assert not instant.is_checked()
 
         def result():
             return "".join(page.locator(".output b").all_text_contents())
@@ -64,11 +66,14 @@ def check(base):
         assert page.locator("#batch-unique").inner_text() == "100"
         page.clock.run_for(5000)
         assert len(archived()) == page.evaluate("window.sampleCalls") == 110
-        page.clock.resume()
-        page.emulate_media(reduced_motion="reduce")
-        batch(1000)
+        instant.press("Space")
+        assert instant.is_checked()
+        page.locator('[data-batch="1000"]').press("Enter")
+        # With the clock frozen the normal animation could not have revealed anything.
+        assert page.locator("#draw").is_enabled() and page.locator("#skip-animation").is_disabled()
         assert page.evaluate("window.sampleCalls") == 1110
         assert result() == "109" and len(archived()) == 1000
+        assert page.locator("#batch-count").inner_text() == "1000 次"
         assert page.locator("#batch-unique").inner_text() == "1000"
         assert page.locator("#batch-repeats").inner_text() == "0"
         assert page.locator("#simulation-count").inner_text() == "本机留存 1000 次"
@@ -76,6 +81,11 @@ def check(base):
         assert page.locator("#history li").count() == 10
         assert page.locator("#batch-frequency tr").count() == 10
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.locator("#restart").press("Enter")
+        assert page.locator("#draw").is_disabled() and result() == "–––"
+        page.locator("#skip-animation").press("Enter")
+        assert result() == "109" and page.evaluate("window.sampleCalls") == 1110
+        page.clock.resume()
         before = page.locator("#history li").all_text_contents()
         page.reload()
         page.wait_for_function("document.querySelectorAll('#history li').length===10")
@@ -83,6 +93,7 @@ def check(base):
         assert result() == "109" and page.locator("#draw-sum").inner_text() == "本次和值：10"
         assert page.locator("#batch-count").inner_text() == "1000 次"
         assert page.locator("#batch-unique").inner_text() == "1000"
+        assert instant.is_checked()
         assert page.evaluate("window.sampleCalls") == 0
         assert len(archived()) == 1000
         for width in (320, 390, 1024, 1440):

@@ -25,6 +25,8 @@ const sumDisplay = document.querySelector("#draw-sum");
 const archiveStatus = document.querySelector("#archive-status");
 const exportButton = document.querySelector("#archive-export");
 const batchButtons = [...document.querySelectorAll("[data-batch]")];
+const batchInstant = document.querySelector("#batch-instant");
+const BATCH_INSTANT_KEY = "fc3d-batch-instant-v1";
 const batchReport = document.querySelector("#batch-report");
 const formatTime = new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
 let records = [];
@@ -212,10 +214,10 @@ function startBatch(trigger) {
     saveMessage="本次号码和报告仅在本页保留，请导出存档备份。";
   }
   renderBatchReport(report,saveMessage);
-  // The entire batch is already recorded once; only its last number is animated.
-  animate({number:report.lastNumber,issue:null,recorded:true,batchCount:count},trigger);
+  // The entire batch is already recorded once; present only its last number.
+  animate({number:report.lastNumber,issue:null,recorded:true,batchCount:count},trigger, {immediate: batchInstant.checked});
 }
-function animate(draw, trigger) {
+function animate(draw, trigger, {immediate = false} = {}) {
   playback?.pause();
   currentDraw = draw;
   visualSource.dataset.visualRun = String(++visualRun);
@@ -223,9 +225,11 @@ function animate(draw, trigger) {
   visualSource.dataset.visualPhase = "mixing";
   restartButton.disabled = false;
   const {number, issue} = draw;
-  const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
-  setBusy(true);
-  if (moveFocus) pauseButton.focus({preventScroll:true});
+  if (!immediate) {
+    const moveFocus = document.activeElement === trigger && !reducedMotion.matches;
+    setBusy(true);
+    if (moveFocus) pauseButton.focus({preventScroll:true});
+  }
   const simulationTitle = trigger === restartButton ? "重播本次模拟" : draw.batchCount ? "连抽 · 最后一组" : "本次模拟号码";
   document.querySelector("#result-title").textContent = issue ? "历史回放 · 第 " + issue + " 期" : simulationTitle;
   sumDisplay.textContent = "本次和值：–";
@@ -258,6 +262,10 @@ function animate(draw, trigger) {
       });
     }
     return false;
+  }
+  if (immediate) {
+    paint(FINAL_FRAME_MS);
+    return;
   }
   revealFinalFrame = () => {
     playback.pause();
@@ -308,6 +316,19 @@ if (records.length) {
 }
 button.addEventListener("click", startDraw);
 button.disabled = false;
+try {
+  batchInstant.checked = localStorage.getItem(BATCH_INSTANT_KEY) === "1";
+} catch {
+  batchInstant.checked = false;
+}
+batchInstant.addEventListener("change", () => {
+  try {
+    localStorage.setItem(BATCH_INSTANT_KEY, batchInstant.checked ? "1" : "0");
+  } catch {
+    // The setting still applies to this page when storage is unavailable.
+  }
+});
+batchInstant.disabled = false;
 batchButtons.forEach(batchButton=>{
   batchButton.addEventListener("click",()=>startBatch(batchButton));
   batchButton.disabled=false;
