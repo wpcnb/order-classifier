@@ -26,6 +26,7 @@ const history = document.querySelector("#history");
 const sumDisplay = document.querySelector("#draw-sum");
 const archiveStatus = document.querySelector("#archive-status");
 const archiveNumber = document.querySelector("#archive-number");
+const archiveSum = document.querySelector("#archive-sum-filter");
 const archiveSearchStatus = document.querySelector("#archive-search-status");
 const archiveSearchClear = document.querySelector("#archive-search-clear");
 const archivePagination = document.querySelector("#archive-pagination");
@@ -68,8 +69,14 @@ function renderHistory() {
     return li;
   }
   const query = archiveNumber.value.trim();
+  const sum = archiveSum.value === "" ? null : Number(archiveSum.value);
   const valid = /^[0-9]{0,3}$/.test(query);
-  const matches = !valid ? [] : query ? records.filter(row => row.number.startsWith(query)) : records;
+  const filtered = Boolean(query) || sum !== null;
+  let matches = records;
+  if (!valid) matches = [];
+  else if (filtered) {
+    matches = records.filter(row => row.number.startsWith(query) && (sum === null || row.sum === sum));
+  }
   const totalPages = Math.max(1, Math.ceil(matches.length / ARCHIVE_PAGE_SIZE));
   archivePage = Math.min(Math.max(archivePage, 1), totalPages);
   const offset = (archivePage - 1) * ARCHIVE_PAGE_SIZE;
@@ -85,12 +92,15 @@ function renderHistory() {
     (archivePrev.disabled ? archiveNumber : archivePrev).focus({preventScroll:true});
   }
   archiveNumber.setAttribute("aria-invalid", String(!valid));
-  archiveSearchClear.disabled = !archiveNumber.value;
+  archiveSearchClear.disabled = !archiveNumber.value && sum === null;
   history.replaceChildren(...visible.map(item));
   if (!valid) archiveSearchStatus.textContent = "请输入 1–3 位数字。";
-  else if (!matches.length) archiveSearchStatus.textContent = query ? "存档中没有匹配 " + query + " 的号码。" : "";
+  else if (!matches.length) {
+    if (sum !== null) archiveSearchStatus.textContent = "存档中没有符合条件的记录。";
+    else archiveSearchStatus.textContent = query ? "存档中没有匹配 " + query + " 的号码。" : "";
+  }
   else {
-    const total = (query ? "找到 " : "共 ") + matches.length + " 条";
+    const total = (filtered ? "找到 " : "共 ") + matches.length + " 条";
     const first = offset + 1;
     const last = offset + visible.length;
     const range = first === last ? "第 " + first + " 条" : "第 " + first + "–" + last + " 条";
@@ -456,15 +466,19 @@ pauseButton.addEventListener("click", () => {
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches && playback?.paused) playback.resume();
 });
+for (let sum = 0; sum <= 27; sum++) archiveSum.add(new Option(String(sum), String(sum)));
 restoreArchive();
 archiveNumber.disabled = false;
+archiveSum.disabled = false;
 function resetArchivePage() {
   archivePage = 1;
   renderHistory();
 }
 archiveNumber.addEventListener("input", resetArchivePage);
+archiveSum.addEventListener("change", resetArchivePage);
 archiveSearchClear.addEventListener("click", () => {
   archiveNumber.value = "";
+  archiveSum.value = "";
   resetArchivePage();
   archiveNumber.focus();
 });
