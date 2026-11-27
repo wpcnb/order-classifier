@@ -1,4 +1,4 @@
-import {replayDraw} from "./draw-ui.mjs?v=1.6.0";
+import {replayDraw} from "./draw-ui.mjs?v=1.7.0";
 
 const meta = document.querySelector("#official-meta");
 const cacheKey = "fc3d-verified-draws-v1";

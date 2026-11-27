@@ -25,6 +25,9 @@ const outlets = [...document.querySelectorAll(".neck")];
 const history = document.querySelector("#history");
 const sumDisplay = document.querySelector("#draw-sum");
 const archiveStatus = document.querySelector("#archive-status");
+const archiveNumber = document.querySelector("#archive-number");
+const archiveSearchStatus = document.querySelector("#archive-search-status");
+const archiveSearchClear = document.querySelector("#archive-search-clear");
 const exportButton = document.querySelector("#archive-export");
 const batchButtons = [...document.querySelectorAll("[data-batch]")];
 const batchInstant = document.querySelector("#batch-instant");
@@ -38,7 +41,7 @@ const theoreticalSumCounts = Array(28).fill(0);
 for (let number = 0; number < 1000; number++) {
   theoreticalSumCounts[drawSum(String(number).padStart(3, "0"))]++;
 }
-function renderArchive(message) {
+function renderHistory() {
   function item(row) {
     const li = document.createElement("li");
     const summary = document.createElement("span");
@@ -56,11 +59,24 @@ function renderArchive(message) {
     li.append(summary, replay);
     return li;
   }
-  history.replaceChildren(...records.slice(0,10).map(item));
+  const query = archiveNumber.value.trim();
+  const valid = /^[0-9]{0,3}$/.test(query);
+  const matches = !valid ? [] : query ? records.filter(row => row.number.startsWith(query)) : records;
+  const visible = matches.slice(0, 10);
+  archiveNumber.setAttribute("aria-invalid", String(!valid));
+  archiveSearchClear.disabled = !archiveNumber.value;
+  history.replaceChildren(...visible.map(item));
+  if (!valid) archiveSearchStatus.textContent = "请输入 1–3 位数字。";
+  else if (!query) archiveSearchStatus.textContent = records.length ? "显示最近 " + visible.length + " 条。" : "";
+  else if (!matches.length) archiveSearchStatus.textContent = "存档中没有匹配 " + query + " 的号码。";
+  else archiveSearchStatus.textContent = "找到 " + matches.length + " 条，显示最近 " + visible.length + " 条。";
+}
+function renderArchive(message) {
+  renderHistory();
   renderRecentFrequency(document,recentFrequency(records.map(row=>row.number)));
   document.querySelector("#empty-history").hidden = records.length !== 0;
   exportButton.disabled = !records.length;
-  archiveStatus.textContent = message + " 显示最近 " + Math.min(records.length,10) + " 条，时间为北京时间。";
+  archiveStatus.textContent = message + " 时间为北京时间。";
 }
 function restoreArchive() {
   try {
@@ -241,7 +257,7 @@ function finish(draw, trigger) {
   playback = null;
   revealFinalFrame = null;
   setBusy(false);
-  if (focusOnPlayback) trigger.focus({preventScroll:true});
+  if (focusOnPlayback) (trigger.isConnected ? trigger : resultTitle).focus({preventScroll:true});
 }
 function restorePlaybackSpeed() {
   let savedSpeed;
@@ -373,6 +389,13 @@ reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches && playback?.paused) playback.resume();
 });
 restoreArchive();
+archiveNumber.disabled = false;
+archiveNumber.addEventListener("input", renderHistory);
+archiveSearchClear.addEventListener("click", () => {
+  archiveNumber.value = "";
+  renderHistory();
+  archiveNumber.focus();
+});
 restoreBatchReport();
 restorePlaybackSpeed();
 speed.addEventListener("change", () => {

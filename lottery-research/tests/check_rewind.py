@@ -138,6 +138,25 @@ def check(base):
         assert reopened.locator("#archive-list").count()==0
         assert not any(x.startswith("999 ·") for x in reopened.locator("#history li").all_text_contents())
         assert reopened.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records.length")==21
+        archive_search = reopened.get_by_label("按号码查找", exact=True)
+        archive_search.fill("00")
+        assert reopened.locator("#history li").count() == 6
+        assert all(x.startswith("007 ·") for x in reopened.locator("#history li").all_text_contents())
+        archive_search.fill("008")
+        assert reopened.locator("#history li").count() == 0
+        assert "没有匹配 008" in reopened.locator("#archive-search-status").inner_text()
+        archive_search.fill("999")
+        assert reopened.locator("#history li").count() == 10
+        assert "找到 11 条" in reopened.locator("#archive-search-status").inner_text()
+        original_archive = reopened.evaluate("localStorage.getItem('fc3d-simulation-archive-v1')")
+        reopened.get_by_role("button", name="回放模拟号码 999", exact=True).first.press("Enter")
+        reopened.locator("#skip-animation").press("Enter")
+        assert "".join(reopened.locator(".output b").all_text_contents()) == "999"
+        assert reopened.evaluate("localStorage.getItem('fc3d-simulation-archive-v1')") == original_archive
+        reopened.get_by_role("button", name="清除", exact=True).click()
+        assert archive_search.input_value() == ""
+        assert reopened.locator("#history li").count() == 10
+        assert reopened.get_by_role("button", name="回放模拟号码 999", exact=True).count() == 0
         reopened.get_by_text("本机存档备份",exact=True).click()
         assert reopened.locator("#history li").count()==10
         assert reopened.locator("#archive-list").count()==0
