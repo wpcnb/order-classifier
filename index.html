@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#183d36">
   <title>福彩 3D · 模拟摇奖机</title>
-  <link rel="stylesheet" href="./lottery-research/draw.css?v=20261127-multi-draw">
-  <script type="module" src="./lottery-research/draw-ui.mjs?v=20261127-multi-draw"></script>
-  <script type="module" src="./lottery-research/history-view.mjs?v=20261127-multi-draw"></script>
+  <link rel="stylesheet" href="./lottery-research/draw.css?v=1.1.0">
+  <script type="module" src="./lottery-research/draw-ui.mjs?v=1.1.0"></script>
+  <script type="module" src="./lottery-research/history-view.mjs?v=1.1.0"></script>
 <style>
 #official-history details{margin-top:1rem}
 #official-history summary{cursor:pointer}
@@ -88,6 +88,7 @@
         <select id="playback-speed"><option value="1">正常</option><option value="0.5">半速</option><option value="2">2 倍速</option><option value="4">4 倍速</option></select>
         <button id="pause" type="button" disabled>暂停动画</button>
         <button id="restart" type="button" disabled>从头播放</button>
+        <button id="skip-animation" type="button" disabled>直接看结果</button>
       </div>
       <button id="draw" type="button" disabled>开始摇奖 <span aria-hidden="true">→</span></button>
       <p class="status" role="status" aria-live="polite">正在准备摇奖机…</p>
@@ -177,5 +178,5 @@
     <p><a href="https://www.szlottery.org/fcw/fcxw/csdt/content/post_752635.html">福彩公开设备资料 ↗</a> · <a href="https://caipiao.people.com.cn/n1/2015/1231/c373276-27999921.html">球室结构与颜色 ↗</a> · <a href="https://www.swlc.net.cn/games/3d.html">福彩 3D 开奖规则 ↗</a></p>
   </details>
 </main>
-<footer class="container"><span>仅作随机模拟与概率研究</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
+<footer class="container"><span>仅作随机模拟与概率研究 · v1.1.0</span><a href="https://github.com/wpcnb/order-classifier/tree/main/lottery-research">研究代码 ↗</a></footer>
 </body></html>

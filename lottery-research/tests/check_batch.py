@@ -25,8 +25,16 @@ def check(base):
         def archived():
             return page.evaluate("JSON.parse(localStorage.getItem('fc3d-simulation-archive-v1')).records")
 
-        def batch(n):
-            page.locator(f'[data-batch="{n}"]').click()
+        def batch(n, skip_animation=False):
+            control = page.locator(f'[data-batch="{n}"]')
+            if skip_animation:
+                control.press("Enter")
+                assert page.locator("#draw").is_disabled()
+                page.locator("#skip-animation").press("Enter")
+                assert page.locator("#draw").is_enabled()
+                assert page.locator("#skip-animation").is_disabled()
+            else:
+                control.click()
             page.wait_for_function("!document.querySelector('#draw').disabled")
             assert page.locator("#batch-count").inner_text() == f"{n} 次"
             assert len(archived()) == min(page.evaluate("window.sampleCalls"), 1000)
@@ -47,9 +55,17 @@ def check(base):
         assert len(archived()) == 10 and page.evaluate("window.sampleCalls") == 10
         page.emulate_media(reduced_motion="reduce")
 
-        batch(100)
+        page.emulate_media(reduced_motion="no-preference")
+        page.select_option("#playback-speed", "0.5")
+        page.clock.install()
+        page.clock.pause_at(page.evaluate("new Date(Date.now() + 200).toISOString()"))
+        batch(100, skip_animation=True)
         assert result() == "109" and len(archived()) == 110
         assert page.locator("#batch-unique").inner_text() == "100"
+        page.clock.run_for(5000)
+        assert len(archived()) == page.evaluate("window.sampleCalls") == 110
+        page.clock.resume()
+        page.emulate_media(reduced_motion="reduce")
         batch(1000)
         assert page.evaluate("window.sampleCalls") == 1110
         assert result() == "109" and len(archived()) == 1000
