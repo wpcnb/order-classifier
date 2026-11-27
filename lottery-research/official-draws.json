@@ -1,6 +1,13 @@
 {
-  "updatedAt": "2026-11-26T22:54:00+08:00",
+  "updatedAt": "2026-11-27T22:29:21+08:00",
   "records": [
+    {
+      "issue": "2026317",
+      "publishedOn": "2026-11-27",
+      "source": "https://www.jslottery.com/winning_detail?id=27296&locale=zh-CN",
+      "date": "2026-11-27",
+      "number": "300"
+    },
     {
       "issue": "2026316",
       "publishedOn": "2026-11-26",
@@ -693,13 +700,6 @@
       "source": "https://www.jslottery.com/winning_detail?id=26963&locale=zh-CN",
       "date": "2026-08-16",
       "number": "382"
-    },
-    {
-      "issue": "2026217",
-      "publishedOn": "2026-08-15",
-      "source": "https://www.jslottery.com/winning_detail?id=26958&locale=zh-CN",
-      "date": "2026-08-15",
-      "number": "882"
     }
   ]
 }
