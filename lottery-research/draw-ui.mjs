@@ -9,10 +9,13 @@ import {BATCH_REPORT_KEY, sampleBatch, createBatchReport, validateBatchReport} f
 const button = document.querySelector("#draw");
 const pauseButton = document.querySelector("#pause");
 const restartButton = document.querySelector("#restart");
+const skipButton = document.querySelector("#skip-animation");
 const archiveButton = document.querySelector("#replay");
 const speed = document.querySelector("#playback-speed");
 let playback = null;
+let revealFinalFrame = null;
 let currentDraw = null;
+const FINAL_FRAME_MS = 2300;
 const status = document.querySelector(".status");
 const indicator = document.querySelector("#machine-state");
 const outputs = [...document.querySelectorAll(".output b")];
@@ -151,6 +154,7 @@ function setBusy(busy) {
   speed.disabled = busy;
   pauseButton.disabled = !busy;
   pauseButton.textContent = "暂停动画";
+  skipButton.disabled = !busy;
   archiveButton.disabled = busy;
   document.querySelector("#replay-issue").disabled = busy;
 }
@@ -168,10 +172,11 @@ function finish(draw, trigger) {
     draw.batchCount ? draw.batchCount + " 连抽完成，最后一组为 " + number + "。" : "本次模拟号码为 " + number + "。";
   status.textContent += "和值 " + sum + "。";
   button.firstChild.textContent = issue ? "开始摇奖 " : "再摇一次 ";
-  const focusOnPause = document.activeElement === pauseButton;
+  const focusOnPlayback = [pauseButton, skipButton].includes(document.activeElement);
   playback = null;
+  revealFinalFrame = null;
   setBusy(false);
-  if (focusOnPause) trigger.focus({preventScroll:true});
+  if (focusOnPlayback) trigger.focus({preventScroll:true});
 }
 export function replayDraw(row) {
   if (!button.disabled) animate({number:row.number, issue:row.issue}, archiveButton);
@@ -230,8 +235,8 @@ function animate(draw, trigger) {
   indicator.textContent = "混球中";
   status.textContent = issue ? "正在回放已公布的号码。" : "正在混球，准备依次出球。";
   let shown = 0;
-  playback = playFrames(Number(speed.value), elapsed => {
-    visualSource.dataset.visualElapsed = String(Math.max(0,Math.min(elapsed,2300)));
+  function paint(elapsed) {
+    visualSource.dataset.visualElapsed = String(Math.max(0,Math.min(elapsed,FINAL_FRAME_MS)));
     if (reducedMotion.matches) visualSource.dataset.visualPhase = "idle";
     const next = reducedMotion.matches ? 3 : Math.min(3, Math.max(0, 1 + Math.floor((elapsed-1100)/600)));
     while (shown < next) {
@@ -253,8 +258,14 @@ function animate(draw, trigger) {
       });
     }
     return false;
-  });
+  }
+  revealFinalFrame = () => {
+    playback.pause();
+    paint(FINAL_FRAME_MS);
+  };
+  playback = playFrames(Number(speed.value), paint);
 }
+skipButton.addEventListener("click", () => revealFinalFrame?.());
 restartButton.addEventListener("click", () => {
   if (currentDraw) animate(currentDraw, restartButton);
 });

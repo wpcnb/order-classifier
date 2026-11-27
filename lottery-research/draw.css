@@ -210,6 +210,8 @@ h1{margin:clamp(16px,2.4vw,32px) 0 4px;font-size:clamp(1.85rem,3.5vw,2.85rem)}
 .desk .playback-controls{gap:5px;margin-bottom:6px}
 .desk .playback-controls select,.desk .playback-controls button{padding:5px 8px}
 .desk #pause{margin-left:0}
+.desk #skip-animation:enabled{background:#edf6f9;border-color:#547c91;color:#183b50}
+.desk #skip-animation:hover:enabled{background:#d7eef4}
 .desk #replay-options{padding-top:7px;margin-top:8px}
 .desk .studio{flex:initial}
 @media(max-width:700px){

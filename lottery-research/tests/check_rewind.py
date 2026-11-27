@@ -22,6 +22,7 @@ def check(base):
         page.clock.pause_at(page.evaluate("new Date(Date.now() + 200).toISOString()"))
         restart = page.locator("#restart")
         pause = page.locator("#pause")
+        skip = page.locator("#skip-animation")
         history = page.locator("#history li")
 
         def result():
@@ -35,6 +36,7 @@ def check(base):
             )
 
         assert restart.is_disabled()
+        assert skip.is_disabled()
         page.locator("#draw").press("Enter")
         page.clock.run_for(1150)
         assert result() == "0––"
@@ -60,6 +62,14 @@ def check(base):
         # A genuine second draw can coincidentally have the same number.
         page.select_option("#playback-speed", "1")
         page.locator("#draw").press("Enter")
+        page.clock.run_for(1150)
+        assert result() == "0––" and history.count() == 1
+        pause.press("Enter")
+        skip.press("Enter")
+        assert result() == "007" and history.count() == 2
+        assert page.locator(".neck").all_text_contents() == ["0", "0", "7"]
+        assert page.locator("#draw-sum").inner_text() == "本次和值：7"
+        assert skip.is_disabled() and page.locator("#draw").evaluate("button => button === document.activeElement")
         page.clock.run_for(2350)
         assert history.count() == 2 and all(x.startswith("007 · 和值 7 ·") for x in history.all_text_contents()) and page.evaluate("window.drawCalls") == 2
 
@@ -71,7 +81,7 @@ def check(base):
         page.clock.run_for(2350)
         page.select_option("#replay-issue", options.nth(1).get_attribute("value"))
         restart.press("Enter")
-        page.clock.run_for(2350)
+        skip.press("Enter")
         assert result() == expected and issue in page.locator("#result-title").inner_text()
         assert history.count() == 2 and page.evaluate("window.drawCalls") == 2
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
