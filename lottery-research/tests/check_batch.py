@@ -37,9 +37,15 @@ def check(base):
         assert [row["number"] for row in archived()] == [f"{i:03d}" for i in range(9, -1, -1)]
         assert page.locator("#batch-unique").inner_text() == "10"
         assert page.locator("#batch-repeats").inner_text() == "0"
+        # The animation controls are intentionally hidden with reduced motion enabled.
+        page.emulate_media(reduced_motion="no-preference")
+        page.select_option("#playback-speed", "4")
         page.locator("#restart").click()
         page.wait_for_function("!document.querySelector('#draw').disabled")
+        assert page.locator("#result-title").inner_text() == "重播本次模拟"
+        assert result() == "009"
         assert len(archived()) == 10 and page.evaluate("window.sampleCalls") == 10
+        page.emulate_media(reduced_motion="reduce")
 
         batch(100)
         assert result() == "109" and len(archived()) == 110
